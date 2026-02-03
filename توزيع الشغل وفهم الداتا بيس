@@ -38,92 +38,147 @@ SUPABASE_ANON_KEY="[YOUR-ANON-KEY]"
 ثانياً: توزيع المهام العادل (StoreLaunch Master Plan) 🚀
 بناءً على ملف الـ Word (الذي يوضح أن المشروع منصة SaaS)، إليك التوزيعة التي تضمن أن كل طالب لديه جزء مستقل (Frontend + Backend) لتقليل التضارب:
 
-الطالب رقم 1: أساس النظام والاشتراكات (Foundation & SaaS)
-المسؤولية: أنت تبني البنية التحتية للمنصة ونظام الاشتراكات (بما أنه مشروع تجاري).
+Student 1: System Architecture & Platform Administration
+Role: The Architect.
 
-Frontend (واجهات):
+Git Branch Name: feature/platform-foundation
 
-صفحات التسجيل والدخول (Login, Register) - (واحدة للتاجر وواحدة للعميل).
+Primary Actor (from IS498): Admin & System Stakeholders.
 
-صفحة "Landing Page" التعريفية للمنصة (StoreLaunch).
+Detailed Tasks (Checklist):
 
-لوحة تحكم "السوبر أدمن" (لإدارة الاشتراكات والمتاجر).
+Unified Authentication System:
 
-Backend (منطق):
+Develop a Sign-Up/Sign-In portal that routes users based on their role:
 
-نظام المصادقة (Auth Middleware) وحماية الصفحات.
+Customer: Redirects to the Storefront.
 
-API لترقية الاشتراك (Upgrade Plan) من Basic إلى Pro.
+Store Owner: Redirects to the Store Dashboard.
 
-الجداول المسؤولة عنها:
+Admin: Redirects to the Platform Administration Console.
 
-users, admins, subscriptions (من الجدول القديم أو المدمج), store_owners.
+Implement RBAC (Role-Based Access Control) middleware to secure routes (e.g., ensuring a Customer cannot access Store Owner settings).
 
-الطالب رقم 2: إدارة المتجر والمنتجات (Merchant Dashboard)
-المسؤولية: أنت تخدم "التاجر". عملك كله في لوحة التحكم (Dashboard) الخاصة بمالك المتجر.
+Implement Password Hashing security measures as specified in the "Security Impact" section.
 
-Frontend (واجهات):
+Platform Admin Dashboard:
 
-داشبورد التاجر (إحصائيات المبيعات، عدد الزوار).
+Create a view for the Admin to oversee all registered Stores.
 
-صفحة "إعدادات المتجر" (رفع اللوجو، تغيير اسم المتجر، ربط الدومين).
+Implement "Suspend Store" functionality (changing Store.status to 'Inactive').
 
-صفحة "إدارة المنتجات" (إضافة، تعديل، حذف) + إدارة المخزون (Product Options).
+Create a "User Management" table to view all registered Store Owners and Customers.
 
-Backend (منطق):
+Subscription Management:
 
-CRUD Operations للمنتجات.
+Implement the logic for Store Owners to select a PlanType (Basic/Premium) during registration, linking to the Subscription entity.
 
-رفع الصور (Storage) وربطها بالمنتج.
+⚡ How to start immediately: Use dummy data for users. Do not wait for the UI to be perfect; focus on the logic.
 
-الجداول المسؤولة عنها:
+Student 2: Store Owner Dashboard & Catalog Management
+Role: The Core Builder.
 
-stores, products, product_options, store_admins.
+Git Branch Name: feature/store-owner-dashboard
 
-الطالب رقم 3: واجهة المتجر للعملاء (Storefront Experience)
-المسؤولية: أنت تخدم "المشتري". أنت تبني المتجر الذي سيظهر للناس (مثل واجهة متجر سلة).
+Primary Actor (from IS498): Store Owner & Store Admin.
 
-Frontend (واجهات):
+Detailed Tasks (Checklist):
 
-الصفحة الرئيسية للمتجر (ديناميكية حسب المتجر store_id).
+Store Configuration:
 
-صفحة تفاصيل المنتج (عرض الصور، اختيار المقاس/اللون).
+Develop the Store Owner profile settings (First Name, Last Name, Phone).
 
-التقييمات (Reviews) وعرض النجوم.
+Create the Store Settings page to manage: Store Name, Domain Name, and Store Status.
 
-السلة (Cart) وإدارتها.
+Implement Store Admin management (allowing a Store Owner to add staff).
 
-Backend (منطق):
+Product Management (CRUD):
 
-Public APIs لجلب المنتجات (بدون صلاحيات أدمن).
+Create: Interface to add new products to the Product table (Name, Title, Price).
 
-منطق السلة (حساب المجموع والخصومات).
+Update: functionality to edit Product details and ProductOption (e.g., StockQty, AdditionalPrice).
 
-الجداول المسؤولة عنها:
+Delete: Logic to archive products (change Product.status to 'Archived' instead of deleting).
 
-carts, cart_items, reviews (والقراءة من products).
+Inventory & Variants:
 
-الطالب رقم 4: العمليات والطلبات (Checkout & Operations)
-المسؤولية: أنت "الكاشير" واللوجستيك. أهم جزء لإتمام العملية.
+Build a UI for managing ProductOptions (defining OptionName like "Size" and OptionValue like "Large").
 
-Frontend (واجهات):
+Display "Low Stock" alerts for the Store Owner.
 
-صفحة الدفع (Checkout): إدخال العنوان واختيار طريقة الدفع.
+⚡ How to start immediately: Hardcode a store_id = 1 in your code. Assume the Store Owner is already logged in.
 
-صفحة "تتبع الطلب" للعميل.
+Student 3: Customer Storefront & Shopping Experience
+Role: The Frontend Specialist.
 
-صفحة "إدارة الطلبات" للتاجر (تغيير الحالة من Pending -> Shipped -> Delivered).
+Git Branch Name: feature/customer-storefront
 
-Backend (منطق):
+Primary Actor (from IS498): Customer.
 
-تحويل السلة إلى طلب (Create Order Transaction).
+Detailed Tasks (Checklist):
 
-تكامل صوري مع المدفوعات والشحن (حفظ البيانات في الجداول).
+Public Store Interface:
 
-الجداول المسؤولة عنها:
+Develop the Home Page that renders dynamically based on the Store.DomainName or ID.
 
-orders, order_items, payments, shipments.
+Display a grid of active Products with their Price and Title.
 
+Implement Search and Filtering functionality.
+
+Product Discovery:
+
+Product Details Page: Show full product information, including images and ProductOption selection (Size/Color).
+
+Reviews System: Display Review.Rating and Review.Comment for the product.
+
+Shopping Cart System:
+
+Implement the Cart logic:
+
+Add item to CartItem.
+
+Update Quantity.
+
+Calculate Subtotal and TotalPrice dynamically.
+
+Create a Cart Drawer or Page for the Customer to review items before checkout.
+
+⚡ How to start immediately: Create a mock_products.json file with fake data. Build the entire UI using this file. Once Student 2 finishes the API, switch the mock file with the real API URL.
+
+Student 4: Order Fulfillment & Operations
+Role: The Operations Manager.
+
+Git Branch Name: feature/orders-operations
+
+Primary Actor (from IS498): Customer (for Checkout) & Store Owner (for Fulfillment).
+
+Detailed Tasks (Checklist):
+
+Checkout & Payment:
+
+Develop the Checkout Page where the Customer inputs ShippingAddress and ShippingPhone.
+
+Implement the Payment interface to select Payment.Method and generate a Payment.ProviderRef.
+
+Transaction: Logic to convert a Cart into a confirmed Order and clear the cart.
+
+Order Management (Store Owner View):
+
+Dashboard view for Store Owners to see incoming Orders.
+
+Functionality to update Order.Status (Pending -> Processing -> Shipped).
+
+Shipment Tracking:
+
+Interface to generate a Shipment record with a TrackingNumber.
+
+Customer view to track their ShipmentStatus and DeliveredAt date.
+
+Reporting:
+
+Simple analytics for the Store Owner showing TotalAmount of sales.
+
+⚡ How to start immediately: Create a fake "Cart Object" in your code. Build the Checkout process assuming the cart is full. Do not wait for Student 3 to finish the "Add to Cart" button.
 💡 نصيحة للبدء اليوم:
 أنشئوا الريبو (Repo): ارفعوا المشروع الأساسي.
 
