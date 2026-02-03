@@ -1,7 +1,6 @@
 # StoreLaunch
 
-push
-dddddddddd
+pull
 
 E-commerce platform for Saudi SMBs — IS498 Graduation Project, King Saud University.  
 Supervised by Dr. Abdulrahman Alothaim.
