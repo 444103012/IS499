@@ -65,14 +65,14 @@ app.get('/test-customers', async (req, res) => {
 
 // Insert example customer to test DB write
 app.post('/customers-test-insert', async (req, res) => {
-  const {
-    first_name = 'Test',
-    last_name = 'Customer',
-    email = `test.customer.${Date.now()}@example.com`,
-    phone = '+966500000000',
-    password_hash = 'dummy_hashed_password_here',
-    status = 'Active',
-  } = req.body || {};
+  const { first_name, last_name, email, phone, password_hash, status = 'Active' } = req.body || {};
+
+  if (!first_name || !last_name || !email || !password_hash) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'first_name, last_name, email, and password_hash are required',
+    });
+  }
 
   try {
     const insertQuery = `
