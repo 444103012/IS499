@@ -42,7 +42,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(\`Frontend available at http://localhost:\${port}\`);
-  console.log(\`It will call backend health at ${backendUrl}\`);
+  console.log(`Frontend available at http://localhost:\${port}`);
+  console.log(`It will call backend health at ${backendUrl}`);
 });
 
