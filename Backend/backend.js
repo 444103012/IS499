@@ -63,6 +63,48 @@ app.get('/test-customers', async (req, res) => {
   }
 });
 
+// Insert example customer to test DB write
+app.post('/customers-test-insert', async (req, res) => {
+  const {
+    first_name = 'Test',
+    last_name = 'Customer',
+    email = `test.customer.${Date.now()}@example.com`,
+    phone = '+966500000000',
+    password_hash = 'dummy_hashed_password_here',
+    status = 'Active',
+  } = req.body || {};
+
+  try {
+    const insertQuery = `
+      INSERT INTO customers (
+        first_name, last_name, email, phone, password_hash, status
+      ) VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING customer_id, first_name, last_name, email, phone, status, created_at
+    `;
+
+    const result = await pool.query(insertQuery, [
+      first_name,
+      last_name,
+      email,
+      phone,
+      password_hash,
+      status,
+    ]);
+
+    res.status(201).json({
+      status: 'ok',
+      message: 'Customer inserted successfully',
+      customer: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Insert error on customers table:', err.message);
+    res.status(500).json({
+      status: 'error',
+      error: err.message,
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening on http://localhost:${port}`);
 });
