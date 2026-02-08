@@ -4,7 +4,10 @@
   "description": "",
   "main": "backend.js",
   "scripts": {
-    "start": "node backend.js"
+    "start": "node backend.js",
+    "dev":"nodemon backend.js"
+
+
   },
   "keywords": [],
   "author": "",
@@ -16,5 +19,7 @@
     "express": "^5.2.1",
     "pg": "^8.18.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
 }
