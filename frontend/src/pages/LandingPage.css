@@ -1,0 +1,200 @@
+/* Landing Page - StoreLaunch First Screen */
+.landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem 1.5rem 3rem;
+  background: var(--color-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.landing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(31, 174, 119, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 143, 150, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(12, 122, 92, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+
+/* Logo wrapper - keeps gap under logo tight */
+.logo-wrap {
+  line-height: 0;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.logo-wrap .logo-img {
+  height: 300px;
+  width: auto;
+  max-width: 500px;
+  object-fit: contain;
+  object-position: top center;
+  display: block;
+  margin: 0 auto;
+  vertical-align: top;
+}
+
+.landing-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-dark-blue-green);
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.landing-subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin: 0 0 2.5rem;
+  font-weight: 500;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.option-card {
+  border: 2px solid rgba(10, 60, 90, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: var(--transition);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Store Owner card - green tint */
+.option-card:first-child {
+  background: linear-gradient(145deg, rgba(31, 174, 119, 0.1), rgba(12, 122, 92, 0.05));
+  border-color: rgba(31, 174, 119, 0.15);
+}
+
+/* Customer card - teal/blue tint */
+.option-card:last-child {
+  background: linear-gradient(145deg, rgba(14, 143, 150, 0.1), rgba(10, 60, 90, 0.05));
+  border-color: rgba(14, 143, 150, 0.15);
+}
+
+.option-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-green), var(--color-teal));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.option-card:first-child:hover {
+  border-color: var(--color-green);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+}
+
+.option-card:last-child:hover {
+  border-color: var(--color-teal);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+}
+
+.option-card:hover::before {
+  opacity: 1;
+}
+
+.option-card:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+.option-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  transition: var(--transition);
+}
+
+.option-card:first-child .option-icon-wrap {
+  background: linear-gradient(145deg, rgba(31, 174, 119, 0.18), rgba(12, 122, 92, 0.12));
+  color: var(--color-deep-green);
+}
+
+.option-card:last-child .option-icon-wrap {
+  background: linear-gradient(145deg, rgba(14, 143, 150, 0.18), rgba(10, 60, 90, 0.12));
+  color: var(--color-teal);
+}
+
+.option-card:hover .option-icon-wrap {
+  transform: scale(1.08);
+}
+
+.option-card:first-child:hover .option-icon-wrap {
+  background: linear-gradient(145deg, rgba(31, 174, 119, 0.28), rgba(12, 122, 92, 0.2));
+}
+
+.option-card:last-child:hover .option-icon-wrap {
+  background: linear-gradient(145deg, rgba(14, 143, 150, 0.28), rgba(10, 60, 90, 0.2));
+}
+
+.option-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.option-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-dark-blue-green);
+  margin: 0 0 0.25rem;
+}
+
+.option-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-title {
+    font-size: 1.3rem;
+  }
+
+  .logo-wrap .logo-img {
+    height: 80px;
+    max-width: 200px;
+  }
+}

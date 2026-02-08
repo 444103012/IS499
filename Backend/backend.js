@@ -2,16 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { Pool } = require('pg');
+const { initDb } = require('./db/init');
+const createRegisterRoutes = require('./routes/register');
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// Configure PostgreSQL connection using environment variables
 const pool = new Pool({
   host: process.env.PGHOST,
   port: process.env.PGPORT || 5432,
@@ -21,13 +22,10 @@ const pool = new Pool({
   ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
-// Simple route to check API is up
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running' });
 });
 
-// Health-check route that tests PostgreSQL connection
-// (kept for production monitoring, but simplified)
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -38,7 +36,17 @@ app.get('/health', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Backend server listening on http://localhost:${port}`);
-});
+app.use('/api/register', createRegisterRoutes(pool));
 
+async function start() {
+  try {
+    await initDb(pool);
+  } catch (err) {
+    console.error('DB init error:', err.message);
+  }
+  app.listen(port, () => {
+    console.log(`Backend server listening on http://localhost:${port}`);
+  });
+}
+
+start();

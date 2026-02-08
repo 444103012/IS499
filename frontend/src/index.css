@@ -1,13 +1,49 @@
+/* StoreLaunch Theme - CSS Variables */
+:root {
+  --color-green: #1FAE77;
+  --color-deep-green: #0C7A5C;
+  --color-teal: #0E8F96;
+  --color-dark-blue-green: #0A3C5A;
+  --color-bg: #ffffff;
+  --color-text: #0A3C5A;
+  --color-text-muted: #0A3C5A99;
+  --font-ar: 'Tajawal', 'Segoe UI', system-ui, sans-serif;
+  --shadow-soft: 0 4px 20px rgba(10, 60, 90, 0.08);
+  --shadow-hover: 0 12px 40px rgba(10, 60, 90, 0.12);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-ar);
+  background: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* RTL support - applied when dir="rtl" on html */
+[dir="rtl"] {
+  text-align: right;
 }
+
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .register-back svg {
+  transform: scaleX(-1);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Import Arabic-friendly font (Google Fonts) */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');

@@ -1,0 +1,18 @@
+/* Login page overrides - base layout from RegisterCustomer.css */
+.login-page.register-page::before {
+  background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(14, 143, 150, 0.06) 0%, transparent 50%);
+}
+
+.login-page .register-submit {
+  background: linear-gradient(135deg, var(--color-teal), var(--color-dark-blue-green));
+  box-shadow: 0 4px 14px rgba(14, 143, 150, 0.35);
+}
+
+.login-page .register-submit:hover {
+  box-shadow: 0 6px 20px rgba(14, 143, 150, 0.4);
+}
+
+.login-page .form-group input:focus {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px rgba(14, 143, 150, 0.15);
+}
