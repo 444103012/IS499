@@ -3,70 +3,69 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import './LandingPage.css';
 
-/*
-  LOGO INSTRUCTIONS (Arabic/English):
-  To add your own logo:
-  1. Place your logo image in: frontend/public/ (e.g. logo.png)
-  2. Replace the logo img src below with your filename.
-  3. Adjust size in LandingPage.css: .logo-wrap .logo-img { height: ...; max-width: ...; }
-*/
 function LandingPage() {
   const { t } = useLanguage();
   return (
     <main className="landing" role="main">
-      <div className="landing-inner">
-        <div className="logo-wrap">
-          <img src={process.env.PUBLIC_URL + '/Logo1.png'} alt="StoreLaunch" className="logo-img" />
-        </div>
+      <div className="landing-hero">
+        <div className="landing-content">
+          <div className="logo-wrap">
+            <img src={process.env.PUBLIC_URL + '/Logo1.png'} alt="StoreLaunch" className="logo-img" />
+          </div>
 
-        <h1 className="landing-title">{t('landing.title')}</h1>
-        <p className="landing-subtitle">{t('landing.subtitle')}</p>
+          <h1 className="landing-title">{t('landing.title')}</h1>
+          <p className="landing-subtitle">{t('landing.subtitle')}</p>
+          <p className="landing-description">{t('landing.description')}</p>
 
-        <div className="options">
-          <Link
-            to="/register/store-owner"
-            className="option-card"
-            aria-label={t('landing.storeOwnerAria')}
-          >
-            <div className="option-icon-wrap">
-              <StoreOwnerIcon className="option-icon" />
+          <div className="landing-features">
+            <div className="feature-item">
+              <FeatureIcon className="feature-icon" />
+              <h3 className="feature-title">{t('landing.feature1Title')}</h3>
+              <p className="feature-desc">{t('landing.feature1Desc')}</p>
             </div>
-            <span className="option-label">{t('landing.storeOwner')}</span>
-            <span className="option-desc">{t('landing.storeOwnerDesc')}</span>
-          </Link>
-
-          <Link
-            to="/register/customer"
-            className="option-card"
-            aria-label={t('landing.customerAria')}
-          >
-            <div className="option-icon-wrap">
-              <CustomerIcon className="option-icon" />
+            <div className="feature-item">
+              <FeatureIcon className="feature-icon" />
+              <h3 className="feature-title">{t('landing.feature2Title')}</h3>
+              <p className="feature-desc">{t('landing.feature2Desc')}</p>
             </div>
-            <span className="option-label">{t('landing.customer')}</span>
-            <span className="option-desc">{t('landing.customerDesc')}</span>
-          </Link>
+            <div className="feature-item">
+              <FeatureIcon className="feature-icon" />
+              <h3 className="feature-title">{t('landing.feature3Title')}</h3>
+              <p className="feature-desc">{t('landing.feature3Desc')}</p>
+            </div>
+          </div>
+
+          <div className="landing-cta">
+            <Link
+              to="/register/store-owner"
+              className="cta-button"
+              aria-label={t('landing.ctaAria')}
+            >
+              {t('landing.ctaButton')}
+              <ArrowIcon className="cta-arrow" />
+            </Link>
+            <p className="cta-subtext">{t('landing.ctaSubtext')}</p>
+          </div>
         </div>
       </div>
     </main>
   );
 }
 
-function StoreOwnerIcon({ className }) {
+function FeatureIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   );
 }
 
-function CustomerIcon({ className }) {
+function ArrowIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 0 1-8 0" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
     </svg>
   );
 }
