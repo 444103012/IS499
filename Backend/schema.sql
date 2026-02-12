@@ -4,7 +4,7 @@ CREATE TABLE customers (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
-    phone VARCHAR(20),
+    phone VARCHAR(20) NOT NULL,
     password_hash TEXT NOT NULL,
     status VARCHAR(50) DEFAULT 'Active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -16,7 +16,7 @@ CREATE TABLE store_owners (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
-    phone VARCHAR(20),
+    phone VARCHAR(20) NOT NULL,
     password_hash TEXT NOT NULL,
     status VARCHAR(50) DEFAULT 'Active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
