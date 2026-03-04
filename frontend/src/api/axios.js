@@ -1,3 +1,8 @@
+/**
+ * Fetch-based API client (replaces axios to avoid webpack 5 Node polyfill issues).
+ * Same usage: api.post(url, body) -> { data } or throws with err.response.data
+ */
+
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 async function request(method, url, body = null) {

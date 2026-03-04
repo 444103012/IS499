@@ -36,6 +36,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`flex justify-between items-center h-14 md:h-16 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -99,6 +100,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
+      {/* Hero Section */}
       <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center ${isRTL ? 'lg:grid-flow-dense' : ''}`}>
@@ -110,9 +112,12 @@ const LandingPage = () => {
                 {t('hero.subheadline')}
               </p>
               <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? 'sm:flex-row-reverse justify-start' : ''}`}>
-                <Link to="/register" className="inline-flex justify-center px-8 py-3 bg-storelaunch-green text-white rounded-lg font-semibold hover:bg-storelaunch-deep-green w-full sm:w-auto">
+                <Link to="/register" className="inline-flex justify-center px-6 py-3 bg-storelaunch-green text-white rounded-lg font-semibold hover:bg-storelaunch-deep-green">
                   {t('hero.ctaPrimary')}
                 </Link>
+                <a href="#features" className="inline-flex justify-center px-6 py-3 bg-white text-storelaunch-dark border-2 border-storelaunch-dark rounded-lg font-semibold hover:bg-storelaunch-dark hover:text-white">
+                  {t('hero.ctaSecondary')}
+                </a>
               </div>
             </div>
             <div className="flex justify-center items-center">
@@ -122,12 +127,14 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Features Section - 3 features only */}
       <section id="features" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-storelaunch-dark mb-2 text-center">
             {t('features.title')}
           </h2>
           <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
+            {t('features.subtitle')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {featuresList.map((feature, index) => (
@@ -160,19 +167,95 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Pricing Section - 3 plans */}
       <section id="pricing" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-storelaunch-dark mb-2 text-center">
             {t('pricing.title')}
           </h2>
-          <div className="text-center py-16">
+          <p className="text-gray-600 text-center mb-6">
+            {t('pricing.subtitle')}
+          </p>
+
+          <div className={`flex items-center justify-center gap-3 mb-10 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-storelaunch-dark' : 'text-gray-500'}`}>
+              {t('pricing.monthly')}
+            </span>
+            <button
+              type="button"
+              onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full ${billingPeriod === 'monthly' ? 'bg-storelaunch-green' : 'bg-gray-300'}`}
+            >
+              <span
+                className={`inline-block h-6 w-6 rounded-full bg-white shadow ${billingPeriod === 'monthly' ? (isRTL ? 'translate-x-8' : 'translate-x-1') : (isRTL ? 'translate-x-1' : 'translate-x-8')}`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${billingPeriod === 'yearly' ? 'text-storelaunch-dark' : 'text-gray-500'}`}>
+              {t('pricing.yearly')}
+            </span>
+            {billingPeriod === 'yearly' && (
+              <span className="text-storelaunch-green text-xs font-semibold px-2 py-1 bg-storelaunch-green/10 rounded-full">
+                {t('pricing.save')}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {plans.map((plan, index) => {
+              const planData = t(`pricing.plans.${plan.planKey}`, { returnObjects: true });
+              const price = billingPeriod === 'monthly'
+                ? (isRTL ? planData.priceAr : planData.price)
+                : (plan.planKey === 'basic' ? (isRTL ? planData.priceAr : planData.price) : (isRTL ? planData.priceYearlyAr : planData.priceYearly));
+              const period = billingPeriod === 'monthly'
+                ? (isRTL ? '/شهر' : '/month')
+                : (plan.planKey === 'basic' ? '' : (isRTL ? '/سنة' : '/year'));
+              const features = Object.values(planData.features || {});
+
+              return (
+                <div
+                  key={index}
+                  className={`relative bg-white rounded-xl border p-6 shadow-md ${
+                    plan.popular ? 'border-storelaunch-green border-2 ring-2 ring-storelaunch-green/20' : 'border-gray-200'
+                  }`}
+                >
+                  <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {planData.name}
+                  </h3>
+                  <p className={`text-gray-600 text-sm mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{planData.description}</p>
+                  <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <span className="text-3xl font-bold text-storelaunch-dark">{price}</span>
+                    <span className="text-gray-600 ml-1">{planData.currency}{period}</span>
+                  </div>
+                  <ul className={`space-y-2 mb-6 min-h-[180px] ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {features.map((feature, idx) => (
+                      <li key={idx} className={`flex items-start gap-2 text-sm text-gray-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <svg className="w-4 h-4 text-storelaunch-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to="/register"
+                    className={`block w-full py-3 rounded-lg font-semibold text-sm text-center ${
+                      plan.popular ? 'bg-storelaunch-green text-white hover:bg-storelaunch-deep-green' : 'bg-storelaunch-dark text-white hover:bg-storelaunch-teal'
+                    }`}
+                  >
+                    {plan.planKey === 'advanced' ? t('nav.getStarted') : planData.cta}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
+      {/* Footer - simple */}
       <footer className="bg-storelaunch-dark text-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-lg font-bold">StoreLaunch</span>
+          <p className="text-gray-300 text-sm">© StoreLaunch 2025</p>
         </div>
       </footer>
     </div>
