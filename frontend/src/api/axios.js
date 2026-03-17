@@ -1,4 +1,4 @@
-const BASE_URL = process.env.REACT_APP_API_URL || '';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 async function request(method, url, body = null) {
   const options = {
