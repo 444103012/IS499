@@ -3,7 +3,7 @@
     "features": "المميزات",
     "pricing": "الأسعار",
     "contact": "اتصل بنا",
-    "getStarted": "ابدأ الآن",
+    
     "login": "تسجيل الدخول",
     "arabic": "العربية",
     "english": "English"
@@ -135,5 +135,55 @@
     "passwordMismatch": "كلمة المرور وتأكيد كلمة المرور غير متطابقتين",
     "switchToArabic": "العربية",
     "switchToEnglish": "English"
+  },
+  "onboarding": {
+    "next": "التالي",
+    "back": "السابق",
+    "storeDetails": {
+      "title": "تفاصيل المتجر",
+      "storeName": "اسم المتجر",
+      "storeNamePlaceholder": "أدخل اسم المتجر",
+      "storeLogo": "شعار المتجر",
+      "storeType": "نوع المتجر",
+      "chooseType": "اختر النوع",
+      "storeDescription": "وصف المتجر",
+      "descriptionPlaceholder": "صف متجرك"
+    },
+    "choosePlan": {
+      "title": "اختر خطة الاشتراك",
+      "free": "مجاني",
+      "sarPerMonth": "ريال/شهر"
+    },
+    "chooseTheme": {
+      "title": "اختر القالب",
+      "requiresPlan": "يتطلب خطة"
+    },
+    "payment": {
+      "title": "إعداد مزود الدفع",
+      "provider": "مزود الدفع",
+      "chooseProvider": "اختر المزود",
+      "apiKey": "مفتاح API",
+      "apiKeyPlaceholder": "مفتاح API",
+      "secretKey": "المفتاح السري",
+      "secretPlaceholder": "المفتاح السري"
+    },
+    "shipping": {
+      "title": "إعداد مزود الشحن",
+      "carrier": "شركة الشحن",
+      "chooseCarrier": "اختر الشركة",
+      "apiKey": "مفتاح API",
+      "apiKeyPlaceholder": "مفتاح API",
+      "password": "كلمة المرور",
+      "passwordPlaceholder": "كلمة المرور"
+    },
+    "review": {
+      "title": "المراجعة والإنهاء",
+      "storeDetails": "تفاصيل المتجر",
+      "plan": "الخطة",
+      "theme": "القالب",
+      "payment": "مزود الدفع",
+      "shipping": "مزود الشحن",
+      "finishSetup": "إنهاء الإعداد"
+    }
   }
 }

@@ -3,7 +3,7 @@
     "features": "Features",
     "pricing": "Pricing",
     "contact": "Contact",
-    "getStarted": "Get Started",
+    
     "login": "Login",
     "arabic": "العربية",
     "english": "English"
@@ -135,5 +135,55 @@
     "passwordMismatch": "Password and confirm password do not match",
     "switchToArabic": "العربية",
     "switchToEnglish": "English"
+  },
+  "onboarding": {
+    "next": "Next",
+    "back": "Back",
+    "storeDetails": {
+      "title": "Store Details",
+      "storeName": "Store Name",
+      "storeNamePlaceholder": "Enter your store name",
+      "storeLogo": "Store Logo",
+      "storeType": "Store Type",
+      "chooseType": "Choose type",
+      "storeDescription": "Store Description",
+      "descriptionPlaceholder": "Describe your store"
+    },
+    "choosePlan": {
+      "title": "Choose Subscription Plan",
+      "free": "Free",
+      "sarPerMonth": "SAR/mo"
+    },
+    "chooseTheme": {
+      "title": "Choose Theme",
+      "requiresPlan": "Requires"
+    },
+    "payment": {
+      "title": "Payment Provider Setup",
+      "provider": "Payment provider",
+      "chooseProvider": "Choose provider",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "API key",
+      "secretKey": "Secret Key",
+      "secretPlaceholder": "Secret key"
+    },
+    "shipping": {
+      "title": "Shipping Provider Setup",
+      "carrier": "Shipping carrier",
+      "chooseCarrier": "Choose carrier",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "API key",
+      "password": "Password",
+      "passwordPlaceholder": "Password"
+    },
+    "review": {
+      "title": "Review & Finish",
+      "storeDetails": "Store Details",
+      "plan": "Plan",
+      "theme": "Theme",
+      "payment": "Payment Provider",
+      "shipping": "Shipping Provider",
+      "finishSetup": "Finish Setup"
+    }
   }
 }

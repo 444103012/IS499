@@ -46,9 +46,7 @@ export default function StoreSetupPlan({ isRTL, t, onNext, onBack }) {
               key={index}
               type="button"
               onClick={() => setSelectedPlan(plan.planKey)}
-              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full ${
-                plan.popular ? 'border-storelaunch-green border-2 ring-2 ring-storelaunch-green/20' : 'border-gray-200'
-              } ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
+              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
             >
               <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{name}</h3>
               <p className={`text-gray-600 text-sm mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{description}</p>
