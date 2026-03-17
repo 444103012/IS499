@@ -3,14 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 
-const ERROR_MESSAGES_AR = {
-  'Invalid email or password': 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-  'Missing required fields': 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
-  'Login failed': 'فشل تسجيل الدخول. يرجى المحاولة لاحقاً',
-  'NetworkError': 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000',
+const getErrorMessageEn = (message) => {
+  const map = {
+    'Invalid email or password': 'Invalid email or password.',
+    'Missing required fields': 'Please enter email and password.',
+    'Login failed': 'Login failed. Please try again later.',
+    'NetworkError': 'Cannot reach the server. Make sure the backend is running on port 5000.',
+  };
+  return map[message] || message || 'Something went wrong. Please try again later.';
 };
-
-const getErrorMessageAr = (message) => ERROR_MESSAGES_AR[message] || message || 'حدث خطأ. يرجى المحاولة لاحقاً';
 
 const StoreOwnerLoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -35,7 +36,7 @@ const StoreOwnerLoginPage = () => {
     setError('');
 
     if (!email?.trim() || !password) {
-      setError(isRTL ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter email and password');
+      setError('Please enter email and password.');
       return;
     }
 
@@ -48,10 +49,12 @@ const StoreOwnerLoginPage = () => {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
-      navigate('/dashboard');
+      const setupStep = data.setup_step != null ? Number(data.setup_step) : 0;
+      if (setupStep >= 6) navigate('/dashboard');
+      else navigate('/store-setup');
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
-      setError(getErrorMessageAr(msg));
+      setError(getErrorMessageEn(msg));
     } finally {
       setLoading(false);
     }
@@ -112,7 +115,7 @@ const StoreOwnerLoginPage = () => {
             disabled={loading}
             className="w-full p-2 bg-storelaunch-green text-white rounded-md font-medium disabled:opacity-70"
           >
-            {loading ? (isRTL ? 'جاري تسجيل الدخول...' : 'Signing in...') : t('auth.loginButton')}
+            {loading ? 'Signing in...' : t('auth.loginButton')}
           </button>
         </form>
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>

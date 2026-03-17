@@ -29,9 +29,9 @@ const LandingPage = () => {
   ];
 
   const plans = [
-    { planKey: 'basic', popular: false },
-    { planKey: 'pro', popular: false },
-    { planKey: 'advanced', popular: false },
+    { planKey: 'basic' },
+    { planKey: 'pro' },
+    { planKey: 'advanced' },
   ];
 
   return (
@@ -113,6 +113,9 @@ const LandingPage = () => {
                 <Link to="/register" className="inline-flex justify-center px-6 py-3 bg-storelaunch-green text-white rounded-lg font-semibold hover:bg-storelaunch-deep-green">
                   {t('hero.ctaPrimary')}
                 </Link>
+                <a href="#features" className="inline-flex justify-center px-6 py-3 bg-white text-storelaunch-dark border-2 border-storelaunch-dark rounded-lg font-semibold hover:bg-storelaunch-dark hover:text-white">
+                  {t('hero.ctaSecondary')}
+                </a>
               </div>
             </div>
             <div className="flex justify-center items-center">

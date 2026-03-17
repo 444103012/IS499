@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import StoreOwnerLoginPage from './pages/StoreOwnerLoginPage';
 import StoreOwnerRegisterPage from './pages/StoreOwnerRegisterPage';
 import StoreOwnerDashboardLayout from './pages/StoreOwnerDashboardLayout';
+import StoreSetupPage from './pages/StoreSetupPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -14,6 +15,14 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<StoreOwnerLoginPage />} />
           <Route path="/register" element={<StoreOwnerRegisterPage />} />
+          <Route
+            path="/store-setup/:step?"
+            element={
+              <ProtectedRoute>
+                <StoreSetupPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

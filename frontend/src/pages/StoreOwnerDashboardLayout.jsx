@@ -11,19 +11,19 @@ const StoreOwnerDashboardLayout = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50">
+    <div dir="ltr" className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center">
-        <h1 className="text-storelaunch-dark font-bold text-lg">لوحة تحكم التاجر</h1>
+        <h1 className="text-storelaunch-dark font-bold text-lg">Store Owner Dashbaord</h1>
         <button
           type="button"
           onClick={handleLogout}
           className="px-4 py-2 bg-storelaunch-dark text-white rounded-md text-sm font-medium hover:bg-storelaunch-teal"
         >
-          تسجيل الخروج
+         Logout
         </button>
       </header>
       <main className="p-4 sm:p-6 max-w-4xl mx-auto">
-        <p className="text-storelaunch-dark text-xl">مرحباً بك في لوحة التحكم</p>
+        <p className="text-storelaunch-dark text-xl">Store Dashboard</p>
       </main>
     </div>
   );

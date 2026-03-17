@@ -68,7 +68,7 @@ const StoreOwnerRegisterPage = () => {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
-      navigate('/dashboard');
+      navigate('/store-setup');
     } catch (err) {
       const data = err.response?.data;
       const msg = data?.error || err.message;
