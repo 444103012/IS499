@@ -37,20 +37,33 @@ router.post('/register', async (req, res) => {
 
     const password_hash = await hashPassword(password);
 
-    const result = await pool.query(
-      `INSERT INTO store_owners (first_name, last_name, email, phone, password_hash)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING store_owner_id, first_name, last_name, email, phone, status, created_at`,
-      [first_name.trim(), last_name.trim(), trimmedEmail, String(phone).trim(), password_hash]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `INSERT INTO store_owners (first_name, last_name, email, phone, password_hash)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING store_owner_id, first_name, last_name, email, phone, status, COALESCE(setup_step, 0) AS setup_step, created_at`,
+        [first_name.trim(), last_name.trim(), trimmedEmail, String(phone).trim(), password_hash]
+      );
+    } catch (insertErr) {
+      if (insertErr.code === '42703' || (insertErr.message && insertErr.message.includes('setup_step'))) {
+        result = await pool.query(
+          `INSERT INTO store_owners (first_name, last_name, email, phone, password_hash)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING store_owner_id, first_name, last_name, email, phone, status, created_at`,
+          [first_name.trim(), last_name.trim(), trimmedEmail, String(phone).trim(), password_hash]
+        );
+      } else throw insertErr;
+    }
 
     const row = result.rows[0];
     const token = generateToken(row.store_owner_id);
-
+    const setup_step = row.setup_step != null ? Number(row.setup_step) : 0;
     return res.status(201).json({
       message: 'Store owner registered successfully',
       token,
       store_owner_id: row.store_owner_id,
+      setup_step,
       store_owner: {
         store_owner_id: row.store_owner_id,
         first_name: row.first_name,
@@ -58,6 +71,7 @@ router.post('/register', async (req, res) => {
         email: row.email,
         phone: row.phone,
         status: row.status,
+        setup_step,
         created_at: row.created_at,
       },
     });
@@ -84,10 +98,20 @@ router.post('/login', async (req, res) => {
   const trimmedEmail = String(email).trim().toLowerCase();
 
   try {
-    const result = await pool.query(
-      'SELECT store_owner_id, password_hash, first_name, last_name, email, phone, status FROM store_owners WHERE email = $1',
-      [trimmedEmail]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        'SELECT store_owner_id, password_hash, first_name, last_name, email, phone, status, COALESCE(setup_step, 0) AS setup_step FROM store_owners WHERE email = $1',
+        [trimmedEmail]
+      );
+    } catch (colErr) {
+      if (colErr.code === '42703' || (colErr.message && colErr.message.includes('setup_step'))) {
+        result = await pool.query(
+          'SELECT store_owner_id, password_hash, first_name, last_name, email, phone, status FROM store_owners WHERE email = $1',
+          [trimmedEmail]
+        );
+      } else throw colErr;
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -100,11 +124,13 @@ router.post('/login', async (req, res) => {
     }
 
     const token = generateToken(row.store_owner_id);
+    const setup_step = row.setup_step != null ? Number(row.setup_step) : 0;
 
     return res.json({
       message: 'Login successful',
       token,
       store_owner_id: row.store_owner_id,
+      setup_step,
       store_owner: {
         store_owner_id: row.store_owner_id,
         first_name: row.first_name,
@@ -112,6 +138,7 @@ router.post('/login', async (req, res) => {
         email: row.email,
         phone: row.phone,
         status: row.status,
+        setup_step,
       },
     });
   } catch (err) {
