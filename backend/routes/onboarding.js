@@ -2,14 +2,11 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
 const router = express.Router();
-
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'stores');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
@@ -27,7 +24,6 @@ const upload = multer({
     else cb(new Error('Only images (JPEG, PNG, GIF, WebP) are allowed'), false);
   },
 });
-
 router.post('/store-details', upload.single('logo'), async (req, res) => {
   try {
     const pool = req.app.locals.pool;
@@ -90,7 +86,6 @@ router.post('/select-plan', async (req, res) => {
     res.status(500).json({ error: 'Failed to save plan' });
   }
 });
-
 router.post('/select-theme', async (req, res) => {
   try {
     const pool = req.app.locals.pool;
@@ -116,7 +111,6 @@ router.post('/select-theme', async (req, res) => {
     res.status(500).json({ error: 'Failed to save theme' });
   }
 });
-
 router.post('/payment', async (req, res) => {
   try {
     const pool = req.app.locals.pool;
@@ -142,7 +136,6 @@ router.post('/payment', async (req, res) => {
     res.status(500).json({ error: 'Failed to save payment provider' });
   }
 });
-
 router.post('/shipping', async (req, res) => {
   try {
     const pool = req.app.locals.pool;
