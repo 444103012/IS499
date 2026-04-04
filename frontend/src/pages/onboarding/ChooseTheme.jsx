@@ -64,7 +64,6 @@ export default function ChooseTheme({ isRTL, t, onNext, onBack }) {
                 </div>
               )}
               <div className={`font-bold text-storelaunch-dark ${isRTL ? 'text-right' : 'text-left'}`}>{name}</div>
-              {/* Color palette: 3–5 circles */}
               <div className={`flex gap-1.5 mt-2 flex-wrap ${isRTL ? 'justify-end' : ''}`}>
                 {(colors.slice(0, 5)).map((c, i) => (
                   <span
@@ -74,7 +73,6 @@ export default function ChooseTheme({ isRTL, t, onNext, onBack }) {
                   />
                 ))}
               </div>
-              {/* Preview rectangle */}
               <div
                 className="mt-3 h-14 rounded-lg border border-gray-200 overflow-hidden"
                 style={{

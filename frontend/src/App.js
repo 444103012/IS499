@@ -5,6 +5,10 @@ import StoreOwnerLoginPage from './pages/StoreOwnerLoginPage';
 import StoreOwnerRegisterPage from './pages/StoreOwnerRegisterPage';
 import StoreOwnerDashboardLayout from './pages/StoreOwnerDashboardLayout';
 import StoreSetupPage from './pages/StoreSetupPage';
+import CustomerLoginPage from './pages/CustomerLoginPage';
+import CustomerRegisterPage from './pages/CustomerRegisterPage';
+import StorefrontPage from './pages/StorefrontPage';
+import ProductDetailsPage from './pages/ProductDetailsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -13,8 +17,16 @@ function App() {
       <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+
           <Route path="/login" element={<StoreOwnerLoginPage />} />
           <Route path="/register" element={<StoreOwnerRegisterPage />} />
+
+          <Route path="/customer/login" element={<CustomerLoginPage />} />
+          <Route path="/customer/register" element={<CustomerRegisterPage />} />
+
+          <Route path="/shop" element={<StorefrontPage />} />
+          <Route path="/shop/product/:id" element={<ProductDetailsPage />} />
+
           <Route
             path="/store-setup/:step?"
             element={

@@ -3,9 +3,9 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
 
 const plans = [
-  { planKey: 'basic', popular: false },
-  { planKey: 'pro', popular: true },
-  { planKey: 'advanced', popular: false },
+  { planKey: 'basic'},
+  { planKey: 'pro'},
+  { planKey: 'advanced' },
 ];
 
 export default function ChoosePlan({ isRTL, t, onNext, onBack }) {
@@ -35,7 +35,7 @@ export default function ChoosePlan({ isRTL, t, onNext, onBack }) {
       <h2 className={`text-xl font-bold text-storelaunch-dark mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
         {t('onboarding.choosePlan.title')}
       </h2>
-      {/* Same layout as landing: 3 cards, popular ring, price, feature list with checkmarks */}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
         {plans.map((plan, index) => {
           const planData = t(`pricing.plans.${plan.planKey}`, { returnObjects: true });
@@ -56,9 +56,8 @@ export default function ChoosePlan({ isRTL, t, onNext, onBack }) {
               key={index}
               type="button"
               onClick={() => setSelectedPlan(plan.planKey)}
-              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full ${
-                plan.popular ? 'border-storelaunch-green border-2 ring-2 ring-storelaunch-green/20' : 'border-gray-200'
-              } ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
+              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full 
+                 ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
             >
               <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {name}

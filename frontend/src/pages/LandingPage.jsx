@@ -250,6 +250,7 @@ const LandingPage = () => {
       <footer className="bg-storelaunch-dark text-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4">
           <span className="text-lg font-bold">StoreLaunch</span>
+          <p className="text-gray-300 text-sm">© StoreLaunch 2025</p>
         </div>
       </footer>
     </div>
