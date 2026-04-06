@@ -10,6 +10,15 @@ import CustomerRegisterPage from './pages/CustomerRegisterPage';
 import StorefrontPage from './pages/StorefrontPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardHome from './pages/dashboard/DashboardHome';
+import ProductsList from './pages/dashboard/ProductsList';
+import AddProductPage from './pages/dashboard/AddProductPage';
+import EditProductPage from './pages/dashboard/EditProductPage';
+import OrdersPage from './pages/dashboard/OrdersPage';
+import ReportsPage from './pages/dashboard/ReportsPage';
+import StoreManagementPage from './pages/dashboard/StoreManagementPage';
+import SubscriptionPage from './pages/dashboard/SubscriptionPage';
+import SettingsPage from './pages/dashboard/SettingsPage';
 
 function App() {
   return (
@@ -42,7 +51,17 @@ function App() {
                 <StoreOwnerDashboardLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<DashboardHome />} />
+            <Route path="products" element={<ProductsList />} />
+            <Route path="products/new" element={<AddProductPage />} />
+            <Route path="products/:id/edit" element={<EditProductPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="store" element={<StoreManagementPage />} />
+            <Route path="subscription" element={<SubscriptionPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
