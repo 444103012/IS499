@@ -261,5 +261,47 @@
       "deleting": "Deleting…",
       "deleteConfirm": "Delete product \"{{name}}\"? This cannot be undone."
     }
+    
+  },
+  "storefront": {
+    "title": "Shop",
+    "search": "Search",
+    "searchPlaceholder": "Search by name or description",
+    "filters": "Filters",
+    "category": "Category",
+    "allCategories": "All Categories",
+    "priceRange": "Price Range",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "sortBy": "Sort By",
+    "newest": "Newest",
+    "priceAsc": "Price: Low to High",
+    "priceDesc": "Price: High to Low",
+    "nameAsc": "Name: A to Z",
+    "nameDesc": "Name: Z to A",
+    "applyFilters": "Apply",
+    "clearFilters": "Clear All",
+    "noResults": "No products found",
+    "noResultsDesc": "Try adjusting your filters or search terms",
+    "loading": "Loading products...",
+    "loadingMore": "Loading more...",
+    "endOfResults": "You've reached the end",
+    "error": "Failed to load products",
+    "retry": "Retry",
+    "showingResults": "Showing {{count}} products",
+    "sar": "SAR",
+    "viewDetails": "View Details",
+    "backToCatalog": "Back to Catalog",
+    "productDetails": "Product Details",
+    "price": "Price",
+    "description": "Description",
+    
+    "availability": "Availability",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "options": "Options",
+    "productNotFound": "Product not found",
+    "productNotAvailable": "This product is not available",
+    "store": "Store"
   }
 }
