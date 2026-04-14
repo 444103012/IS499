@@ -1,18 +1,27 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StorefrontHeader from '../components/StorefrontHeader';
 import axiosInstance from '../api/axios';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
+
 const ProductDetailsPage = () => {
   const { t, i18n } = useTranslation();
-  const { id } = useParams();
+  const { id, storeSlug } = useParams();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
+
+ 
+  const catalogLink = storeSlug ? `/${storeSlug}/customer` : '/shop';
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -57,7 +66,7 @@ const ProductDetailsPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
-        <StorefrontHeader />
+        <StorefrontHeader storeSlug={storeSlug} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -73,7 +82,7 @@ const ProductDetailsPage = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
-        <StorefrontHeader />
+        <StorefrontHeader storeSlug={storeSlug} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +92,7 @@ const ProductDetailsPage = () => {
               {error || t('storefront.productNotAvailable')}
             </h3>
             <Link
-              to="/shop"
+              to={catalogLink}
               className="inline-block mt-6 px-6 py-3 bg-storelaunch-green text-white rounded-lg font-medium hover:bg-storelaunch-deep-green transition-colors"
             >
               {t('storefront.backToCatalog')}
@@ -96,15 +105,20 @@ const ProductDetailsPage = () => {
 
   const totalStock = getTotalStock(product.options);
   const isInStock = totalStock === null || totalStock > 0;
+  const productImages = Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : (product.image_url ? [product.image_url] : []);
+  const mainImageUrl = productImages[selectedImageIndex] || productImages[0] || product.image_url;
 
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
-      <StorefrontHeader />
+      <StorefrontHeader storeSlug={storeSlug} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         <div className={`mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
           <Link
-            to="/shop"
+            to={catalogLink}
             state={{ fromDetails: true }}
             className="inline-flex items-center gap-1 text-storelaunch-green hover:text-storelaunch-deep-green font-medium text-sm transition-colors"
           >
@@ -117,20 +131,40 @@ const ProductDetailsPage = () => {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 md:p-8">
-            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.product_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <svg className="w-32 h-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
+           
+            <div className="space-y-3">
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                {mainImageUrl ? (
+                  <img
+                    src={toImageUrl(mainImageUrl)}
+                    alt={product.product_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-32 h-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                )}
+              </div>
+              {productImages.length > 1 && (
+                <div className="flex gap-2 flex-wrap">
+                  {productImages.map((url, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 ${
+                        selectedImageIndex === idx ? 'border-storelaunch-green' : 'border-gray-200'
+                      }`}
+                    >
+                      <img src={toImageUrl(url)} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
+            {/* Product Info */}
             <div className={isRTL ? 'text-right' : 'text-left'}>
               <h1 className="text-3xl font-bold text-storelaunch-dark mb-2">
                 {product.product_name}
@@ -157,6 +191,7 @@ const ProductDetailsPage = () => {
                 </div>
               </div>
 
+           
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
                   <span className="text-sm font-medium text-gray-600">{t('storefront.availability')}:</span>
@@ -178,6 +213,7 @@ const ProductDetailsPage = () => {
                 </div>
               </div>
 
+              
               {product.description && (
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-storelaunch-dark mb-2">
@@ -189,6 +225,7 @@ const ProductDetailsPage = () => {
                 </div>
               )}
 
+              
               {product.options && product.options.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-storelaunch-dark mb-3">
@@ -219,6 +256,7 @@ const ProductDetailsPage = () => {
                 </div>
               )}
 
+            
               {product.store_name && (
                 <div className="pt-6 border-t border-gray-200">
                   <div className={`flex items-center gap-2 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>

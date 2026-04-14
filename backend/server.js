@@ -35,7 +35,28 @@ app.get('/api/store-owners/me', authMiddleware, (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
-
+app.get('/api/stores/:slug', async (req, res) => {
+  const pool = req.app.locals.pool;
+  if (!pool) return res.status(500).json({ error: 'Database not configured' });
+  const normalizedSlug = req.params.slug.trim().toLowerCase();
+  try {
+    const result = await pool.query(
+      `SELECT store_id, name, domain_name, description, logo, theme, status
+       FROM stores
+       WHERE LOWER(name) = $1 OR LOWER(domain_name) = $1
+       ORDER BY store_id DESC
+       LIMIT 1`,
+      [normalizedSlug]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Store not found' });
+    }
+    return res.json({ store: result.rows[0] });
+  } catch (err) {
+    console.error('Store lookup error:', err);
+    return res.status(500).json({ error: 'Failed to fetch store' });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Store Owner routes: POST /api/store-owners/register, /login');

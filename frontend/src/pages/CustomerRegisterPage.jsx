@@ -1,11 +1,16 @@
+
+
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 
 const CustomerRegisterPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { storeSlug } = useParams(); 
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -14,9 +19,13 @@ const CustomerRegisterPage = () => {
     password: '',
     confirmPassword: '',
   });
+  const [phoneError, setPhoneError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
+
+
+  const storeHome = storeSlug ? `/${storeSlug}/customer` : '/shop';
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -27,9 +36,29 @@ const CustomerRegisterPage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
   };
 
+  const getRedirectPath = () => {
+    const redirectFromQuery = searchParams.get('redirectTo');
+    const redirectFromState = location.state?.from || location.state?.redirectTo;
+    return redirectFromQuery || redirectFromState || storeHome;
+  };
+
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
     setError('');
+    if (name === 'phone') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        setPhoneError(isRTL ? 'رقم الجوال مطلوب' : 'Phone number is required');
+      } else {
+        const phonePattern = /^(\+?\d{8,15})$/;
+        if (!phonePattern.test(trimmed)) {
+          setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
+        } else {
+          setPhoneError('');
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -47,18 +76,31 @@ const CustomerRegisterPage = () => {
     }
 
     const { first_name, last_name, email, phone, password } = form;
-    if (!first_name?.trim() || !last_name?.trim() || !email?.trim() || !password) {
+    const trimmedFirst = first_name?.trim();
+    const trimmedLast = last_name?.trim();
+    const trimmedEmail = email?.trim();
+    const trimmedPhone = phone?.trim();
+
+    if (!trimmedFirst || !trimmedLast || !trimmedEmail || !trimmedPhone || !password) {
       setError(t('customerAuth.missingFields'));
       return;
+    }
+
+    const phonePattern = /^(\+?\d{8,15})$/;
+    if (!phonePattern.test(trimmedPhone)) {
+      setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
+      return;
+    } else {
+      setPhoneError('');
     }
 
     setLoading(true);
     try {
       const { data } = await axiosInstance.post('/api/customers/register', {
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        email: email.trim(),
-        phone: phone?.trim() || null,
+        first_name: trimmedFirst,
+        last_name: trimmedLast,
+        email: trimmedEmail,
+        phone: trimmedPhone,
         password,
         preferred_lang: i18n.language,
       });
@@ -67,19 +109,37 @@ const CustomerRegisterPage = () => {
       localStorage.setItem('customer_id', String(data.customer_id));
       localStorage.setItem('user_type', 'customer');
       
-      navigate('/');
+      navigate(getRedirectPath(), { replace: true });
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message;
-      if (errorMsg === 'Email already registered') {
-        setError(t('customerAuth.duplicateEmail'));
-      } else if (errorMsg === 'Phone already registered') {
-        setError(t('customerAuth.duplicatePhone'));
-      } else if (errorMsg === 'Weak password') {
-        setError(t('customerAuth.weakPassword'));
-      } else if (errorMsg === 'Missing required fields') {
-        setError(t('customerAuth.missingFields'));
+      if (!err.response) {
+       
+        setError(
+          isRTL
+            ? 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000'
+            : 'Cannot reach the server. Make sure the backend is running on port 5000.'
+        );
       } else {
-        setError(isRTL ? 'حدث خطأ. يرجى المحاولة لاحقاً' : 'An error occurred. Please try again later.');
+        const errorMsg = err.response.data?.error || err.message;
+        if (errorMsg === 'Email already registered') {
+          setError(t('customerAuth.duplicateEmail'));
+        } else if (errorMsg === 'Phone already registered') {
+          setError(t('customerAuth.duplicatePhone'));
+        } else if (errorMsg === 'Weak password') {
+          setError(t('customerAuth.weakPassword'));
+        } else if (errorMsg === 'Missing required fields') {
+          setError(t('customerAuth.missingFields'));
+        } else if (errorMsg === 'Invalid phone format') {
+          setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
+        } else if (errorMsg === 'Registration failed') {
+          
+          setError(
+            isRTL
+              ? 'حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة لاحقاً.'
+              : 'An unexpected error occurred during registration. Please try again later.'
+          );
+        } else {
+          setError(errorMsg);
+        }
       }
     } finally {
       setLoading(false);
@@ -90,7 +150,7 @@ const CustomerRegisterPage = () => {
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
-          <Link to="/shop" className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}>
+          <Link to={storeHome} className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}>
             {isRTL ? '← ' : ''}{t('customerAuth.backToHome')}{isRTL ? '' : ' →'}
           </Link>
           <button
@@ -157,7 +217,7 @@ const CustomerRegisterPage = () => {
           
           <div className={isRTL ? 'text-right' : 'text-left'}>
             <label htmlFor="phone" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.phone')} <span className="text-gray-500 text-xs">({isRTL ? 'اختياري' : 'optional'})</span>
+              {t('customerAuth.phone')}
             </label>
             <input
               id="phone"
@@ -168,6 +228,11 @@ const CustomerRegisterPage = () => {
               placeholder={t('customerAuth.phone')}
               className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
             />
+            {phoneError && (
+              <p className={`text-xs text-red-600 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {phoneError}
+              </p>
+            )}
           </div>
           
           <div className={isRTL ? 'text-right' : 'text-left'}>
@@ -223,7 +288,10 @@ const CustomerRegisterPage = () => {
         
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.hasAccount')}{' '}
-          <Link to="/customer/login" className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green">
+          <Link
+            to={storeSlug ? `/${storeSlug}/customer/login` : '/customer/login'}
+            className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green"
+          >
             {t('customerAuth.signIn')}
           </Link>
         </p>

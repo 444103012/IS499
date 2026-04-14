@@ -1,16 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 
 const CustomerLoginPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { storeSlug } = useParams(); 
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
+
+  
+  const storeHome = storeSlug ? `/${storeSlug}/customer` : '/shop';
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -19,6 +26,12 @@ const CustomerLoginPage = () => {
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
+  };
+
+  const getRedirectPath = () => {
+    const redirectFromQuery = searchParams.get('redirectTo');
+    const redirectFromState = location.state?.from || location.state?.redirectTo;
+    return redirectFromQuery || redirectFromState || storeHome;
   };
 
   const handleSubmit = async (e) => {
@@ -45,19 +58,28 @@ const CustomerLoginPage = () => {
         i18n.changeLanguage(data.customer.preferred_lang);
       }
       
-      navigate('/');
+      navigate(getRedirectPath(), { replace: true });
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message;
-      if (errorMsg === 'Invalid credentials') {
-        setError(t('customerAuth.invalidCredentials'));
-      } else if (errorMsg === 'Account suspended') {
-        setError(t('customerAuth.accountSuspended'));
-      } else if (errorMsg === 'Missing required fields') {
-        setError(t('customerAuth.missingFields'));
-      } else if (errorMsg === 'NetworkError') {
-        setError(isRTL ? 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000' : 'Cannot reach the server. Make sure the backend is running on port 5000.');
+      if (!err.response) {
+        
+        setError(
+          isRTL
+            ? 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000'
+            : 'Cannot reach the server. Make sure the backend is running on port 5000.'
+        );
       } else {
-        setError(isRTL ? 'حدث خطأ. يرجى المحاولة لاحقاً' : 'An error occurred. Please try again later.');
+        const errorMsg = err.response.data?.error || err.message;
+        if (errorMsg === 'Invalid credentials') {
+          setError(t('customerAuth.invalidCredentials'));
+        } else if (errorMsg === 'Account suspended') {
+          setError(t('customerAuth.accountSuspended'));
+        } else if (errorMsg === 'Missing required fields') {
+          setError(t('customerAuth.missingFields'));
+        } else if (errorMsg === 'Login failed') {
+          setError(isRTL ? 'حدث خطأ مؤقت. يرجى المحاولة لاحقاً.' : 'A temporary error occurred. Please try again later.');
+        } else {
+          setError(errorMsg);
+        }
       }
     } finally {
       setLoading(false);
@@ -68,7 +90,7 @@ const CustomerLoginPage = () => {
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
-          <Link to="/shop" className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}>
+          <Link to={storeHome} className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}>
             {isRTL ? '← ' : ''}{t('customerAuth.backToHome')}{isRTL ? '' : ' →'}
           </Link>
           <button
@@ -132,7 +154,10 @@ const CustomerLoginPage = () => {
         
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.noAccount')}{' '}
-          <Link to="/customer/register" className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green">
+          <Link
+            to={storeSlug ? `/${storeSlug}/customer/register` : '/customer/register'}
+            className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green"
+          >
             {t('customerAuth.createAccount')}
           </Link>
         </p>

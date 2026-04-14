@@ -1,14 +1,23 @@
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useSearchParams, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StorefrontHeader from '../components/StorefrontHeader';
 import axiosInstance from '../api/axios';
 
 const StorefrontPage = () => {
   const { t, i18n } = useTranslation();
+  const { storeSlug } = useParams(); 
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const isRTL = i18n.language === 'ar';
+
+  
+  const [store, setStore] = useState(null);
+  const [storeStatus, setStoreStatus] = useState(storeSlug ? 'loading' : 'ok');
+  const [storeRetry, setStoreRetry] = useState(0);
+  
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -36,10 +45,41 @@ const StorefrontPage = () => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language, isRTL]);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
 
+  useEffect(() => {
+    if (!storeSlug) return;
+    setStoreStatus('loading');
+    const BLOCKED = ['Suspended', 'Blocked', 'Inactive'];
+    axiosInstance.get(`/api/stores/${encodeURIComponent(storeSlug.trim().toLowerCase())}`)
+      .then(({ data }) => {
+        if (data.store) {
+          if (BLOCKED.includes(data.store.status)) {
+            setStoreStatus('inactive');
+          } else {
+            setStore(data.store);
+            setStoreStatus('ok');
+          }
+        } else {
+          setStoreStatus('not_found');
+        }
+      })
+      .catch((err) => {
+        if (err.response?.status === 404) {
+          setStoreStatus('not_found');
+        } else {
+         
+          setStoreStatus('error');
+        }
+      });
+  }, [storeSlug, storeRetry]);
+
+  useEffect(() => {
+   
+    if (storeSlug && (storeStatus === 'loading' || storeStatus !== 'ok')) return;
+    fetchCategories();
+  }, [storeStatus]);
+
+ 
   useEffect(() => {
     const savedPosition = sessionStorage.getItem(scrollPositionKey);
     if (savedPosition && location.state?.fromDetails) {
@@ -50,16 +90,20 @@ const StorefrontPage = () => {
     }
   }, [location]);
 
+  
   const saveScrollPosition = () => {
     sessionStorage.setItem(scrollPositionKey, window.scrollY.toString());
   };
 
   useEffect(() => {
+    
+    if (storeSlug && (storeStatus === 'loading' || storeStatus !== 'ok')) return;
     setCurrentPage(1);
     setProducts([]);
     fetchProducts(1, true);
-  }, [searchParams]);
+  }, [searchParams, storeStatus]);
 
+  
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -83,7 +127,8 @@ const StorefrontPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data } = await axiosInstance.get('/api/products/categories/list');
+      const catParams = store?.store_id ? `?store_id=${store.store_id}` : '';
+      const { data } = await axiosInstance.get(`/api/products/categories/list${catParams}`);
       setCategories(data.categories || []);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -99,7 +144,7 @@ const StorefrontPage = () => {
     setError('');
 
     try {
-      const params = new URLSearchParams({
+      const paramObj = {
         search: filters.search,
         category: filters.category,
         minPrice: filters.minPrice,
@@ -107,7 +152,9 @@ const StorefrontPage = () => {
         sort: filters.sort,
         page: page.toString(),
         limit: '12'
-      });
+      };
+      if (store?.store_id) paramObj.store_id = store.store_id.toString();
+      const params = new URLSearchParams(paramObj);
 
       const { data } = await axiosInstance.get(`/api/products?${params.toString()}`);
       
@@ -183,6 +230,7 @@ const StorefrontPage = () => {
     }).format(price);
   };
 
+  
   const ProductSkeleton = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
       <div className="aspect-square bg-gray-200"></div>
@@ -194,12 +242,86 @@ const StorefrontPage = () => {
     </div>
   );
 
+  
+  if (storeSlug && storeStatus === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-storelaunch-green"></div>
+      </div>
+    );
+  }
+
+  
+  if (storeSlug && storeStatus === 'error') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center max-w-md mx-auto">
+          <svg className="w-16 h-16 text-red-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {isRTL ? 'تعذر تحميل المتجر' : 'Could Not Load Store'}
+          </h2>
+          <p className="text-gray-500 text-sm mb-4">
+            {isRTL ? 'حدث خطأ مؤقت. يرجى المحاولة مجدداً.' : 'A temporary error occurred. Please try again.'}
+          </p>
+          <button
+            onClick={() => { setStore(null); setStoreRetry(n => n + 1); }}
+            className="px-6 py-2 bg-storelaunch-green text-white rounded-lg font-medium hover:bg-storelaunch-deep-green transition-colors text-sm"
+          >
+            {isRTL ? 'إعادة المحاولة' : 'Retry'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (storeSlug && storeStatus === 'not_found') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center max-w-md mx-auto">
+          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {isRTL ? 'المتجر غير موجود' : 'Store Not Found'}
+          </h2>
+          <p className="text-gray-500 text-sm">
+            {isRTL ? `لم يتم العثور على متجر باسم "${storeSlug}".` : `No store found for "${storeSlug}".`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (storeSlug && storeStatus === 'inactive') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center max-w-md mx-auto">
+          <svg className="w-16 h-16 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {isRTL ? 'المتجر غير متاح حالياً' : 'Store Unavailable'}
+          </h2>
+          <p className="text-gray-500 text-sm">
+            {isRTL ? 'هذا المتجر موقوف مؤقتاً أو غير نشط.' : 'This store is currently suspended or inactive.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
-      <StorefrontHeader />
+      <StorefrontHeader storeSlug={storeSlug} />
 
+      
       <div className="sticky top-14 md:top-16 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        
           <form onSubmit={handleSearch} className="mb-3">
             <div className="flex gap-2">
               <div className="flex-1 relative">
@@ -222,7 +344,9 @@ const StorefrontPage = () => {
             </div>
           </form>
 
+         
           <div className={`flex flex-wrap gap-2 items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+            
             <select
               value={filters.category}
               onChange={(e) => applyFilters({ ...filters, category: e.target.value })}
@@ -234,6 +358,7 @@ const StorefrontPage = () => {
               ))}
             </select>
 
+           
             <input
               type="number"
               value={filters.minPrice}
@@ -252,6 +377,7 @@ const StorefrontPage = () => {
               className={`w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
             />
 
+           
             <select
               value={filters.sort}
               onChange={(e) => applyFilters({ ...filters, sort: e.target.value })}
@@ -264,6 +390,7 @@ const StorefrontPage = () => {
               <option value="name_desc">{t('storefront.nameDesc')}</option>
             </select>
 
+            
             {hasActiveFilters() && (
               <button
                 onClick={clearAllFilters}
@@ -274,6 +401,7 @@ const StorefrontPage = () => {
             )}
           </div>
 
+          
           {hasActiveFilters() && (
             <div className={`flex flex-wrap gap-2 mt-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               {filters.search && (
@@ -325,13 +453,16 @@ const StorefrontPage = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Results Count */}
         {!loading && products.length > 0 && (
           <div className={`mb-4 text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('storefront.showingResults', { count: totalProducts })}
           </div>
         )}
 
+        {/* Loading State (Initial) */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
@@ -339,6 +470,7 @@ const StorefrontPage = () => {
             ))}
           </div>
         ) : error ? (
+          /* Error State */
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <svg className="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -352,6 +484,7 @@ const StorefrontPage = () => {
             </button>
           </div>
         ) : products.length === 0 ? (
+          /* Empty State */
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <svg className="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -368,14 +501,15 @@ const StorefrontPage = () => {
             )}
           </div>
         ) : (
+          /* Product Grid */
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
                 <Link
                   key={product.product_id}
-                  to={`/shop/product/${product.product_id}`}
+                  to={storeSlug ? `/${storeSlug}/customer/product/${product.product_id}` : `/shop/product/${product.product_id}`}
                   onClick={saveScrollPosition}
-                  state={{ fromStorefront: true }}
+                  state={{ fromStorefront: true, storeSlug }}
                   className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-storelaunch-green/30 transition-all duration-200"
                 >
                   <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -413,6 +547,7 @@ const StorefrontPage = () => {
               ))}
             </div>
 
+            {/* Infinite Scroll Trigger & Loading More */}
             {hasMore && (
               <div ref={observerTarget} className="py-8 flex justify-center">
                 {loadingMore && (
@@ -424,6 +559,7 @@ const StorefrontPage = () => {
               </div>
             )}
 
+            {/* End of Results */}
             {!hasMore && products.length > 0 && (
               <div className="py-8 text-center text-sm text-gray-500">
                 {t('storefront.endOfResults')}

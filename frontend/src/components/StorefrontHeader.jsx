@@ -1,12 +1,26 @@
+
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const StorefrontHeader = () => {
+const StorefrontHeader = ({ storeSlug }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isRTL = i18n.language === 'ar';
+
+  
+  const storefrontHome = storeSlug ? `/${storeSlug}/customer` : '/shop';
+
+ 
+  const currentPath = location.pathname + location.search;
+  const loginHref  = storeSlug
+    ? `/${storeSlug}/customer/login?redirectTo=${encodeURIComponent(currentPath)}`
+    : `/customer/login?redirectTo=${encodeURIComponent(currentPath)}`;
+  const registerHref = storeSlug
+    ? `/${storeSlug}/customer/register?redirectTo=${encodeURIComponent(currentPath)}`
+    : `/customer/register?redirectTo=${encodeURIComponent(currentPath)}`;
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'ar' ? 'en' : 'ar';
@@ -15,15 +29,13 @@ const StorefrontHeader = () => {
     document.documentElement.lang = newLang;
   };
 
-  const isCustomerLoggedIn = () => {
-    return !!localStorage.getItem('customer_token');
-  };
+  const isCustomerLoggedIn = () => !!localStorage.getItem('customer_token');
 
   const handleLogout = () => {
     localStorage.removeItem('customer_token');
     localStorage.removeItem('customer_id');
     localStorage.removeItem('user_type');
-    navigate('/');
+    navigate(storefrontHome);
     setIsMobileMenuOpen(false);
   };
 
@@ -31,13 +43,15 @@ const StorefrontHeader = () => {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex justify-between items-center h-14 md:h-16 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Link to="/shop" className="flex items-center">
+          
+          <Link to={storefrontHome} className="flex items-center">
             <img src="/Name_only.png" alt="StoreLaunch" className="h-8 md:h-10 w-auto object-contain" />
           </Link>
 
+          
           <div className={`hidden md:flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Link
-              to="/shop"
+              to={storefrontHome}
               className="text-storelaunch-dark hover:text-storelaunch-green text-sm font-medium transition-colors"
             >
               {t('storefront.title')}
@@ -60,13 +74,13 @@ const StorefrontHeader = () => {
             ) : (
               <>
                 <Link
-                  to="/customer/login"
+                  to={loginHref}
                   className="text-storelaunch-dark hover:text-storelaunch-green text-sm font-medium transition-colors"
                 >
                   {isRTL ? 'تسجيل الدخول' : 'Login'}
                 </Link>
                 <Link
-                  to="/customer/register"
+                  to={registerHref}
                   className="px-4 py-2 bg-storelaunch-dark text-white text-sm rounded-lg hover:bg-storelaunch-teal font-medium transition-colors"
                 >
                   {isRTL ? 'إنشاء حساب' : 'Sign Up'}
@@ -75,6 +89,7 @@ const StorefrontHeader = () => {
             )}
           </div>
 
+       
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -93,10 +108,11 @@ const StorefrontHeader = () => {
           </button>
         </div>
 
+       
         {isMobileMenuOpen && (
           <div className={`md:hidden py-4 border-t border-gray-100 ${isRTL ? 'text-right' : 'text-left'}`}>
             <Link
-              to="/shop"
+              to={storefrontHome}
               onClick={() => setIsMobileMenuOpen(false)}
               className="block py-2 text-storelaunch-dark hover:text-storelaunch-green font-medium"
             >
@@ -120,14 +136,14 @@ const StorefrontHeader = () => {
             ) : (
               <>
                 <Link
-                  to="/customer/login"
+                  to={loginHref}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block mt-2 px-4 py-2 bg-white text-storelaunch-dark border-2 border-storelaunch-dark rounded-lg font-medium text-center hover:bg-storelaunch-dark hover:text-white transition-colors"
                 >
                   {isRTL ? 'تسجيل الدخول' : 'Login'}
                 </Link>
                 <Link
-                  to="/customer/register"
+                  to={registerHref}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block mt-2 px-4 py-2 bg-storelaunch-dark text-white rounded-lg font-medium text-center hover:bg-storelaunch-teal transition-colors"
                 >
