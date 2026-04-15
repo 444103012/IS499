@@ -1,4 +1,6 @@
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+
+const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:5000';
 
 async function request(method, url, body = null) {
   const options = {
@@ -7,16 +9,34 @@ async function request(method, url, body = null) {
       'Content-Type': 'application/json',
     },
   };
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  let token = null;
+  if (typeof localStorage !== 'undefined') {
+    const isCustomerRoute =
+      (url.startsWith('/api/customers/') && !url.includes('/api/customers/login') && !url.includes('/api/customers/register') && !url.includes('/api/customers/logout')) ||
+      url.startsWith('/api/cart') ||
+      url.startsWith('/api/checkout') ||
+      url.startsWith('/api/payments');
+    const isAdminRoute = url.startsWith('/api/admin/');
+    if (isAdminRoute) {
+      token = localStorage.getItem('admin_token');
+    } else {
+      token = isCustomerRoute ? localStorage.getItem('customer_token') : localStorage.getItem('token');
+    }
+  }
   if (token) options.headers['Authorization'] = `Bearer ${token}`;
+ 
+ 
   if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
     options.body = JSON.stringify(body);
   }
 
   let res;
   try {
+    
     res = await fetch(`${BASE_URL}${url}`, options);
   } catch (networkErr) {
+   
+   
     const err = new Error(
       networkErr.message === 'Failed to fetch'
         ? 'NetworkError'
@@ -38,6 +58,8 @@ async function request(method, url, body = null) {
     data = {};
   }
 
+ 
+ 
   if (!res.ok) {
     const err = new Error(data.error || `Request failed: ${res.status}`);
     err.response = { data, status: res.status };
@@ -55,6 +77,7 @@ async function postForm(url, formData) {
     headers: {},
   };
   if (token) options.headers['Authorization'] = `Bearer ${token}`;
+  
   const res = await fetch(`${BASE_URL}${url}`, options);
   let data = {};
   const contentType = res.headers.get('content-type');

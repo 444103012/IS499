@@ -1,12 +1,9 @@
-/**
- * DashboardSidebar.jsx - Sidebar: dark blue-green base with dynamic gradient; Menu toggle at top; icons, hover, active states.
- */
+
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-// Dark blue-green (#0A3C5A) with dynamic lighter/darker variations for depth
 const SIDEBAR_BG_GRADIENT = 'linear-gradient(180deg, #061f2e 0%, #0A3C5A 22%, #0d4a6e 45%, #093652 68%, #071f2d 100%)';
 const SIDEBAR_BORDER = 'rgba(10, 60, 90, 0.6)';
 

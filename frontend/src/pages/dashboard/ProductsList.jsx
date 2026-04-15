@@ -26,6 +26,8 @@ const ProductsList = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
   const loadProducts = async () => {
@@ -34,7 +36,8 @@ const ProductsList = () => {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (filterStatus) params.set('status', filterStatus);
-      const { data } = await axiosInstance.get(`/api/products?${params.toString()}`);
+      if (sortBy) params.set('sort', sortBy);
+      const { data } = await axiosInstance.get(`/api/store/products?${params.toString()}`);
       setProducts(data.products || []);
     } catch (err) {
       setError(err.response?.data?.error || err.message || t('dashboard.productsPage.loadError'));
@@ -46,7 +49,7 @@ const ProductsList = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [filterStatus]);
+  }, [filterStatus, sortBy]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -57,7 +60,7 @@ const ProductsList = () => {
     if (!window.confirm(t('dashboard.productsPage.deleteConfirm', { name }))) return;
     setDeletingId(id);
     try {
-      await axiosInstance.delete(`/api/products/${id}`);
+      await axiosInstance.delete(`/api/store/products/${id}`);
       setProducts((prev) => prev.filter((p) => p.product_id !== id));
     } catch (err) {
       setError(err.response?.data?.error || t('dashboard.productsPage.deleteError'));
@@ -83,36 +86,55 @@ const ProductsList = () => {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-        <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-3 items-end">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productsPage.search')}</label>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('dashboard.productsPage.searchPlaceholder')}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productsPage.status')}</label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            >
+              {t('dashboard.productsPage.filters')}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[120px]"
+            >
+              <option value="">{t('dashboard.productsPage.sortDefault')}</option>
+              <option value="name_asc">{t('dashboard.productsPage.sortNameAsc')}</option>
+              <option value="name_desc">{t('dashboard.productsPage.sortNameDesc')}</option>
+              <option value="price_asc">{t('dashboard.productsPage.sortPriceLow')}</option>
+              <option value="price_desc">{t('dashboard.productsPage.sortPriceHigh')}</option>
+            </select>
+            <button type="submit" className="px-4 py-2 bg-storelaunch-dark text-white rounded-lg text-sm font-medium hover:bg-storelaunch-teal">
+              {t('dashboard.productsPage.searchButton')}
+            </button>
+          </div>
+        </form>
+        {filtersOpen && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('dashboard.productsPage.status')}</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[120px]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[120px]"
             >
               <option value="">{t('dashboard.productsPage.all')}</option>
               <option value="Active">{t('dashboard.productsPage.active')}</option>
               <option value="Inactive">{t('dashboard.productsPage.inactive')}</option>
             </select>
           </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-storelaunch-dark text-white rounded-md text-sm font-medium hover:bg-storelaunch-teal"
-          >
-            {t('dashboard.productsPage.searchButton')}
-          </button>
-        </form>
+        )}
       </div>
 
       {error && (

@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const emptyOption = () => ({ option_name: '', option_value: '', stock_qty: 0, additional_price: 0, image: '' });
+const emptyOption = () => ({ option_name: '', option_value: '', stock_qty: 0, additional_price: 0, images: [] });
 
 const AddProductPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(null);
   const [error, setError] = useState(null);
@@ -18,7 +21,7 @@ const AddProductPage = () => {
     title: '',
     status: 'Active',
     price: '',
-    image: '',
+    images: [],
     options: [{ ...emptyOption() }],
   });
 
@@ -40,14 +43,15 @@ const AddProductPage = () => {
     }));
   };
 
-  const uploadImage = async (file, setPath, uploadingKey) => {
+  const uploadImage = async (file, setPath, uploadingKey, forVariant = false) => {
     if (!file || !file.type.startsWith('image/')) return;
     setUploading(uploadingKey);
     setError(null);
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const { data } = await axiosInstance.postForm('/api/products/upload-image', formData);
+      const endpoint = forVariant ? '/api/store/products/upload-variant-image' : '/api/store/products/upload-image';
+      const { data } = await axiosInstance.postForm(endpoint, formData);
       if (data.path) setPath(data.path);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Image upload failed');
@@ -56,15 +60,28 @@ const AddProductPage = () => {
     }
   };
 
+  const addProductImage = (path) => update('images', [...(form.images || []), path]);
+  const removeProductImage = (index) => update('images', (form.images || []).filter((_, i) => i !== index));
+
   const handleProductImageChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) uploadImage(file, (path) => update('image', path), 'product');
+    if (file) uploadImage(file, addProductImage, 'product');
     e.target.value = '';
+  };
+
+  const addOptionImage = (index, path) => {
+    const list = [...(form.options?.[index]?.images || [])];
+    list.push(path);
+    updateOption(index, 'images', list);
+  };
+  const removeOptionImage = (index, imgIndex) => {
+    const list = (form.options?.[index]?.images || []).filter((_, i) => i !== imgIndex);
+    updateOption(index, 'images', list);
   };
 
   const handleOptionImageChange = (index, e) => {
     const file = e.target.files?.[0];
-    if (file) uploadImage(file, (path) => updateOption(index, 'image', path), `option-${index}`);
+    if (file) uploadImage(file, (path) => addOptionImage(index, path), `option-${index}`, true);
     e.target.value = '';
   };
 
@@ -73,12 +90,12 @@ const AddProductPage = () => {
     setError(null);
     const name = (form.product_name || '').trim();
     if (!name) {
-      setError('Product name is required');
+      setError(t('dashboard.productForm.errorNameRequired'));
       return;
     }
     const priceVal = parseFloat(form.price);
     if (Number.isNaN(priceVal) || priceVal < 0) {
-      setError('Valid base price is required');
+      setError(t('dashboard.productForm.errorPriceRequired'));
       return;
     }
     setSaving(true);
@@ -90,14 +107,14 @@ const AddProductPage = () => {
           option_value: o.option_value.trim(),
           stock_qty: parseInt(o.stock_qty, 10) || 0,
           additional_price: parseFloat(o.additional_price) || 0,
-          image: (o.image || '').trim() || undefined,
+          images: Array.isArray(o.images) ? o.images.filter((s) => s && String(s).trim()) : [],
         }));
-      await axiosInstance.post('/api/products/create', {
+      await axiosInstance.post('/api/store/products/create', {
         product_name: name,
         title: (form.title || '').trim() || undefined,
         status: form.status,
         price: priceVal,
-        image: (form.image || '').trim() || undefined,
+        images: Array.isArray(form.images) ? form.images.filter((s) => s && String(s).trim()) : [],
         options: options.length ? options : undefined,
       });
       navigate('/dashboard/products');
@@ -108,21 +125,20 @@ const AddProductPage = () => {
     }
   };
 
-  const productImageUrl = form.image && form.image.trim()
-    ? (form.image.startsWith('http') ? form.image : `${API_BASE.replace(/\/$/, '')}/${form.image.replace(/^\//, '')}`)
-    : null;
+  const productImages = Array.isArray(form.images) ? form.images : [];
+  const toUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
 
   return (
-    <div>
-      <div className="flex items-center gap-4 mb-6">
+    <div dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className={`flex items-center gap-4 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button
           type="button"
           onClick={() => navigate('/dashboard/products')}
           className="text-storelaunch-dark hover:underline text-sm font-medium"
         >
-          ← Products
+          {t('dashboard.productForm.backToProducts')}
         </button>
-        <h2 className="text-storelaunch-dark font-bold text-xl">Add Product</h2>
+        <h2 className="text-storelaunch-dark font-bold text-xl">{t('dashboard.productForm.addTitle')}</h2>
       </div>
 
       {error && (
@@ -132,104 +148,101 @@ const AddProductPage = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-       
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         
+          {}
           <div className="space-y-6">
-            
+            {}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-4 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900">Product image</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Main image for this product (optional)</p>
+                <h3 className="font-semibold text-gray-900">{t('dashboard.productForm.imagesTitle')}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.productForm.imagesSubtitle')}</p>
               </div>
-              <div className="p-6">
-                {productImageUrl ? (
-                  <div className="relative w-full rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shadow-inner">
-                    <img
-                      src={productImageUrl}
-                      alt="Product"
-                      className="w-full aspect-video object-cover rounded-xl"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-xl">
-                      <label className="cursor-pointer px-4 py-2 bg-white rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-100">
-                        Change
-                        <input type="file" accept="image/*" className="sr-only" disabled={uploading !== null} onChange={handleProductImageChange} />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => update('image', '')}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
+              <div className="p-6 space-y-3">
+                {productImages.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {productImages.map((path, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                        <img src={toUrl(path)} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeProductImage(idx)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-sm leading-none flex items-center justify-center hover:bg-red-600"
+                          aria-label="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full min-h-[240px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-storelaunch-green hover:bg-gray-50/80 transition-colors cursor-pointer">
-                    <div className="flex flex-col items-center gap-2 py-8 px-4">
-                      <span className="text-gray-400">
-                        <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                        </svg>
-                      </span>
-                      <span className="text-sm font-medium text-gray-600">
-                        {uploading === 'product' ? 'Uploading…' : 'Click to upload product image'}
-                      </span>
-                      <span className="text-xs text-gray-400">PNG, JPG, GIF or WebP (max 5MB)</span>
-                    </div>
-                    <input type="file" accept="image/*" className="sr-only" disabled={uploading !== null} onChange={handleProductImageChange} />
-                  </label>
                 )}
+                <label className="flex flex-col items-center justify-center w-full min-h-[120px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-storelaunch-green hover:bg-gray-50/80 transition-colors cursor-pointer">
+                  <div className="flex flex-col items-center gap-1 py-4 px-4">
+                    <span className="text-gray-400">
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </span>
+                    <span className="text-sm font-medium text-gray-600">
+                      {uploading === 'product' ? t('dashboard.productForm.imagesUploading') : t('dashboard.productForm.imagesUploadButton')}
+                    </span>
+                    <span className="text-xs text-gray-400">{t('dashboard.productForm.imagesHint')}</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProductImageChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
-
-            {/* B. Product details card */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Product details</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('dashboard.productForm.detailsTitle')}</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Product name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productForm.nameLabel')}</label>
                   <input
                     type="text"
                     value={form.product_name}
                     onChange={(e) => update('product_name', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-storelaunch-green/30 focus:border-storelaunch-green"
-                    placeholder="e.g. Classic T-Shirt"
+                    placeholder={t('dashboard.productForm.namePlaceholder')}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productForm.titleLabel')}</label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={(e) => update('title', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-storelaunch-green/30 focus:border-storelaunch-green"
-                    placeholder="Short display title"
+                    placeholder={t('dashboard.productForm.titlePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productForm.statusLabel')}</label>
                   <select
                     value={form.status}
                     onChange={(e) => update('status', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-storelaunch-green/30 focus:border-storelaunch-green"
                   >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="Active">{t('dashboard.productForm.statusActive')}</option>
+                    <option value="Inactive">{t('dashboard.productForm.statusInactive')}</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          
+          {}
           <div className="space-y-6">
-            
+            {}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Pricing</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('dashboard.productForm.pricingTitle')}</h3>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Base price *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.productForm.basePriceLabel')}</label>
                 <input
                   type="number"
                   step="0.01"
@@ -237,17 +250,17 @@ const AddProductPage = () => {
                   value={form.price}
                   onChange={(e) => update('price', e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-storelaunch-green/30 focus:border-storelaunch-green"
-                  placeholder="0.00"
+                  placeholder={t('dashboard.productForm.basePricePlaceholder')}
                   required
                 />
               </div>
             </div>
 
-            
+            {}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900">Inventory & variants</h3>
-                <p className="text-sm text-gray-500 mt-1">Add options like Size (S, M, L) or Color with stock and optional extra price per variant.</p>
+                <h3 className="font-semibold text-gray-900">{t('dashboard.productForm.variantsTitle')}</h3>
+                <p className="text-sm text-gray-500 mt-1">{t('dashboard.productForm.variantsSubtitle')}</p>
               </div>
               <div className="p-6 space-y-4">
                 {(form.options || []).map((opt, index) => (
@@ -256,39 +269,41 @@ const AddProductPage = () => {
                     className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-600">Variant {index + 1}</span>
+                      <span className="text-sm font-medium text-gray-600">
+                        {t('dashboard.productForm.variantLabel', { index: index + 1 })}
+                      </span>
                       <button
                         type="button"
                         onClick={() => removeOption(index)}
                         className="text-red-600 text-sm font-medium hover:underline"
                         aria-label="Remove this variant"
                       >
-                        Remove
+                        {t('dashboard.productForm.variantRemove')}
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Option (e.g. Size)</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('dashboard.productForm.optionLabel')}</label>
                         <input
                           type="text"
-                          placeholder="e.g. Size"
+                          placeholder={t('dashboard.productForm.optionPlaceholder')}
                           value={opt.option_name}
                           onChange={(e) => updateOption(index, 'option_name', e.target.value)}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Value (e.g. S, M, L)</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('dashboard.productForm.valueLabel')}</label>
                         <input
                           type="text"
-                          placeholder="e.g. S, M, L"
+                          placeholder={t('dashboard.productForm.valuePlaceholder')}
                           value={opt.option_value}
                           onChange={(e) => updateOption(index, 'option_value', e.target.value)}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Stock</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('dashboard.productForm.stockLabel')}</label>
                         <input
                           type="number"
                           min="0"
@@ -299,7 +314,7 @@ const AddProductPage = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Additional price</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('dashboard.productForm.additionalPriceLabel')}</label>
                         <input
                           type="number"
                           step="1"
@@ -311,22 +326,36 @@ const AddProductPage = () => {
                         />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {opt.image ? (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={opt.image.startsWith('http') ? opt.image : `${API_BASE.replace(/\/$/, '')}/${opt.image.replace(/^\//, '')}`}
-                            alt=""
-                            className="h-12 w-12 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button type="button" onClick={() => updateOption(index, 'image', '')} className="text-xs text-red-600 hover:underline">Remove image</button>
-                        </div>
-                      ) : null}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {Array.isArray(opt.images) && opt.images.length > 0
+                        ? opt.images.map((path, imgIdx) => (
+                            <div key={imgIdx} className="relative">
+                              <img
+                                src={toUrl(path)}
+                                alt=""
+                                className="h-12 w-12 object-cover rounded-lg border border-gray-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeOptionImage(index, imgIdx)}
+                                className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] leading-none"
+                                aria-label="Remove"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))
+                        : null}
                       <label className="cursor-pointer">
                         <span className="text-sm font-medium text-storelaunch-teal hover:underline">
-                          {uploading === `option-${index}` ? 'Uploading…' : (opt.image ? 'Change variant image' : 'Add variant image')}
+                          {uploading === `option-${index}` ? t('dashboard.productForm.variantImagesUploading') : t('dashboard.productForm.variantImagesUpload')}
                         </span>
-                        <input type="file" accept="image/*" className="sr-only" disabled={uploading !== null} onChange={(e) => handleOptionImageChange(index, e)} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleOptionImageChange(index, e)}
+                          className="hidden"
+                        />
                       </label>
                     </div>
                   </div>
@@ -334,30 +363,28 @@ const AddProductPage = () => {
                 <button
                   type="button"
                   onClick={addOption}
-                  className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 font-medium text-sm hover:border-storelaunch-green hover:text-storelaunch-green hover:bg-storelaunch-green/5 transition-colors"
+                  className="text-sm font-medium text-storelaunch-teal hover:underline"
                 >
-                  + Add variant
+                  {t('dashboard.productForm.variantAdd')}
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        
         <div className="flex flex-wrap gap-3 pt-2">
           <button
             type="submit"
             disabled={saving}
             className="px-6 py-2.5 bg-storelaunch-green text-white rounded-xl text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50 shadow-sm"
           >
-            {saving ? 'Saving…' : 'Save product'}
+            {saving ? 'Saving…' : t('dashboard.productForm.saveNew')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/dashboard/products')}
             className="px-6 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t('dashboard.productForm.cancel')}
           </button>
         </div>
       </form>
