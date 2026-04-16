@@ -27,6 +27,8 @@ router.post('/register', async (req, res) => {
   const trimmedEmail = String(email).trim().toLowerCase();
 
   try {
+   
+   
     const existing = await pool.query(
       'SELECT store_owner_id FROM store_owners WHERE email = $1',
       [trimmedEmail]
@@ -37,6 +39,7 @@ router.post('/register', async (req, res) => {
 
     const password_hash = await hashPassword(password);
 
+   
     let result;
     try {
       result = await pool.query(
