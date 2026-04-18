@@ -3,7 +3,7 @@
     "features": "المميزات",
     "pricing": "الأسعار",
     "contact": "اتصل بنا",
-    
+    "getStarted": "ابدأ الآن",
     "login": "تسجيل الدخول",
     "arabic": "العربية",
     "english": "English"
@@ -463,7 +463,7 @@
           "policies": "سياسات المتجر",
           "customers": "إدارة العملاء",
           "footer": "تذييل المتجر",
-          "danger": "منطقة الخطر"
+          "deleteAccount": "حذف الحساب"
         },
         "back": "رجوع",
         "storeInfo": {
@@ -547,7 +547,7 @@
           "privacyPolicy": "سياسة الخصوصية",
           "terms": "الشروط والأحكام"
         },
-        "danger": {
+        "deleteAccount": {
           "sectionTitle": "منطقة الخطر",
           "suspend": "إيقاف المتجر مؤقتاً",
           "deactivate": "إلغاء تفعيل المتجر",

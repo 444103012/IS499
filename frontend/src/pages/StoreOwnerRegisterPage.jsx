@@ -15,6 +15,7 @@ const getErrorMessageAr = (message) => ERROR_MESSAGES_AR[message] || message || 
 const StoreOwnerRegisterPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+ 
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -36,11 +37,13 @@ const StoreOwnerRegisterPage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
   };
 
+  
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
   };
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -66,6 +69,7 @@ const StoreOwnerRegisterPage = () => {
         password,
       });
 
+     
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
       navigate('/store-setup');

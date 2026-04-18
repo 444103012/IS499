@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +10,7 @@ const LandingPage = () => {
   const [billingPeriod, setBillingPeriod] = useState('monthly');
   const isRTL = i18n.language === 'ar';
 
+  
   const toggleLanguage = () => {
     const newLang = i18n.language === 'ar' ? 'en' : 'ar';
     i18n.changeLanguage(newLang);
@@ -15,6 +18,7 @@ const LandingPage = () => {
     document.documentElement.lang = newLang;
   };
 
+  
   useEffect(() => {
     const currentLang = i18n.language || 'ar';
     const dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -22,12 +26,14 @@ const LandingPage = () => {
     document.documentElement.lang = currentLang;
   }, [i18n.language]);
 
+  
   const featuresList = [
     { titleKey: 'features.easyStore.title', descriptionKey: 'features.easyStore.description', icon: 'store' },
     { titleKey: 'features.customize.title', descriptionKey: 'features.customize.description', icon: 'palette' },
     { titleKey: 'features.inventory.title', descriptionKey: 'features.inventory.description', icon: 'inventory' },
   ];
 
+  
   const plans = [
     { planKey: 'basic' },
     { planKey: 'pro' },
@@ -36,6 +42,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+      {}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`flex justify-between items-center h-14 md:h-16 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -62,6 +69,7 @@ const LandingPage = () => {
               </Link>
             </div>
 
+            {}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -80,6 +88,7 @@ const LandingPage = () => {
             </button>
           </div>
 
+          {}
           {isMobileMenuOpen && (
             <div className={`md:hidden py-4 border-t border-gray-100 ${isRTL ? 'text-right' : 'text-left'}`}>
               <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="block py-2 text-storelaunch-dark hover:text-storelaunch-green font-medium">
@@ -99,6 +108,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
+      {}
       <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center ${isRTL ? 'lg:grid-flow-dense' : ''}`}>
@@ -110,12 +120,9 @@ const LandingPage = () => {
                 {t('hero.subheadline')}
               </p>
               <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? 'sm:flex-row-reverse justify-start' : ''}`}>
-                <Link to="/register" className="inline-flex justify-center px-6 py-3 bg-storelaunch-green text-white rounded-lg font-semibold hover:bg-storelaunch-deep-green">
+                <Link to="/register" className="inline-flex justify-center min-w-[200px] sm:min-w-[240px] px-8 py-3 bg-storelaunch-green text-white rounded-lg font-semibold hover:bg-storelaunch-deep-green">
                   {t('hero.ctaPrimary')}
                 </Link>
-                <a href="#features" className="inline-flex justify-center px-6 py-3 bg-white text-storelaunch-dark border-2 border-storelaunch-dark rounded-lg font-semibold hover:bg-storelaunch-dark hover:text-white">
-                  {t('hero.ctaSecondary')}
-                </a>
               </div>
             </div>
             <div className="flex justify-center items-center">
@@ -125,6 +132,7 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {}
       <section id="features" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-storelaunch-dark mb-2 text-center">
@@ -164,6 +172,7 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {}
       <section id="pricing" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-storelaunch-dark mb-2 text-center">
@@ -173,6 +182,7 @@ const LandingPage = () => {
             {t('pricing.subtitle')}
           </p>
 
+          {}
           <div className={`flex items-center justify-center gap-3 mb-10 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <span className={`text-sm font-medium ${billingPeriod === 'monthly' ? 'text-storelaunch-dark' : 'text-gray-500'}`}>
               {t('pricing.monthly')}
@@ -196,6 +206,7 @@ const LandingPage = () => {
             )}
           </div>
 
+          {}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {plans.map((plan, index) => {
               const planData = t(`pricing.plans.${plan.planKey}`, { returnObjects: true });
@@ -210,9 +221,7 @@ const LandingPage = () => {
               return (
                 <div
                   key={index}
-                  className={`relative bg-white rounded-xl border p-6 shadow-md ${
-                    plan.popular ? 'border-storelaunch-green border-2 ring-2 ring-storelaunch-green/20' : 'border-gray-200'
-                  }`}
+                  className="relative bg-white rounded-xl border border-gray-200 p-6 shadow-md"
                 >
                   <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                     {planData.name}
@@ -234,9 +243,7 @@ const LandingPage = () => {
                   </ul>
                   <Link
                     to="/register"
-                    className={`block w-full py-3 rounded-lg font-semibold text-sm text-center ${
-                      plan.popular ? 'bg-storelaunch-green text-white hover:bg-storelaunch-deep-green' : 'bg-storelaunch-dark text-white hover:bg-storelaunch-teal'
-                    }`}
+                    className="block w-full py-3 rounded-lg font-semibold text-sm text-center bg-storelaunch-dark text-white hover:bg-storelaunch-teal"
                   >
                     {plan.planKey === 'advanced' ? t('nav.getStarted') : planData.cta}
                   </Link>
@@ -247,10 +254,11 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {}
       <footer className="bg-storelaunch-dark text-white py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-lg font-bold">StoreLaunch</span>
-          <p className="text-gray-300 text-sm">© StoreLaunch 2025</p>
+          <p className="text-gray-300 text-sm"> StoreLaunch </p>
         </div>
       </footer>
     </div>

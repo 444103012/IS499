@@ -14,11 +14,24 @@ import DashboardHome from './pages/dashboard/DashboardHome';
 import ProductsList from './pages/dashboard/ProductsList';
 import AddProductPage from './pages/dashboard/AddProductPage';
 import EditProductPage from './pages/dashboard/EditProductPage';
-import OrdersPage from './pages/dashboard/OrdersPage';
 import ReportsPage from './pages/dashboard/ReportsPage';
 import StoreManagementPage from './pages/dashboard/StoreManagementPage';
 import SubscriptionPage from './pages/dashboard/SubscriptionPage';
 import SettingsPage from './pages/dashboard/SettingsPage';
+import OrdersPage from './pages/dashboard/OrdersPage';
+import OrdersList from './pages/dashboard/OrdersList';
+import OrderDetailPage from './pages/dashboard/OrderDetailPage';
+import StoreInfoPage from './pages/dashboard/StoreInfoPage';
+import BrandingAppearancePage from './pages/dashboard/BrandingAppearancePage';
+import DomainSettingsPage from './pages/dashboard/DomainSettingsPage';
+import PaymentProvidersPage from './pages/dashboard/PaymentProvidersPage';
+import ShippingProvidersPage from './pages/dashboard/ShippingProvidersPage';
+import StorePoliciesPage from './pages/dashboard/StorePoliciesPage';
+import StoreFooterPage from './pages/dashboard/StoreFooterPage';
+import StoreDeleteAccountPage from './pages/dashboard/StoreDeleteAccountPage';
+import CustomersManagementPage from './pages/dashboard/CustomersManagementPage';
+
+
 
 function App() {
   return (
@@ -59,9 +72,19 @@ function App() {
             <Route path="products" element={<ProductsList />} />
             <Route path="products/new" element={<AddProductPage />} />
             <Route path="products/:id/edit" element={<EditProductPage />} />
-            <Route path="orders" element={<OrdersPage />} />
+            <Route path="orders" element={<OrdersList />} />
+            <Route path="orders/:id" element={<OrderDetailPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="store" element={<StoreManagementPage />} />
+            <Route path="store/info" element={<StoreInfoPage />} />
+            <Route path="store/branding" element={<BrandingAppearancePage />} />
+            <Route path="store/domain" element={<DomainSettingsPage />} />
+            <Route path="store/payments" element={<PaymentProvidersPage />} />
+            <Route path="store/shipping" element={<ShippingProvidersPage />} />
+            <Route path="store/policies" element={<StorePoliciesPage />} />
+            <Route path="store/footer" element={<StoreFooterPage />} />
+            <Route path="store/delete-account" element={<StoreDeleteAccountPage />} />
+            <Route path="store/customers" element={<CustomersManagementPage />} />
             <Route path="subscription" element={<SubscriptionPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

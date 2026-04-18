@@ -3,7 +3,7 @@
     "features": "Features",
     "pricing": "Pricing",
     "contact": "Contact",
-    
+    "getStarted": "Get Started",
     "login": "Login",
     "arabic": "العربية",
     "english": "English"
@@ -463,7 +463,7 @@
           "policies": "Store Policies",
           "customers": "Customers Management",
           "footer": "Store Footer",
-          "danger": "Danger Zone"
+          "deleteAccount": "Delete Account"
         },
         "back": "Back",
         "storeInfo": {
@@ -547,7 +547,7 @@
           "privacyPolicy": "Privacy policy",
           "terms": "Terms & conditions"
         },
-        "danger": {
+        "deleteAccount": {
           "sectionTitle": "Danger Zone",
           "suspend": "Suspend store",
           "deactivate": "Deactivate store",
@@ -657,7 +657,6 @@
           "saveError": "Failed to save settings."
         }
       }
-  
   },
   "storefront": {
     "title": "Shop",

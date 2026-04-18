@@ -86,8 +86,8 @@ const cards = [
     ),
   },
   {
-    key: 'danger',
-    route: '/dashboard/store/danger',
+    key: 'deleteAccount',
+    route: '/dashboard/store/delete-account',
     icon: (className) => (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4l8 14H4z" />

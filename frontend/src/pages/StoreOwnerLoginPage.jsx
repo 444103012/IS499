@@ -22,6 +22,7 @@ const StoreOwnerLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
 
+ 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
@@ -31,6 +32,7 @@ const StoreOwnerLoginPage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
   };
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -47,10 +49,11 @@ const StoreOwnerLoginPage = () => {
         password,
       });
 
+     
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
       const setupStep = data.setup_step != null ? Number(data.setup_step) : 0;
-      if (setupStep >= 6) navigate('/dashboard');
+      if (setupStep === 6) navigate('/dashboard');
       else navigate('/store-setup');
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
