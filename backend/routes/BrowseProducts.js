@@ -1,7 +1,5 @@
-
 const express = require('express');
 const router = express.Router();
-
 
 let _productColumns = null;
 
@@ -14,7 +12,6 @@ async function getProductColumns(pool) {
   _productColumns = new Set(result.rows.map(r => r.column_name));
   return _productColumns;
 }
-
 
 router.get('/', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -141,7 +138,6 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
-
 
 router.get('/categories/list', async (req, res) => {
   const pool = req.app.locals.pool;

@@ -1,30 +1,7 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { uploadStoreLogo } = require('../middleware/upload');
 
 const router = express.Router();
-
-const uploadsDir = path.join(__dirname, '..', 'uploads', 'stores');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = (path.extname(file.originalname) || '.png').toLowerCase();
-    cb(null, `${req.user.store_owner_id}_${Date.now()}${ext}`);
-  },
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (/^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype)) cb(null, true);
-    else cb(new Error('Only images allowed'), false);
-  },
-});
 
 async function getStoreId(pool, store_owner_id) {
   const r = await pool.query(
@@ -64,40 +41,46 @@ router.get('/status', async (req, res) => {
         setup_step = 0;
       } else throw colErr;
     }
-    const store_id = setup_step >= 1 ? await getStoreId(pool, store_owner_id) : null;
-    res.json({ setup_step, store_id });
+    let store_id = null;
+    let store_name = null;
+    let store_logo = null;
+    if (setup_step >= 1) {
+      const storeRow = await pool.query(
+        'SELECT store_id, name, logo FROM stores WHERE store_owner_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [store_owner_id]
+      );
+      if (storeRow.rows[0]) {
+        store_id = storeRow.rows[0].store_id;
+        store_name = storeRow.rows[0].name || null;
+        store_logo = storeRow.rows[0].logo || null;
+      }
+    }
+    res.json({ setup_step, store_id, store_name, store_logo });
   } catch (err) {
     console.error('store-setup status:', err);
     res.status(500).json({ error: 'Failed to get status' });
   }
 });
 
-router.post('/store-details', upload.single('logo'), async (req, res) => {
+router.post('/store-details', uploadStoreLogo.single('logo'), async (req, res) => {
   try {
     const pool = req.app.locals.pool;
     const { store_owner_id } = req.user;
     const name = (req.body && req.body.name ? String(req.body.name) : '').trim();
-    if (!name) {
-      if (req.file && req.file.path) fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ error: 'Store name is required' });
-    }
+    if (!name) return res.status(400).json({ error: 'Store name is required' });
     const store_type = (req.body.store_type || '').trim() || null;
     const description = (req.body.description || '').trim() || null;
-    let logoPath = null;
-    if (req.file && req.file.filename) {
-      logoPath = 'uploads/stores/' + req.file.filename;
-    }
+    const logoUrl = req.file && req.file.location ? req.file.location : null;
     const result = await pool.query(
       `INSERT INTO stores (store_owner_id, name, domain_name, logo, store_type, description, status)
        VALUES ($1, $2, NULL, $3, $4, $5, 'Pending')
        RETURNING store_id`,
-      [store_owner_id, name, logoPath, store_type, description]
+      [store_owner_id, name, logoUrl, store_type, description]
     );
     const store_id = result.rows[0].store_id;
     await updateSetupStep(pool, store_owner_id, 1);
     res.status(201).json({ success: true, store_id, next_step: 2 });
   } catch (err) {
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) fs.unlink(req.file.path, () => {});
     console.error('store-setup store-details:', err);
     const message = process.env.NODE_ENV !== 'production' && err.message ? err.message : 'Failed to save store details';
     res.status(500).json({ error: message });

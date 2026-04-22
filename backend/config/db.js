@@ -1,4 +1,3 @@
-
 const { Pool } = require('pg');
 require('dotenv').config();
 const useSSL = process.env.PG_SSL === 'true' || process.env.PG_SSL === '1';
@@ -10,7 +9,7 @@ const pool = new Pool(
         host: process.env.PG_HOST || 'localhost',
         database: process.env.PG_DATABASE,
         password: process.env.PG_PASSWORD,
-        port: parseInt(process.env.PG_PORT, 10) || 5432,
+        port: parseInt(process.env.PG_PORT, 10) || 5432,       
         ...(useSSL && { ssl: { rejectUnauthorized: false } }),
       }
 );

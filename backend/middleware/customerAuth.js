@@ -1,25 +1,21 @@
 const { verifyToken } = require('../utils/token');
 
-function authMiddleware(req, res, next) {
- 
- 
+function customerAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-
- 
- 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authorization header missing or invalid. Use: Bearer <token>' });
+    return res.status(401).json({ error: 'Authorization required' });
   }
-
- 
- 
   const token = authHeader.slice(7);
   try {
     const decoded = verifyToken(token);
-    req.user = { store_owner_id: decoded.store_owner_id };
+    if (decoded.role !== 'customer' || !decoded.customer_id) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    req.customerId = decoded.customer_id;
     next();
-  } catch (err) {  
+  } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
-module.exports = authMiddleware;
+
+module.exports = customerAuth;

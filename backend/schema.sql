@@ -10,7 +10,6 @@ CREATE TABLE customers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-
 CREATE TABLE store_owners (
     store_owner_id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -23,7 +22,6 @@ CREATE TABLE store_owners (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-
 CREATE TABLE admins (
     admin_id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -34,20 +32,18 @@ CREATE TABLE admins (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-
 CREATE TABLE stores (
     store_id SERIAL PRIMARY KEY,
     store_owner_id INTEGER REFERENCES store_owners(store_owner_id) ON DELETE CASCADE,
     name VARCHAR(150) NOT NULL,
     domain_name VARCHAR(150),
-    logo VARCHAR(255),              
+    logo VARCHAR(255),
     store_type VARCHAR(100),        
     description TEXT,     
     theme VARCHAR(50) DEFAULT 'Default',           
     status VARCHAR(50) DEFAULT 'Pending', 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
 
 CREATE TABLE IF NOT EXISTS payment_providers (
     id SERIAL PRIMARY KEY,
@@ -56,19 +52,12 @@ CREATE TABLE IF NOT EXISTS payment_providers (
     credentials JSONB
 );
 
-
 CREATE TABLE IF NOT EXISTS shipping_providers (
     id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES stores(store_id) ON DELETE CASCADE,
     carrier_name VARCHAR(100),
     credentials JSONB
 );
-
-
-ALTER TABLE stores
-    ADD COLUMN IF NOT EXISTS default_payment_provider_id INTEGER REFERENCES payment_providers(id) ON DELETE SET NULL,
-    ADD COLUMN IF NOT EXISTS default_shipping_provider_id INTEGER REFERENCES shipping_providers(id) ON DELETE SET NULL;
-
 
 CREATE TABLE products (
     product_id SERIAL PRIMARY KEY,
@@ -78,11 +67,9 @@ CREATE TABLE products (
     description TEXT,
     category VARCHAR(100),
     price DECIMAL(10, 2) NOT NULL,
-    image_url VARCHAR(500),
     status VARCHAR(50) DEFAULT 'Active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    images JSONB DEFAULT '[]'
 );
-
 
 CREATE TABLE product_options (
     option_id SERIAL PRIMARY KEY,
@@ -90,9 +77,9 @@ CREATE TABLE product_options (
     option_name VARCHAR(100), 
     option_value VARCHAR(100), 
     stock_qty INTEGER DEFAULT 0,
-    additional_price DECIMAL(10, 2) DEFAULT 0.00
+    additional_price DECIMAL(10, 2) DEFAULT 0.00,
+    images JSONB DEFAULT '[]'
 );
-
 
 CREATE TABLE carts (
     cart_id SERIAL PRIMARY KEY,
@@ -101,7 +88,6 @@ CREATE TABLE carts (
     total_price DECIMAL(10, 2) DEFAULT 0.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
 
 CREATE TABLE cart_items (
     cart_item_id SERIAL PRIMARY KEY,
@@ -112,7 +98,6 @@ CREATE TABLE cart_items (
     subtotal DECIMAL(10, 2) GENERATED ALWAYS AS (quantity * unit_price) STORED
 );
 
-
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
     customer_id INTEGER REFERENCES customers(customer_id),
@@ -122,7 +107,6 @@ CREATE TABLE orders (
     total_amount DECIMAL(10, 2) NOT NULL
 );
 
-
 CREATE TABLE order_items (
     order_item_id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(order_id) ON DELETE CASCADE,
@@ -130,7 +114,6 @@ CREATE TABLE order_items (
     quantity INTEGER NOT NULL,
     price DECIMAL(10, 2) NOT NULL
 );
-
 
 CREATE TABLE shipments (
     shipment_id SERIAL PRIMARY KEY,
@@ -145,7 +128,6 @@ CREATE TABLE shipments (
     delivered_at TIMESTAMP WITH TIME ZONE
 );
 
-
 CREATE TABLE payments (
     payment_id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(order_id),
@@ -156,7 +138,6 @@ CREATE TABLE payments (
     provider_ref VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
 
 CREATE TABLE reviews (
     review_id SERIAL PRIMARY KEY,
@@ -169,7 +150,6 @@ CREATE TABLE reviews (
     review_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-
 CREATE TABLE subscriptions (
     subscription_id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES stores(store_id) ON DELETE CASCADE,
@@ -180,7 +160,6 @@ CREATE TABLE subscriptions (
     status VARCHAR(50) DEFAULT 'Active'
 );
 
-
 CREATE TABLE store_admins (
     id SERIAL PRIMARY KEY, 
     admin_id INTEGER REFERENCES admins(admin_id),
@@ -189,3 +168,7 @@ CREATE TABLE store_admins (
     activity_note TEXT,
     activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]';
+
+ALTER TABLE product_options ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]';
