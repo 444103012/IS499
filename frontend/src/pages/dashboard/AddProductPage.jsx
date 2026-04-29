@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../../config/api';
 
 const emptyOption = () => ({ option_name: '', option_value: '', stock_qty: 0, additional_price: 0, images: [] });
 
@@ -126,7 +125,7 @@ const AddProductPage = () => {
   };
 
   const productImages = Array.isArray(form.images) ? form.images : [];
-  const toUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
+  const toUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE_URL}/${path.replace(/^\//, '')}` : path);
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'}>

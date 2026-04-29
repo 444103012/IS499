@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosInstance from '../../api/axios';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../../config/api';
 
 const FULFILLMENT_OPTIONS = ['Processing', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
 
@@ -89,7 +88,7 @@ const OrderDetailPage = () => {
 
   const formatDate = (d) => (d ? new Date(d).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '—');
   const formatAmount = (n) => (n != null ? Number(n).toFixed(2) : '—');
-  const imageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
+  const imageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE_URL}/${path.replace(/^\//, '')}` : path);
 
   if (loading && !order) {
     return (

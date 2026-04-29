@@ -3,8 +3,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 import DashboardSidebar from '../components/DashboardSidebar';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../config/api';
 
 const StoreOwnerDashboardLayout = () => {
   const navigate = useNavigate();
@@ -54,7 +53,7 @@ const StoreOwnerDashboardLayout = () => {
   };
 
   const logoUrl = storeLogo && storeLogo.trim()
-    ? (storeLogo.startsWith('http') ? storeLogo : `${API_BASE.replace(/\/$/, '')}/${storeLogo.replace(/^\//, '')}`)
+    ? (storeLogo.startsWith('http') ? storeLogo : `${API_BASE_URL}/${storeLogo.replace(/^\//, '')}`)
     : null;
 
   if (!setupGuardReady) {

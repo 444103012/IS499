@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../../config/api';
 const emptyOption = () => ({ option_name: '', option_value: '', stock_qty: 0, additional_price: 0, images: [] });
 
 const EditProductPage = () => {
@@ -220,7 +219,7 @@ const EditProductPage = () => {
                         <img
                           src={
                             path && !path.startsWith('http')
-                              ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+                              ? `${API_BASE_URL}/${path.replace(/^\//, '')}`
                               : path
                           }
                           alt=""
@@ -426,7 +425,7 @@ const EditProductPage = () => {
                           <img
                             src={
                               path && !path.startsWith('http')
-                                ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+                                ? `${API_BASE_URL}/${path.replace(/^\//, '')}`
                                 : path
                             }
                             alt=""

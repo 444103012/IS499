@@ -9,6 +9,8 @@ import CustomerLoginPage from './pages/CustomerLoginPage';
 import CustomerRegisterPage from './pages/CustomerRegisterPage';
 import StorefrontPage from './pages/StorefrontPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
+import CheckoutPage from './pages/CheckoutPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import ProductsList from './pages/dashboard/ProductsList';
@@ -48,8 +50,12 @@ function App() {
 
           <Route path="/shop" element={<StorefrontPage />} />
           <Route path="/shop/product/:id" element={<ProductDetailsPage />} />
- <Route path="/:storeSlug/customer" element={<StorefrontPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment/result" element={<PaymentResultPage />} />
+          <Route path="/:storeSlug/customer" element={<StorefrontPage />} />
           <Route path="/:storeSlug/customer/product/:id" element={<ProductDetailsPage />} />
+          <Route path="/:storeSlug/checkout" element={<CheckoutPage />} />
+          <Route path="/:storeSlug/payment/result" element={<PaymentResultPage />} />
           <Route path="/:storeSlug/customer/login" element={<CustomerLoginPage />} />
           <Route path="/:storeSlug/customer/register" element={<CustomerRegisterPage />} />
           <Route

@@ -4,9 +4,17 @@ const customerAuth = require('../middleware/customerAuth');
 
 const router = express.Router();
 
-const FRONTEND_BASE_URL = (process.env.FRONTEND_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const FRONTEND_BASE_URL = (process.env.FRONTEND_BASE_URL || '').replace(/\/$/, '');
 const MOYASAR_PUBLISHABLE_KEY = process.env.MOYASAR_PUBLISHABLE_KEY || '';
 const MOYASAR_SECRET_KEY = process.env.MOYASAR_SECRET_KEY || '';
+
+function toStoreSlug(raw) {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
 
 router.post('/init', customerAuth, async (req, res) => {
   const pool = req.app.locals.pool;
@@ -18,14 +26,19 @@ router.post('/init', customerAuth, async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      'SELECT order_id, total_amount FROM orders WHERE order_id = $1 AND customer_id = $2',
+      `SELECT o.order_id, o.total_amount, s.domain_name, s.name AS store_name
+       FROM orders o
+       JOIN stores s ON s.store_id = o.store_id
+       WHERE o.order_id = $1 AND o.customer_id = $2`,
       [order_id, req.customerId]
     );
     const order = orderResult.rows[0];
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const amountHalalas = Math.round(Number(order.total_amount || 0) * 100);
-    const callbackUrl = `${FRONTEND_BASE_URL}/payment/result?orderId=${order_id}`;
+    const storeSlug = toStoreSlug(order.domain_name || order.store_name);
+    const callbackPath = `/${storeSlug}/payment/result?orderId=${order_id}`;
+    const callbackUrl = FRONTEND_BASE_URL ? `${FRONTEND_BASE_URL}${callbackPath}` : callbackPath;
 
    
    

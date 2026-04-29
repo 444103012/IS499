@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useCart } from '../../../context/cart/CartContext';
+import { API_BASE_URL } from '../../../config/api';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
-const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
+const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE_URL}/${path.replace(/^\//, '')}` : path);
 
 export default function CartItemCard({ item, isRTL }) {
   const { updateItem, removeItem } = useCart();

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useCart } from '../context/cart/CartContext';
@@ -10,7 +10,9 @@ const PaymentResultPage = () => {
   const isRTL = i18n.language === 'ar';
   const location = useLocation();
   const navigate = useNavigate();
+  const { storeSlug } = useParams();
   const { items, removeItem } = useCart();
+  const storefrontPath = storeSlug ? `/${storeSlug}/customer` : '/shop';
 
   const [status, setStatus] = useState('processing');
   const [orderId, setOrderId] = useState(null);
@@ -66,7 +68,7 @@ const PaymentResultPage = () => {
 
   const handleRetry = async () => {
     if (!orderId) {
-      navigate('/shop');
+      navigate(storefrontPath);
       return;
     }
     try {
@@ -105,7 +107,7 @@ const PaymentResultPage = () => {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               type="button"
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate(storefrontPath)}
               className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-storelaunch-dark hover:border-storelaunch-green"
             >
               {isRTL ? 'متابعة التسوق' : 'Continue Shopping'}

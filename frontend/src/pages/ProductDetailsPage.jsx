@@ -5,9 +5,9 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import StorefrontHeader from '../components/StorefrontHeader';
 import axiosInstance from '../api/axios';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
-const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
+const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE_URL}/${path.replace(/^\//, '')}` : path);
 
 const ProductDetailsPage = () => {
   const { t, i18n } = useTranslation();

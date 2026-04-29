@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
-
-const API_BASE = process.env.REACT_APP_API_URL || '';
+import { API_BASE_URL } from '../../config/api';
 
 const BrandingAppearancePage = () => {
   const { t, i18n } = useTranslation();
@@ -50,7 +49,7 @@ const BrandingAppearancePage = () => {
     formData.append('logo', file);
     try {
       const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch(`${API_BASE}/api/store/logo`, {
+      const res = await fetch(`${API_BASE_URL}/api/store/logo`, {
         method: 'PUT',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,

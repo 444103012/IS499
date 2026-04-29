@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCart } from '../context/cart/CartContext';
 import api from '../api/axios';
@@ -12,7 +12,9 @@ const CheckoutPage = () => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const navigate = useNavigate();
+  const { storeSlug } = useParams();
   const { items, totals } = useCart();
+  const storefrontPath = storeSlug ? `/${storeSlug}/customer` : '/shop';
 
   const [address, setAddress] = useState({ country: 'SA' });
   const [shippingOptions, setShippingOptions] = useState([]);
@@ -34,7 +36,7 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!items || items.length === 0) {
-      navigate('/shop', { replace: true });
+      navigate(storefrontPath, { replace: true });
       return;
     }
     (async () => {
@@ -114,7 +116,7 @@ const CheckoutPage = () => {
             ? 'أحد المنتجات نفد من المخزون. يرجى مراجعة السلة.'
             : 'One of the items is out of stock. Please review your cart.'
         );
-        navigate('/shop', { replace: false });
+        navigate(storefrontPath, { replace: false });
       } else {
         setError(err.response?.data?.error || (isRTL ? 'فشل إنشاء الطلب' : 'Failed to create order'));
       }

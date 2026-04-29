@@ -1,6 +1,4 @@
-
-
-const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../config/api';
 
 async function request(method, url, body = null) {
   const options = {
@@ -33,7 +31,7 @@ async function request(method, url, body = null) {
   let res;
   try {
     
-    res = await fetch(`${BASE_URL}${url}`, options);
+    res = await fetch(`${API_BASE_URL}${url}`, options);
   } catch (networkErr) {
    
    
@@ -78,7 +76,7 @@ async function postForm(url, formData) {
   };
   if (token) options.headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(`${BASE_URL}${url}`, options);
+  const res = await fetch(`${API_BASE_URL}${url}`, options);
   let data = {};
   const contentType = res.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
