@@ -11,7 +11,17 @@ const DomainSettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [store, setStore] = useState(null);
-  const [domain, setDomain] = useState({});
+  const [storeSlug, setStoreSlug] = useState('');
+  const [slugError, setSlugError] = useState('');
+  const baseDomain = 'storelaunch.site';
+
+  const normalizeSlug = (value) => value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 
   useEffect(() => {
     let cancelled = false;
@@ -21,7 +31,7 @@ const DomainSettingsPage = () => {
         const { data } = await axiosInstance.get('/api/store');
         if (!cancelled) {
           setStore(data.store);
-          setDomain(data.settings?.domain || {});
+          setStoreSlug(normalizeSlug(data?.store?.domain_name || ''));
         }
       } catch {
         if (!cancelled) {
@@ -43,15 +53,25 @@ const DomainSettingsPage = () => {
   };
 
   const handleSave = async () => {
+    const normalized = normalizeSlug(storeSlug);
+    if (normalized.length < 3 || normalized.length > 40) {
+      setSlugError(t('dashboard.storeManagement.domain.slugLengthError'));
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(normalized)) {
+      setSlugError(t('dashboard.storeManagement.domain.slugPatternError'));
+      return;
+    }
+
+    setSlugError('');
     setSaving(true);
     try {
-      await axiosInstance.put('/api/store/domain', {
-        customDomain: store?.domain_name,
-        domainMeta: domain,
-      });
+      await axiosInstance.put('/api/store/domain', { slug: normalized });
+      setStore((prev) => ({ ...(prev || {}), domain_name: normalized }));
+      setStoreSlug(normalized);
       showToast('success', t('dashboard.storeManagement.toast.saveSuccess'));
-    } catch {
-      showToast('error', t('dashboard.storeManagement.toast.saveError'));
+    } catch (err) {
+      showToast('error', err?.response?.data?.error || t('dashboard.storeManagement.toast.saveError'));
     } finally {
       setSaving(false);
     }
@@ -74,7 +94,7 @@ const DomainSettingsPage = () => {
   }
 
   return (
-    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="space-y-4 sm:space-y-6 max-w-full" dir={isRTL ? 'rtl' : 'ltr'}>
       {toast && (
         <div
           className={`fixed top-4 ${isRTL ? 'left-4' : 'right-4'} z-50 px-4 py-3 rounded-lg shadow-lg text-white ${
@@ -85,11 +105,11 @@ const DomainSettingsPage = () => {
         </div>
       )}
 
-      <div className={`flex items-center gap-3 mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex items-center gap-2 sm:gap-3 mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button
           type="button"
           onClick={() => navigate('/dashboard/store')}
-          className="inline-flex items-center gap-1 text-sm text-storelaunch-dark hover:underline"
+          className="inline-flex items-center gap-1 min-h-11 px-2 text-sm text-storelaunch-dark hover:underline rounded-lg focus:outline-none focus:ring-2 focus:ring-storelaunch-green/30"
         >
           {isRTL ? (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -102,45 +122,48 @@ const DomainSettingsPage = () => {
           )}
           {t('dashboard.storeManagement.back')}
         </button>
-        <h2 className="text-storelaunch-dark font-bold text-2xl">
+        <h2 className="text-storelaunch-dark font-bold text-xl sm:text-2xl">
           {t('dashboard.storeManagement.domain.sectionTitle')}
         </h2>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6 space-y-4">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md p-4 sm:p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('dashboard.storeManagement.domain.defaultDomain')}
+              {t('dashboard.storeManagement.domain.baseUrl')}
             </label>
             <input
               type="text"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50"
-              value={domain.defaultDomain || ''}
+              className="w-full min-h-11 border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50"
+              value={`${baseDomain}/`}
               readOnly
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('dashboard.storeManagement.domain.customDomain')}
+              {t('dashboard.storeManagement.domain.storeSlug')}
             </label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              value={store.domain_name || ''}
-              placeholder={t(
-                'dashboard.storeManagement.domain.customDomainPlaceholder'
-              )}
-              onChange={(e) => setStore({ ...store, domain_name: e.target.value })}
+              className="w-full min-h-11 border border-gray-300 rounded-lg px-3 py-2.5 text-sm"
+              value={storeSlug}
+              placeholder={t('dashboard.storeManagement.domain.slugPlaceholder')}
+              onChange={(e) => setStoreSlug(normalizeSlug(e.target.value))}
             />
+            {slugError && <p className="text-xs text-red-600 mt-1">{slugError}</p>}
           </div>
         </div>
         <div>
           <h4 className="text-sm font-semibold text-gray-800 mb-1">
-            {t('dashboard.storeManagement.domain.dnsInstructions')}
+            {t('dashboard.storeManagement.domain.slugRulesTitle')}
           </h4>
           <p className="text-sm text-gray-600">
-            {t('dashboard.storeManagement.domain.dnsHelp')}
+            {t('dashboard.storeManagement.domain.slugRulesHelp')}
+          </p>
+          <p className="text-sm text-storelaunch-dark mt-2">
+            {t('dashboard.storeManagement.domain.previewLabel')}:{' '}
+            <span className="font-semibold">{`${baseDomain}/${storeSlug || 'your-store'}`}</span>
           </p>
         </div>
         <div>
@@ -148,7 +171,7 @@ const DomainSettingsPage = () => {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
+            className="w-full sm:w-auto min-h-11 px-4 py-2.5 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
           >
             {t('dashboard.storeManagement.actions.saveChanges')}
           </button>

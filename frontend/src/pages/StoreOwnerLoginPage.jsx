@@ -1,7 +1,21 @@
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
+
+const ACCESS_TIMEOUT_MS = 8000;
+
 
 const getErrorMessageEn = (message) => {
   const map = {
@@ -22,7 +36,7 @@ const StoreOwnerLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
 
- 
+  
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
@@ -49,9 +63,36 @@ const StoreOwnerLoginPage = () => {
         password,
       });
 
-     
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
+      try {
+        const access = await Promise.race([
+          axiosInstance.get('/api/store/access-status'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Access status timeout')), ACCESS_TIMEOUT_MS)),
+        ]);
+        if (access?.data?.suspended) {
+          navigate('/store-suspended');
+          return;
+        }
+      } catch {
+        try {
+          const store = await Promise.race([
+            axiosInstance.get('/api/store'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Store status timeout')), ACCESS_TIMEOUT_MS)),
+          ]);
+          const status = String(store?.data?.store?.status || '').toLowerCase();
+          if (status === 'suspended') {
+            navigate('/store-suspended');
+            return;
+          }
+        } catch {
+          setError('Cannot verify account access right now. Please try again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('store_owner_id');
+          return;
+        }
+      }
       const setupStep = data.setup_step != null ? Number(data.setup_step) : 0;
       if (setupStep === 6) navigate('/dashboard');
       else navigate('/store-setup');

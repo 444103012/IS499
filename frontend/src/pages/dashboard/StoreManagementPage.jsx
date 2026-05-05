@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import axiosInstance from '../../api/axios';
 
 const cards = [
   {
@@ -55,16 +56,6 @@ const cards = [
     ),
   },
   {
-    key: 'policies',
-    route: '/dashboard/store/policies',
-    icon: (className) => (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 4h10v16H7z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3" />
-      </svg>
-    ),
-  },
-  {
     key: 'customers',
     route: '/dashboard/store/customers',
     icon: (className) => (
@@ -85,27 +76,33 @@ const cards = [
       </svg>
     ),
   },
-  {
-    key: 'deleteAccount',
-    route: '/dashboard/store/delete-account',
-    icon: (className) => (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4l8 14H4z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 10v4m0 3h.01" />
-      </svg>
-    ),
-  },
 ];
 
 const StoreManagementPage = () => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const navigate = useNavigate();
+  const [plan, setPlan] = useState('basic');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await axiosInstance.get('/api/subscription');
+        if (!cancelled) setPlan(data?.plan || 'basic');
+      } catch {
+        if (!cancelled) setPlan('basic');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isAdvancedPlan = plan === 'advanced';
 
   return (
-    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="space-y-5 sm:space-y-6 max-w-full" dir={isRTL ? 'rtl' : 'ltr'}>
       <div>
-        <h2 className="text-storelaunch-dark font-bold text-2xl mb-1">
+        <h2 className="text-storelaunch-dark font-bold text-xl sm:text-2xl mb-1">
           {t('dashboard.storeManagement.title')}
         </h2>
         <p className="text-gray-600 text-sm">
@@ -113,13 +110,19 @@ const StoreManagementPage = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {cards.map((card) => (
           <button
             key={card.key}
             type="button"
-            onClick={() => navigate(card.route)}
-            className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg hover:border-storelaunch-green/40 hover:scale-[1.02] transition-all duration-200 p-6 flex flex-col items-center justify-between gap-4 text-center"
+            onClick={() => {
+              if (card.key === 'domain' && !isAdvancedPlan) {
+                navigate('/dashboard/subscription');
+                return;
+              }
+              navigate(card.route);
+            }}
+            className="min-h-[150px] bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg hover:border-storelaunch-green/40 hover:scale-[1.02] transition-all duration-200 p-5 sm:p-6 flex flex-col items-center justify-between gap-4 text-center"
           >
             <div className="flex flex-col items-center gap-3">
               <div className="w-16 h-16 rounded-2xl bg-storelaunch-green/10 flex items-center justify-center text-storelaunch-green">
@@ -128,6 +131,13 @@ const StoreManagementPage = () => {
               <p className="text-sm font-semibold text-storelaunch-dark">
                 {t(`dashboard.storeManagement.tabs.${card.key}`)}
               </p>
+              {card.key === 'domain' && !isAdvancedPlan ? (
+                <p className="text-xs font-medium text-amber-700">
+                  {t('dashboard.storeManagement.locked.availableInPlan', {
+                    plan: t('dashboard.storeManagement.subscriptionPlans.advanced'),
+                  })}
+                </p>
+              ) : null}
             </div>
           </button>
         ))}

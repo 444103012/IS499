@@ -1,11 +1,58 @@
-import React, { useState } from 'react';
-import { useStoreSetup, STORE_TYPES } from '../../context/StoreSetupContext';
+
+
+
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { useStoreSetup, STORE_TYPES, storeSetupStep1DraftKey } from '../../context/StoreSetupContext';
 import axiosInstance from '../../api/axios';
+import { previewStoreSlugFromName } from '../../utils/previewStoreSlugFromName';
 
 export default function StoreSetupDetails({ isRTL, t, onNext }) {
-  const { storeDetails, updateStoreDetails, setStoreId } = useStoreSetup();
+  const { storeId, storeDetails, updateStoreDetails, setStoreId } = useStoreSetup();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (storeId) return;
+    const ownerId = typeof localStorage !== 'undefined' ? localStorage.getItem('store_owner_id') : null;
+    if (!ownerId) return;
+    if (storeDetails.storeName?.trim() || storeDetails.storeType || storeDetails.storeDescription?.trim()) return;
+    try {
+      const raw = localStorage.getItem(storeSetupStep1DraftKey(ownerId));
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return;
+      updateStoreDetails({
+        storeName: typeof d.storeName === 'string' ? d.storeName : '',
+        storeType: typeof d.storeType === 'string' ? d.storeType : '',
+        storeDescription: typeof d.storeDescription === 'string' ? d.storeDescription : '',
+      });
+    } catch {
+      /* ignore corrupt draft */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time draft restore when no server store yet
+  }, [storeId]);
+
+  useEffect(() => {
+    if (storeId) return;
+    const ownerId = typeof localStorage !== 'undefined' ? localStorage.getItem('store_owner_id') : null;
+    if (!ownerId) return undefined;
+    const tmr = setTimeout(() => {
+      const draft = {
+        storeName: storeDetails.storeName || '',
+        storeType: storeDetails.storeType || '',
+        storeDescription: storeDetails.storeDescription || '',
+      };
+      if (draft.storeName.trim() || draft.storeType || draft.storeDescription.trim()) {
+        try {
+          localStorage.setItem(storeSetupStep1DraftKey(ownerId), JSON.stringify(draft));
+        } catch {
+          /* quota */
+        }
+      }
+    }, 600);
+    return () => clearTimeout(tmr);
+  }, [storeId, storeDetails.storeName, storeDetails.storeType, storeDetails.storeDescription]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,10 +69,24 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
     setError('');
   };
 
-  const canNext = storeDetails.storeName?.trim();
+  const hasStoreName = Boolean(storeDetails.storeName?.trim());
+  const hasStoreLogo = Boolean(storeDetails.storeLogo) || Boolean(storeDetails.storeLogoPreview);
+  const canNext = hasStoreName && hasStoreLogo;
+  const baseDomain = 'storelaunch.site';
+  const slugPreview = useMemo(
+    () => previewStoreSlugFromName(storeDetails.storeName || ''),
+    [storeDetails.storeName]
+  );
 
   const handleSubmit = async () => {
-    if (!canNext) return;
+    if (!hasStoreName) {
+      setError(isRTL ? 'يرجى إدخال اسم المتجر للمتابعة.' : 'Please enter your store name to continue.');
+      return;
+    }
+    if (!hasStoreLogo) {
+      setError(isRTL ? 'صورة المتجر مطلوبة قبل الانتقال للخطوة التالية.' : 'A store image is required before moving to the next step.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -36,6 +97,14 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
       if (storeDetails.storeLogo) formData.append('logo', storeDetails.storeLogo);
       const { data } = await axiosInstance.postForm('/api/store-setup/store-details', formData);
       setStoreId(data.store_id);
+      const ownerId = typeof localStorage !== 'undefined' ? localStorage.getItem('store_owner_id') : null;
+      if (ownerId) {
+        try {
+          localStorage.removeItem(storeSetupStep1DraftKey(ownerId));
+        } catch {
+          /* ignore */
+        }
+      }
       onNext();
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to save store details');
@@ -62,10 +131,18 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
             placeholder={t('onboarding.storeDetails.storeNamePlaceholder')}
             className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
           />
+          <p className="mt-2 text-xs text-gray-600">
+            {t('onboarding.storeDetails.urlPreviewHint')}
+          </p>
+          {slugPreview.length >= 3 && (
+            <p className="mt-1 text-sm text-storelaunch-dark font-medium break-all">
+              {baseDomain}/{slugPreview}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-storelaunch-dark mb-1">
-            {t('onboarding.storeDetails.storeLogo')}
+            {t('onboarding.storeDetails.storeLogo')} *
           </label>
           <input
             type="file"

@@ -4,10 +4,18 @@ import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
 
 const CARRIERS = [
-  { key: 'aramex', label: 'Aramex' },
-  { key: 'smsa', label: 'SMSA' },
-  { key: 'spl', label: 'SPL' },
+  { key: 'noShippingNeeded', nameKey: 'noShippingNeeded', minPlan: 'basic', logoType: 'icon' },
+  { key: 'smsa', nameKey: 'smsa', minPlan: 'advanced', logoType: 'image', logoUrl: '/SMSA.png' },
+  { key: 'aramex', nameKey: 'aramex', minPlan: 'advanced', logoType: 'image', logoUrl: '/Aramex.png' },
+  { key: 'spl', nameKey: 'spl', minPlan: 'pro', logoType: 'image', logoUrl: '/SPL.png' },
 ];
+// Adjust logo sizes here per carrier.
+const carrierLogoSizeClass = {
+  smsa: 'h-14 w-25',
+  aramex: 'h-11 w-26',
+  spl: 'h-20 w-24',
+};
+const PLAN_RANK = { basic: 0, pro: 1, advanced: 2 };
 
 const ShippingProvidersPage = () => {
   const { t, i18n } = useTranslation();
@@ -18,15 +26,39 @@ const ShippingProvidersPage = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [shipping, setShipping] = useState({});
+  const [plan, setPlan] = useState('basic');
+  const [lockedCarrier, setLockedCarrier] = useState(null);
+
+  const isProviderAllowed = (carrier) => PLAN_RANK[plan] >= PLAN_RANK[carrier.minPlan];
+  const requiredPlanLabel = (requiredPlan) =>
+    requiredPlan === 'pro'
+      ? t('dashboard.storeManagement.subscriptionPlans.pro')
+      : t('dashboard.storeManagement.subscriptionPlans.advanced');
+  const enabledProviderCount = Object.values(shipping).filter((provider) => provider?.enabled).length;
+  const lastProviderMessage = isRTL
+    ? 'يجب أن يحتفظ المتجر بمزود شحن واحد على الأقل.'
+    : 'The store must keep at least one shipping provider enabled.';
+  const normalizeShipping = (raw = {}) =>
+    CARRIERS.reduce((acc, carrier) => {
+      acc[carrier.key] = {
+        enabled: !!raw?.[carrier.key]?.enabled,
+        zones: Array.isArray(raw?.[carrier.key]?.zones) ? raw[carrier.key].zones : [],
+      };
+      return acc;
+    }, {});
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
-        const { data } = await axiosInstance.get('/api/store');
+        const [{ data: providersData }, { data: subscriptionData }] = await Promise.all([
+          axiosInstance.get('/api/store/shipping-providers'),
+          axiosInstance.get('/api/subscription'),
+        ]);
         if (!cancelled) {
-          setShipping(data.settings?.shipping || {});
+          setPlan(subscriptionData?.plan || 'basic');
+          setShipping(normalizeShipping(providersData?.shipping || {}));
         }
       } catch {
         if (!cancelled) {
@@ -57,31 +89,22 @@ const ShippingProvidersPage = () => {
     });
   };
 
-  const addZone = (key) => {
-    updateCarrier(key, (carrier) => {
-      const zones = Array.isArray(carrier.zones) ? carrier.zones : [];
-      return {
-        ...carrier,
-        zones: [...zones, { name: '', baseRate: '' }],
-      };
-    });
-  };
-
-  const handleZoneChange = (key, index, field, value) => {
-    updateCarrier(key, (carrier) => {
-      const zones = Array.isArray(carrier.zones) ? [...carrier.zones] : [];
-      zones[index] = { ...(zones[index] || {}), [field]: value };
-      return { ...carrier, zones };
-    });
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
       await axiosInstance.put('/api/store/shipping-providers', { shipping });
       showToast('success', t('dashboard.storeManagement.toast.saveSuccess'));
-    } catch {
-      showToast('error', t('dashboard.storeManagement.toast.saveError'));
+    } catch (err) {
+      if (err.response?.status === 403 && err.response?.data?.requiredPlan) {
+        showToast(
+          'error',
+          t('dashboard.storeManagement.locked.availableInPlan', {
+            plan: requiredPlanLabel(err.response.data.requiredPlan),
+          }),
+        );
+      } else {
+        showToast('error', err.response?.data?.message || err.response?.data?.error || t('dashboard.storeManagement.toast.saveError'));
+      }
     } finally {
       setSaving(false);
     }
@@ -132,16 +155,56 @@ const ShippingProvidersPage = () => {
         {t('dashboard.storeManagement.shipping.description')}
       </p>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6 space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {CARRIERS.map((c) => {
           const carrier = shipping[c.key] || {};
           const enabled = !!carrier.enabled;
+          const locked = !isProviderAllowed(c);
           return (
-            <div key={c.key} className="border border-gray-100 rounded-lg p-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div
+              key={c.key}
+              className={`relative rounded-xl shadow-md p-6 border space-y-3 ${
+                locked
+                  ? 'bg-gray-100 border-gray-200 opacity-85'
+                  : 'bg-white border-gray-200 hover:shadow-lg'
+              }`}
+              onClick={() => locked && setLockedCarrier(c)}
+            >
+              {locked && (
+                <div className="absolute inset-0 rounded-xl bg-white/55 pointer-events-none" />
+              )}
+              {locked && (
+                <div className={`absolute top-3 z-20 text-gray-500 ${isRTL ? 'left-3' : 'right-3'}`}>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                </div>
+              )}
+              <div className="relative z-10 h-14 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                {c.logoType === 'icon' ? (
+                  <svg className="w-8 h-8 text-storelaunch-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6m16 0H4m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" />
+                  </svg>
+                ) : c.logoType === 'image' ? (
+                  <img
+                    src={c.logoUrl}
+                    alt={t(`dashboard.storeManagement.providers.${c.nameKey}`)}
+                    className={`${carrierLogoSizeClass[c.key] || 'h-9 w-24'} object-contain`}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className={`font-semibold ${c.key === 'aramex' ? 'text-red-600 text-xl' : c.key === 'spl' ? 'text-emerald-700 text-xl' : 'text-blue-700 text-xl'}`}>
+                    {c.logoText}
+                  </span>
+                )}
+              </div>
+              <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="font-medium text-sm text-gray-900">
-                    {c.label}
+                  <span className="font-medium text-sm text-gray-900">{t(`dashboard.storeManagement.providers.${c.nameKey}`)}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${enabled ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {enabled
+                      ? t('dashboard.storeManagement.shipping.enabled')
+                      : t('dashboard.storeManagement.shipping.disabled')}
                   </span>
                 </div>
                 <label className="flex items-center gap-2 text-xs text-gray-700">
@@ -149,12 +212,17 @@ const ShippingProvidersPage = () => {
                     type="checkbox"
                     className="rounded border-gray-300"
                     checked={enabled}
-                    onChange={(e) =>
+                    disabled={locked}
+                    onChange={(e) => {
+                      if (!e.target.checked && enabledProviderCount <= 1) {
+                        showToast('error', lastProviderMessage);
+                        return;
+                      }
                       updateCarrier(c.key, (carrierState) => ({
                         ...carrierState,
                         enabled: e.target.checked,
-                      }))
-                    }
+                      }));
+                    }}
                   />
                   {enabled
                     ? t('dashboard.storeManagement.shipping.enabled')
@@ -162,7 +230,7 @@ const ShippingProvidersPage = () => {
                 </label>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="relative z-10">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     {t('dashboard.storeManagement.shipping.provider')}
@@ -171,74 +239,49 @@ const ShippingProvidersPage = () => {
                     type="text"
                     disabled
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs bg-gray-50"
-                    value={c.label}
+                    value={t(`dashboard.storeManagement.providers.${c.nameKey}`)}
                     readOnly
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    {t('dashboard.storeManagement.shipping.zonesTitle')}
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    {Array.isArray(carrier.zones) ? carrier.zones.length : 0}
-                  </p>
-                </div>
               </div>
-
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-gray-800">
-                  {t('dashboard.storeManagement.shipping.zonesTitle')}
-                </h4>
-                <div className="space-y-2">
-                  {(carrier.zones || []).map((z, idx) => (
-                    <div
-                      key={`${c.key}-zone-${idx}`}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-2"
-                    >
-                      <input
-                        type="text"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs"
-                        placeholder={t('dashboard.storeManagement.shipping.zoneName')}
-                        value={z.name || ''}
-                        onChange={(e) =>
-                          handleZoneChange(c.key, idx, 'name', e.target.value)
-                        }
-                      />
-                      <input
-                        type="number"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs"
-                        placeholder={t('dashboard.storeManagement.shipping.baseRate')}
-                        value={z.baseRate || ''}
-                        onChange={(e) =>
-                          handleZoneChange(c.key, idx, 'baseRate', e.target.value)
-                        }
-                      />
-                    </div>
-                  ))}
+              {locked && (
+                <div className={`relative z-10 mt-1 flex items-center gap-2 text-xs text-amber-700 ${isRTL ? 'justify-end' : ''}`}>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                  <span>{t('dashboard.storeManagement.locked.upgradeToUnlock')}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => addZone(c.key)}
-                  className="mt-1 text-xs font-medium text-storelaunch-teal hover:underline"
-                >
-                  {t('dashboard.storeManagement.shipping.addZone')}
-                </button>
-              </div>
+              )}
             </div>
           );
         })}
-
-        <div>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
-          >
-            {t('dashboard.storeManagement.actions.saveChanges')}
-          </button>
-        </div>
       </div>
+      <div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
+        >
+          {t('dashboard.storeManagement.actions.saveChanges')}
+        </button>
+      </div>
+      {lockedCarrier && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4" onClick={() => setLockedCarrier(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()} dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="flex items-center gap-2 text-amber-600 mb-3">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+              <h3 className="text-lg font-semibold">{t('dashboard.storeManagement.locked.title')}</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-5">
+              {t('dashboard.storeManagement.locked.availableInPlan', {
+                plan: requiredPlanLabel(lockedCarrier.minPlan),
+              })}
+            </p>
+            <button type="button" onClick={() => setLockedCarrier(null)} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              {t('dashboard.storeManagement.payments.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

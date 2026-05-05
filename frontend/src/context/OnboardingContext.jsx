@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, useState } from 'react';
 
 const OnboardingContext = createContext(null);
@@ -28,6 +27,7 @@ export const PLANS = {
   advanced: { id: 'advanced', nameEn: 'Advanced', nameAr: 'المتقدم', price: 199 },
 };
 
+
 export const THEME_TIERS = { default: 'basic', standard: 'pro', advanced: 'advanced' };
 
 export const THEMES = [
@@ -43,7 +43,6 @@ export const PAYMENT_PROVIDERS = [
   { id: 'mada', nameEn: 'Mada', nameAr: 'مدى' },
   { id: 'stc_pay', nameEn: 'STC Pay', nameAr: 'STC Pay' },
   { id: 'apple_pay', nameEn: 'Apple Pay', nameAr: 'Apple Pay' },
-  { id: 'stripe', nameEn: 'Stripe', nameAr: 'Stripe' },
 ];
 
 export const SHIPPING_CARRIERS = [

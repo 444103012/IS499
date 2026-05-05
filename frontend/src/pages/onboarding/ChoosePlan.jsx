@@ -1,17 +1,38 @@
-import React, { useState } from 'react';
+
+
+
+
+
+import React, { useEffect, useState } from 'react';
 import { useOnboarding } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
-
-const plans = [
-  { planKey: 'basic'},
-  { planKey: 'pro'},
-  { planKey: 'advanced' },
-];
+import CurrencyAmount from '../../components/common/CurrencyAmount';
+import { getPublicPlans } from '../../services/platformPlansApi';
 
 export default function ChoosePlan({ isRTL, t, onNext, onBack }) {
   const { storeId, selectedPlan, setSelectedPlan } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [plans, setPlans] = useState([]);
+  const plansForUi = plans.length > 0
+    ? plans
+    : [{ planId: 'basic', name: 'Basic', price: 0, features: [] }, { planId: 'pro', name: 'Pro', price: 69, features: [] }, { planId: 'advanced', name: 'Advanced', price: 199, features: [] }];
+
+  useEffect(() => {
+    let active = true;
+    getPublicPlans()
+      .then((rows) => {
+        if (!active) return;
+        setPlans(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setPlans([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleNext = async () => {
     if (!selectedPlan || !storeId) return;
@@ -35,37 +56,44 @@ export default function ChoosePlan({ isRTL, t, onNext, onBack }) {
       <h2 className={`text-xl font-bold text-storelaunch-dark mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
         {t('onboarding.choosePlan.title')}
       </h2>
-      
+      <div className={`mb-5 rounded-lg border border-storelaunch-green/30 bg-storelaunch-green/5 px-4 py-3 text-sm text-storelaunch-dark ${isRTL ? 'text-right' : 'text-left'}`}>
+        {isRTL
+          ? 'خلال الإعداد ستحصل على وصول كامل لكل الميزات. متجرك سيكون في وضع المعاينة ولن يظهر للعملاء إلا بعد الضغط على "Go Live".'
+          : 'During setup, you have full access to all features. Your store remains in preview mode and is hidden from customers until you click "Go Live".'}
+      </div>
+      {}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {plans.map((plan, index) => {
-          const planData = t(`pricing.plans.${plan.planKey}`, { returnObjects: true });
-          const price = typeof planData === 'object' && planData !== null
-            ? (isRTL ? (planData.priceAr ?? planData.price) : planData.price)
-            : '';
-          const currency = typeof planData === 'object' && planData !== null ? planData.currency : 'SAR';
+        {plansForUi.map((plan, index) => {
+          const planKey = plan.planId || plan.slug;
+          const planData = t(`pricing.plans.${planKey}`, { returnObjects: true });
+          const price = Number(plan.price || 0);
           const period = isRTL ? '/شهر' : '/month';
-          const features = typeof planData === 'object' && planData !== null && planData.features
-            ? Object.values(planData.features)
-            : [];
-          const name = typeof planData === 'object' && planData !== null ? planData.name : plan.planKey;
+          const features = Array.isArray(plan.features) && plan.features.length > 0
+            ? plan.features
+            : (typeof planData === 'object' && planData !== null && planData.features ? Object.values(planData.features) : []);
+          const name = plan.name || (typeof planData === 'object' && planData !== null ? planData.name : planKey);
           const description = typeof planData === 'object' && planData !== null ? planData.description : '';
-          const isSelected = selectedPlan === plan.planKey;
+          const isSelected = selectedPlan === planKey;
+          const isPopular = planKey === 'pro';
 
           return (
             <button
               key={index}
               type="button"
-              onClick={() => setSelectedPlan(plan.planKey)}
-              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full 
-                 ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
+              onClick={() => setSelectedPlan(planKey)}
+              className={`relative bg-white rounded-xl border p-6 shadow-md text-left transition-all w-full ${
+                isPopular ? 'border-storelaunch-green border-2 ring-2 ring-storelaunch-green/20' : 'border-gray-200'
+              } ${isSelected ? 'ring-2 ring-storelaunch-green' : ''}`}
             >
               <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {name}
               </h3>
               <p className={`text-gray-600 text-sm mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{description}</p>
               <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <span className="text-3xl font-bold text-storelaunch-dark">{price}</span>
-                <span className="text-gray-600 ml-1">{currency}{plan.planKey === 'basic' ? '' : period}</span>
+                <span className="text-3xl font-bold text-storelaunch-dark">
+                  <CurrencyAmount value={price} isRTL={isRTL} size="xl" />
+                </span>
+                <span className="text-gray-600 ml-1">{planKey === 'basic' ? '' : period}</span>
               </div>
               <ul className={`space-y-2 mb-6 min-h-[180px] ${isRTL ? 'text-right' : 'text-left'}`}>
                 {features.map((feature, idx) => (

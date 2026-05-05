@@ -1,10 +1,12 @@
 
 
+
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
-
-const PLAN_ORDER = ['basic', 'pro', 'advanced'];
+import CurrencyAmount from '../../components/common/CurrencyAmount';
 
 export default function SubscriptionPage() {
   const { t, i18n } = useTranslation();
@@ -12,7 +14,6 @@ export default function SubscriptionPage() {
 
   const [subscription, setSubscription] = useState(null);
   const [plans, setPlans] = useState([]);
-  const [history, setHistory] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -21,7 +22,7 @@ export default function SubscriptionPage() {
 
   const [confirmModal, setConfirmModal] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({ last4: '', expiryMonth: '', expiryYear: '' });
+  const [paymentForm, setPaymentForm] = useState({ last4: '', expiryMonth: '', expiryYear: '', cardholderName: '', cardType: 'Visa' });
 
   const FEATURE_TRANSLATIONS_AR = {
     'Bank Transfer only': 'التحويل البنكي فقط',
@@ -41,14 +42,7 @@ export default function SubscriptionPage() {
     'POS Integration': 'تكامل نقاط البيع (POS)',
   };
 
-  const LIMIT_TRANSLATIONS_AR = {
-    'No advanced reports': 'لا توجد تقارير متقدمة',
-    'No custom domain': 'لا يوجد نطاق مخصص',
-    'No POS integration': 'لا يوجد تكامل نقاط بيع (POS)',
-  };
-
   const translateFeature = (text) => (isRTL ? FEATURE_TRANSLATIONS_AR[text] || text : text);
-  const translateLimitation = (text) => (isRTL ? LIMIT_TRANSLATIONS_AR[text] || text : text);
 
   const getFeaturesLostForDowngrade = (fromPlanId, toPlanId) => {
     const fromPlan = plans.find((p) => p.planId === fromPlanId);
@@ -66,21 +60,18 @@ export default function SubscriptionPage() {
   const fetchAll = useCallback(async () => {
     setLoadError('');
     try {
-      const [subRes, plansRes, historyRes, pmRes] = await Promise.all([
+      const [subRes, plansRes, pmRes] = await Promise.all([
         axiosInstance.get('/api/subscription'),
         axiosInstance.get('/api/subscription/plans'),
-        axiosInstance.get('/api/subscription/history'),
         axiosInstance.get('/api/subscription/payment-method').catch(() => ({ data: { paymentMethod: null } })),
       ]);
       setSubscription(subRes.data);
       setPlans(plansRes.data.plans || []);
-      setHistory(historyRes.data.history || []);
       setPaymentMethod(pmRes.data.paymentMethod || null);
     } catch (err) {
       setLoadError(err.response?.data?.error || t('dashboard.subscriptionPage.loadError'));
       setSubscription(null);
       setPlans([]);
-      setHistory([]);
       setPaymentMethod(null);
     } finally {
       setLoading(false);
@@ -132,10 +123,12 @@ export default function SubscriptionPage() {
         last4: last4.replace(/\D/g, '').slice(-4),
         expiryMonth: month,
         expiryYear: year,
+        cardholderName: paymentForm.cardholderName,
+        cardType: paymentForm.cardType,
       });
       showToast(t('dashboard.subscriptionPage.paymentMethodSaved'));
       setPaymentModalOpen(false);
-      setPaymentForm({ last4: '', expiryMonth: '', expiryYear: '' });
+      setPaymentForm({ last4: '', expiryMonth: '', expiryYear: '', cardholderName: '', cardType: 'Visa' });
       const pmRes = await axiosInstance.get('/api/subscription/payment-method');
       setPaymentMethod(pmRes.data.paymentMethod || null);
     } catch (err) {
@@ -160,7 +153,9 @@ export default function SubscriptionPage() {
   };
 
   const currentPlan = subscription?.plan || 'basic';
-  const currentIdx = PLAN_ORDER.indexOf(currentPlan);
+  const normalizedPlans = [...plans].sort((a, b) => Number(a.rank || 0) - Number(b.rank || 0));
+  const currentPlanMeta = normalizedPlans.find((p) => p.planId === currentPlan);
+  const currentRank = currentPlanMeta ? Number(currentPlanMeta.rank || 0) : 0;
 
   if (loading) {
     return (
@@ -239,7 +234,7 @@ export default function SubscriptionPage() {
             <p className="text-gray-500 text-sm">{t('dashboard.subscriptionPage.nextBillingAmount')}</p>
             <p className="font-medium text-gray-900">
               {subscription?.nextBillingAmount != null && subscription.nextBillingAmount > 0
-                ? `${subscription.nextBillingAmount} SAR`
+                ? <CurrencyAmount value={subscription.nextBillingAmount} isRTL={isRTL} />
                 : t('dashboard.subscriptionPage.free')}
             </p>
           </div>
@@ -258,11 +253,11 @@ export default function SubscriptionPage() {
       <div>
         <h3 className="text-storelaunch-dark font-semibold text-lg mb-4">{t('dashboard.subscriptionPage.comparePlans')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => {
+          {normalizedPlans.map((plan) => {
             const isCurrent = currentPlan === plan.planId;
-            const planIdx = PLAN_ORDER.indexOf(plan.planId);
-            const canUpgrade = planIdx > currentIdx;
-            const canDowngrade = planIdx < currentIdx;
+            const planRank = Number(plan.rank || 0);
+            const canUpgrade = planRank > currentRank;
+            const canDowngrade = planRank < currentRank;
             return (
               <div
                 key={plan.planId}
@@ -281,8 +276,10 @@ export default function SubscriptionPage() {
                     <span className="text-2xl font-bold text-gray-900">{t('dashboard.subscriptionPage.free')}</span>
                   ) : (
                     <>
-                      <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
-                      <span className="text-gray-600 ml-1">{plan.currency}{t('dashboard.subscriptionPage.perMonth')}</span>
+                      <span className="text-2xl font-bold text-gray-900">
+                        <CurrencyAmount value={plan.price} isRTL={isRTL} size="xl" />
+                      </span>
+                      <span className="text-gray-600 ml-1">{t('dashboard.subscriptionPage.perMonth')}</span>
                     </>
                   )}
                 </div>
@@ -334,68 +331,30 @@ export default function SubscriptionPage() {
 
       {}
       <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6">
-        <h3 className="text-storelaunch-dark font-semibold text-lg mb-4">{t('dashboard.subscriptionPage.billingHistory')}</h3>
-        {history.length === 0 ? (
-          <p className="text-gray-500">{t('dashboard.subscriptionPage.noHistory')}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-600 text-left">
-                  <th className="pb-3 pr-4">{t('dashboard.subscriptionPage.date')}</th>
-                  <th className="pb-3 pr-4">{t('dashboard.subscriptionPage.amount')}</th>
-                  <th className="pb-3 pr-4">{t('dashboard.subscriptionPage.plan')}</th>
-                  <th className="pb-3 pr-4">{t('dashboard.subscriptionPage.status')}</th>
-                  <th className="pb-3">{t('dashboard.subscriptionPage.invoice')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((row) => (
-                  <tr key={row.id} className="border-b border-gray-100">
-                    <td className="py-3 pr-4">{row.date}</td>
-                    <td className="py-3 pr-4">{row.amount} SAR</td>
-                    <td className="py-3 pr-4 capitalize">{row.plan}</td>
-                    <td className="py-3 pr-4">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs ${
-                          row.status === 'Paid' ? 'bg-green-100 text-green-800' : row.status === 'Failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {row.status === 'Paid' ? t('dashboard.subscriptionPage.paid') : row.status === 'Failed' ? t('dashboard.subscriptionPage.failed') : t('dashboard.subscriptionPage.refunded')}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      {row.invoiceRef ? (
-                        <a href={row.invoiceRef} target="_blank" rel="noopener noreferrer" className="text-storelaunch-green hover:underline">
-                          {t('dashboard.subscriptionPage.downloadInvoice')}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6">
         <h3 className="text-storelaunch-dark font-semibold text-lg mb-1">{t('dashboard.subscriptionPage.paymentMethod')}</h3>
         <p className="text-gray-500 text-sm mb-4">{t('dashboard.subscriptionPage.paymentMethodSub')}</p>
         {paymentMethod ? (
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">{t('dashboard.subscriptionPage.maskedCard')}:</span>
-              <span className="font-mono">{paymentMethod.masked}</span>
-              <span className="text-gray-500">({t('dashboard.subscriptionPage.expires')} {paymentMethod.expiry})</span>
+            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-center w-10 h-7 bg-white border border-gray-300 rounded text-xs font-bold text-gray-700">
+                {paymentMethod.cardType === 'Visa' ? 'VISA' :
+                 paymentMethod.cardType === 'Mastercard' ? 'MC' :
+                 paymentMethod.cardType === 'Mada' ? 'mada' :
+                 paymentMethod.cardType === 'Amex' ? 'AMEX' :
+                 (paymentMethod.cardType || 'Card').slice(0,4)}
+              </div>
+              <div>
+                {paymentMethod.cardholderName && (
+                  <p className="text-xs text-gray-500">{paymentMethod.cardholderName}</p>
+                )}
+                <span className="font-mono text-sm">{paymentMethod.masked}</span>
+                <span className="text-gray-500 text-xs ml-2">({t('dashboard.subscriptionPage.expires')} {paymentMethod.expiry})</span>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => {
-                setPaymentForm({ last4: paymentMethod.last4, expiryMonth: String(paymentMethod.expiryMonth), expiryYear: String(paymentMethod.expiryYear) });
+                setPaymentForm({ last4: paymentMethod.last4, expiryMonth: String(paymentMethod.expiryMonth), expiryYear: String(paymentMethod.expiryYear), cardholderName: paymentMethod.cardholderName || '', cardType: paymentMethod.cardType || 'Visa' });
                 setPaymentModalOpen(true);
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -465,6 +424,33 @@ export default function SubscriptionPage() {
             </h4>
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isRTL ? 'اسم حامل البطاقة' : 'Cardholder Name'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={isRTL ? 'الاسم كما هو على البطاقة' : 'Name on card'}
+                  value={paymentForm.cardholderName}
+                  onChange={(e) => setPaymentForm((f) => ({ ...f, cardholderName: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isRTL ? 'نوع البطاقة' : 'Card Type'}
+                </label>
+                <select
+                  value={paymentForm.cardType}
+                  onChange={(e) => setPaymentForm((f) => ({ ...f, cardType: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="Visa">Visa</option>
+                  <option value="Mastercard">Mastercard</option>
+                  <option value="Mada">Mada</option>
+                  <option value="Amex">American Express</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('dashboard.subscriptionPage.cardLast4')}</label>
                 <input
                   type="text"
@@ -472,7 +458,7 @@ export default function SubscriptionPage() {
                   placeholder="1234"
                   value={paymentForm.last4}
                   onChange={(e) => setPaymentForm((f) => ({ ...f, last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono tracking-widest"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -482,7 +468,7 @@ export default function SubscriptionPage() {
                     type="number"
                     min={1}
                     max={12}
-                    placeholder="12"
+                    placeholder="MM"
                     value={paymentForm.expiryMonth}
                     onChange={(e) => setPaymentForm((f) => ({ ...f, expiryMonth: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
@@ -494,7 +480,7 @@ export default function SubscriptionPage() {
                     type="number"
                     min={2024}
                     max={2040}
-                    placeholder="2028"
+                    placeholder="YYYY"
                     value={paymentForm.expiryYear}
                     onChange={(e) => setPaymentForm((f) => ({ ...f, expiryYear: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"

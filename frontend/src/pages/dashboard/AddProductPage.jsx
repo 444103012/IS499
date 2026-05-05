@@ -1,10 +1,14 @@
 
 
+
+
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
-import { API_BASE_URL } from '../../config/api';
+
+const API_BASE = process.env.REACT_APP_API_URL || process.env.REACT_APP_BASE_URL || '';
 
 const emptyOption = () => ({ option_name: '', option_value: '', stock_qty: 0, additional_price: 0, images: [] });
 
@@ -125,7 +129,7 @@ const AddProductPage = () => {
   };
 
   const productImages = Array.isArray(form.images) ? form.images : [];
-  const toUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE_URL}/${path.replace(/^\//, '')}` : path);
+  const toUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}` : path);
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'}>
@@ -187,15 +191,12 @@ const AddProductPage = () => {
                     </span>
                     <span className="text-xs text-gray-400">{t('dashboard.productForm.imagesHint')}</span>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProductImageChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" className="sr-only" disabled={uploading !== null} onChange={handleProductImageChange} />
                 </label>
               </div>
             </div>
+
+            {}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h3 className="font-semibold text-gray-900 mb-4">{t('dashboard.productForm.detailsTitle')}</h3>
               <div className="space-y-4">
@@ -349,12 +350,7 @@ const AddProductPage = () => {
                         <span className="text-sm font-medium text-storelaunch-teal hover:underline">
                           {uploading === `option-${index}` ? t('dashboard.productForm.variantImagesUploading') : t('dashboard.productForm.variantImagesUpload')}
                         </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleOptionImageChange(index, e)}
-                          className="hidden"
-                        />
+                        <input type="file" accept="image/*" className="sr-only" disabled={uploading !== null} onChange={(e) => handleOptionImageChange(index, e)} />
                       </label>
                     </div>
                   </div>
@@ -362,14 +358,16 @@ const AddProductPage = () => {
                 <button
                   type="button"
                   onClick={addOption}
-                  className="text-sm font-medium text-storelaunch-teal hover:underline"
+                  className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 font-medium text-sm hover:border-storelaunch-green hover:text-storelaunch-green hover:bg-storelaunch-green/5 transition-colors"
                 >
-                  {t('dashboard.productForm.variantAdd')}
+                  {t('dashboard.productForm.addVariant')}
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        {}
         <div className="flex flex-wrap gap-3 pt-2">
           <button
             type="submit"

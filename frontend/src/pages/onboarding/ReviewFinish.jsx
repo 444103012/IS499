@@ -1,3 +1,7 @@
+
+
+
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, PLANS, THEMES, PAYMENT_PROVIDERS, SHIPPING_CARRIERS, STORE_TYPES } from '../../context/OnboardingContext';
@@ -57,6 +61,11 @@ export default function ReviewFinish({ isRTL, t, onBack }) {
           <h3 className="font-semibold text-storelaunch-dark mb-2">{t('onboarding.review.shipping')}</h3>
           <p>{shippingLabel || '—'}</p>
         </section>
+      </div>
+      <div className={`mt-4 rounded-lg border border-storelaunch-green/30 bg-storelaunch-green/5 px-4 py-3 text-sm text-storelaunch-dark ${isRTL ? 'text-right' : 'text-left'}`}>
+        {isRTL
+          ? 'متجرك أصبح في وضع المعاينة. استخدم "View Store" لمراجعته ثم اضغط "Go Live" ليظهر للعملاء.'
+          : 'Your store is now in preview mode. Use "View Store" to review it, then click "Go Live" to make it visible to customers.'}
       </div>
       <div className={`mt-8 flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button

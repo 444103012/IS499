@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
 
-const SETTINGS_TABS = ['profile', 'business', 'notifications', 'language', 'security'];
+const SETTINGS_TABS = ['profile', 'business', 'language', 'store'];
+const PHONE_REGEX = /^05\d{8}$/;
 
 const SettingsPage = () => {
   const { t, i18n } = useTranslation();
@@ -17,25 +18,33 @@ const SettingsPage = () => {
     phone: '',
   });
   const [business, setBusiness] = useState({});
-  const [notifications, setNotifications] = useState({});
   const [languagePref, setLanguagePref] = useState(i18n.language || 'ar');
-  const [sessions, setSessions] = useState([]);
+  const [storeRecord, setStoreRecord] = useState(null);
+  const [dangerConfirm, setDangerConfirm] = useState('');
+  const [storeActionSaving, setStoreActionSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
-        const { data } = await axiosInstance.get('/api/settings/profile');
+        const [{ data }, { data: storeData }] = await Promise.all([
+          axiosInstance.get('/api/settings/profile'),
+          axiosInstance.get('/api/store').catch(() => ({ data: { store: null } })),
+        ]);
         if (!cancelled) {
+          const businessSettings = data.business_settings || {};
           setProfile({
             name: data.first_name || '',
             email: data.email || '',
             phone: data.phone || '',
           });
-          setBusiness(data.business_settings || {});
-          setNotifications(data.notification_settings || {});
+          setBusiness({
+            ...businessSettings,
+            businessName: businessSettings.businessName || storeData.store?.name || '',
+          });
           setLanguagePref(data.language_pref || i18n.language || 'ar');
+          setStoreRecord(storeData.store || null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -51,29 +60,27 @@ const SettingsPage = () => {
     };
   }, [t, i18n.language]);
 
-  useEffect(() => {
-    const loadSessions = async () => {
-      try {
-        const { data } = await axiosInstance.get('/api/settings/security/sessions');
-        setSessions(data.sessions || []);
-      } catch {
-        setSessions([]);
-      }
-    };
-    loadSessions();
-  }, []);
-
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
   };
 
   const saveProfile = async () => {
+    const trimmedPhone = profile.phone.trim();
+    if (!PHONE_REGEX.test(trimmedPhone)) {
+      alert(
+        isRTL
+          ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
+          : 'Phone number must start with 05 and be exactly 10 digits'
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       await axiosInstance.put('/api/settings/profile', {
         name: profile.name,
-        phone: profile.phone,
+        phone: trimmedPhone,
       });
       showToast('success', t('dashboard.settings.toast.saveSuccess'));
     } catch {
@@ -97,17 +104,54 @@ const SettingsPage = () => {
     }
   };
 
-  const saveNotifications = async () => {
-    setSaving(true);
+  const refreshStoreRecord = async () => {
     try {
-      await axiosInstance.put('/api/settings/notifications', {
-        notifications,
-      });
-      showToast('success', t('dashboard.settings.toast.saveSuccess'));
+      const { data: storeData } = await axiosInstance.get('/api/store');
+      setStoreRecord(storeData?.store || null);
     } catch {
-      showToast('error', t('dashboard.settings.toast.saveError'));
+      setStoreRecord(null);
+    }
+  };
+
+  const handleDeactivateStore = async () => {
+    if (dangerConfirm !== 'DEACTIVATE' || !storeRecord) {
+      showToast('error', t('dashboard.storeManagement.toast.deactivateError'));
+      return;
+    }
+    setStoreActionSaving(true);
+    try {
+      await axiosInstance.put('/api/store', {
+        name: storeRecord.name || '',
+        description: storeRecord.description || '',
+        store_type: storeRecord.store_type || '',
+        status: 'Suspended',
+      });
+      showToast('success', t('dashboard.storeManagement.toast.deactivateSuccess'));
+      setDangerConfirm('');
+      await refreshStoreRecord();
+    } catch {
+      showToast('error', t('dashboard.storeManagement.toast.deactivateError'));
     } finally {
-      setSaving(false);
+      setStoreActionSaving(false);
+    }
+  };
+
+  const handleReactivateStore = async () => {
+    if (!storeRecord) return;
+    setStoreActionSaving(true);
+    try {
+      await axiosInstance.put('/api/store', {
+        name: storeRecord.name || '',
+        description: storeRecord.description || '',
+        store_type: storeRecord.store_type || '',
+        status: 'Active',
+      });
+      showToast('success', t('dashboard.storeManagement.toast.reactivateSuccess'));
+      await refreshStoreRecord();
+    } catch {
+      showToast('error', t('dashboard.storeManagement.toast.reactivateError'));
+    } finally {
+      setStoreActionSaving(false);
     }
   };
 
@@ -125,15 +169,6 @@ const SettingsPage = () => {
       showToast('error', t('dashboard.settings.toast.saveError'));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const logoutAll = async () => {
-    try {
-      await axiosInstance.delete('/api/settings/security/sessions');
-      showToast('success', t('dashboard.settings.toast.saveSuccess'));
-    } catch {
-      showToast('error', t('dashboard.settings.toast.saveError'));
     }
   };
 
@@ -223,6 +258,10 @@ const SettingsPage = () => {
                     type="text"
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     value={profile.phone}
+                    pattern="05[0-9]{8}"
+                    title="Phone number must contain exactly 10 digits"
+                    onInvalid={(e) => e.target.setCustomValidity('Phone number must contain exactly 10 digits')}
+                    onInput={(e) => e.target.setCustomValidity('')}
                     onChange={(e) =>
                       setProfile((prev) => ({ ...prev, phone: e.target.value }))
                     }
@@ -337,80 +376,6 @@ const SettingsPage = () => {
             </div>
           )}
 
-          {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-100 pb-2">{t('dashboard.settings.tabs.notifications')}</h3>
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    checked={!!notifications.emailNotifications}
-                    onChange={(e) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        emailNotifications: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('dashboard.settings.notifications.emailNotifications')}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    checked={!!notifications.orderAlerts}
-                    onChange={(e) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        orderAlerts: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('dashboard.settings.notifications.orderAlerts')}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    checked={!!notifications.lowStockAlerts}
-                    onChange={(e) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        lowStockAlerts: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('dashboard.settings.notifications.lowStockAlerts')}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300"
-                    checked={!!notifications.subscriptionAlerts}
-                    onChange={(e) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        subscriptionAlerts: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('dashboard.settings.notifications.subscriptionAlerts')}
-                </label>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={saveNotifications}
-                  disabled={saving}
-                  className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
-                >
-                  {t('dashboard.settings.actions.saveChanges')}
-                </button>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'language' && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-100 pb-2">{t('dashboard.settings.tabs.language')}</h3>
@@ -444,49 +409,57 @@ const SettingsPage = () => {
             </div>
           )}
 
-          {activeTab === 'security' && (
+          {activeTab === 'store' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-100 pb-2">{t('dashboard.settings.tabs.security')}</h3>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                  {t('dashboard.settings.security.sessionsTitle')}
-                </h3>
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-600">
-                      <tr>
-                        <th className="px-3 py-2 text-left">
-                          {t('dashboard.settings.security.device')}
-                        </th>
-                        <th className="px-3 py-2 text-left">
-                          {t('dashboard.settings.security.ipAddress')}
-                        </th>
-                        <th className="px-3 py-2 text-left">
-                          {t('dashboard.settings.security.lastActive')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sessions.map((s) => (
-                        <tr key={s.id} className="border-t border-gray-100">
-                          <td className="px-3 py-2">{s.device}</td>
-                          <td className="px-3 py-2">{s.ip}</td>
-                          <td className="px-3 py-2">{s.last_active}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-100 pb-2">
+                {t('dashboard.settings.tabs.store')}
+              </h3>
+              {!storeRecord ? (
+                <p className="text-sm text-gray-600">{t('dashboard.subscriptionPage.noStore')}</p>
+              ) : storeRecord.status === 'Suspended' ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm text-amber-900 font-medium">
+                    {t('dashboard.storeManagement.danger.reactivateDescription')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleReactivateStore}
+                    disabled={storeActionSaving}
+                    className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
+                  >
+                    {t('dashboard.storeManagement.danger.reactivate')}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={logoutAll}
-                  className="mt-3 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  {t('dashboard.settings.security.logoutAll')}
-                </button>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-2">
+                    <p className="text-sm text-red-800 font-medium">
+                      {t('dashboard.storeManagement.danger.deactivateDescription')}
+                    </p>
+                    <label className="block text-sm font-medium text-red-800 mb-1">
+                      {t('dashboard.storeManagement.danger.confirmDeactivate')}
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-red-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      value={dangerConfirm}
+                      onChange={(e) => setDangerConfirm(e.target.value.toUpperCase())}
+                      placeholder="DEACTIVATE"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDeactivateStore}
+                      disabled={storeActionSaving || dangerConfirm !== 'DEACTIVATE'}
+                      className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {t('dashboard.storeManagement.danger.deactivate')}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
           </div>
         </div>
       </div>
