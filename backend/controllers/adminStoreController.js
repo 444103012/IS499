@@ -1,26 +1,35 @@
-const VALID_STORE_STATUSES = ['Active', 'Suspended'];
+const { generateToken } = require('../utils/token');
 
-function normalizeStatus(status) {
-  if (!status || typeof status !== 'string') return null;
-  const trimmed = status.trim();
-  return VALID_STORE_STATUSES.includes(trimmed) ? trimmed : null;
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 50;
+
+function parsePaginationQuery(req) {
+  const rawLimit = parseInt(req.query.limit, 10);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+  const rawPage = parseInt(req.query.page, 10);
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  return { page, limit, search };
+}
+
+function ilikeContainsParam(search) {
+  if (!search) return null;
+  const escaped = search.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+  return `%${escaped}%`;
 }
 
 async function getAllStores(req, res) {
   const pool = req.app.locals.pool;
   if (!pool) return res.status(500).json({ error: 'Database not configured' });
 
+  const { page, limit, search } = parsePaginationQuery(req);
+  const pattern = ilikeContainsParam(search);
+  const hasSearch = Boolean(pattern);
+
   try {
-    const sql = `
-      SELECT
-        s.store_id,
-        s.name AS store_name,
-        s.store_owner_id AS owner_id,
-        so.first_name AS owner_first_name,
-        so.last_name AS owner_last_name,
-        COALESCE(sub.plan_type, 'basic') AS plan,
-        COALESCE(s.status, 'Pending') AS status,
-        s.created_at
+    const fromSql = `
       FROM stores s
       JOIN store_owners so ON so.store_owner_id = s.store_owner_id
       LEFT JOIN LATERAL (
@@ -30,15 +39,59 @@ async function getAllStores(req, res) {
         ORDER BY sub.start_date DESC NULLS LAST, sub.subscription_id DESC
         LIMIT 1
       ) sub ON TRUE
-      ORDER BY s.created_at DESC, s.store_id DESC
     `;
-    const result = await pool.query(sql);
-    return res.json({ stores: result.rows });
+    const whereClause = hasSearch
+      ? `WHERE (
+           s.name ILIKE $1 ESCAPE '\\'
+           OR so.first_name ILIKE $1 ESCAPE '\\'
+           OR so.last_name ILIKE $1 ESCAPE '\\'
+           OR so.email ILIKE $1 ESCAPE '\\'
+           OR COALESCE(sub.plan_type, 'basic')::text ILIKE $1 ESCAPE '\\'
+         )`
+      : '';
+    const params = hasSearch ? [pattern] : [];
+
+    const countSql = `SELECT COUNT(*)::int AS count ${fromSql} ${whereClause}`;
+    const countResult = await pool.query(countSql, params);
+    const total = countResult.rows[0]?.count ?? 0;
+
+    const offset = (page - 1) * limit;
+    const limitPlaceholder = hasSearch ? '$2' : '$1';
+    const offsetPlaceholder = hasSearch ? '$3' : '$2';
+    const dataParams = hasSearch ? [pattern, limit, offset] : [limit, offset];
+
+    const dataSql = `
+      SELECT
+        s.store_id,
+        s.name AS store_name,
+        s.store_owner_id AS owner_id,
+        so.first_name AS owner_first_name,
+        so.last_name AS owner_last_name,
+        so.email AS owner_email,
+        COALESCE(sub.plan_type, 'basic') AS plan,
+        COALESCE(s.status, 'Pending') AS status,
+        s.created_at
+      ${fromSql}
+      ${whereClause}
+      ORDER BY s.created_at DESC, s.store_id DESC
+      LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}
+    `;
+    const result = await pool.query(dataSql, dataParams);
+    return res.json({
+      stores: result.rows,
+      total,
+      page,
+      limit,
+    });
   } catch (err) {
     console.error('Admin get stores error:', err);
     return res.status(500).json({ error: 'Failed to fetch stores' });
   }
 }
+
+
+
+
 
 async function getStoreById(req, res) {
   const pool = req.app.locals.pool;
@@ -134,6 +187,16 @@ async function getStoreById(req, res) {
   }
 }
 
+
+
+
+
+function isStoreSuspendedValue(status) {
+  return String(status || '').trim().toLowerCase() === 'suspended';
+}
+
+const VALID_SET_OPERATIONAL_STATUS = ['Active', 'Pending'];
+
 async function updateStoreStatus(req, res) {
   const pool = req.app.locals.pool;
   if (!pool) return res.status(500).json({ error: 'Database not configured' });
@@ -143,24 +206,109 @@ async function updateStoreStatus(req, res) {
     return res.status(400).json({ error: 'Invalid store id' });
   }
 
-  const status = normalizeStatus(req.body && req.body.status);
-  if (!status) {
-    return res.status(400).json({ error: 'Invalid status', valid: VALID_STORE_STATUSES });
+  const action = req.body && req.body.action;
+  if (action !== 'suspend' && action !== 'reactivate' && action !== 'set_status') {
+    return res
+      .status(400)
+      .json({ error: 'Invalid action', valid: ['suspend', 'reactivate', 'set_status'] });
   }
 
   try {
-    const result = await pool.query(
-      `UPDATE stores
-       SET status = $1
-       WHERE store_id = $2
-       RETURNING store_id, name AS store_name, status`,
-      [status, storeId]
-    );
-    if (result.rows.length === 0) {
+    if (action === 'set_status') {
+      const raw = req.body && req.body.status;
+      const st = typeof raw === 'string' ? raw.trim() : '';
+      if (!VALID_SET_OPERATIONAL_STATUS.includes(st)) {
+        return res.status(400).json({ error: 'Invalid status', valid: VALID_SET_OPERATIONAL_STATUS });
+      }
+      const cur = await pool.query(`SELECT status FROM stores WHERE store_id = $1 LIMIT 1`, [storeId]);
+      if (cur.rows.length === 0) {
+        return res.status(404).json({ error: 'Store not found' });
+      }
+      if (isStoreSuspendedValue(cur.rows[0].status)) {
+        return res.status(400).json({
+          error: 'Reactivate the store before setting Active or Pending.',
+        });
+      }
+      let result;
+      try {
+        result = await pool.query(
+          `UPDATE stores
+           SET status = $1,
+               status_before_suspension = NULL
+           WHERE store_id = $2
+           RETURNING store_id, name AS store_name, status, status_before_suspension`,
+          [st, storeId]
+        );
+      } catch (e) {
+        if (e.code !== '42703') throw e;
+        result = await pool.query(
+          `UPDATE stores SET status = $1 WHERE store_id = $2 RETURNING store_id, name AS store_name, status`,
+          [st, storeId]
+        );
+      }
+      return res.json({
+        message: 'Store status updated',
+        store: result.rows[0],
+      });
+    }
+
+    if (action === 'suspend') {
+      const cur = await pool.query(`SELECT status FROM stores WHERE store_id = $1 LIMIT 1`, [storeId]);
+      if (cur.rows.length === 0) {
+        return res.status(404).json({ error: 'Store not found' });
+      }
+      if (isStoreSuspendedValue(cur.rows[0].status)) {
+        return res.status(400).json({ error: 'Store is already suspended' });
+      }
+      let result;
+      try {
+        result = await pool.query(
+          `UPDATE stores
+           SET status_before_suspension = NULL,
+               status = 'Suspended'
+           WHERE store_id = $1
+           RETURNING store_id, name AS store_name, status, status_before_suspension`,
+          [storeId]
+        );
+      } catch (e) {
+        if (e.code !== '42703') throw e;
+        result = await pool.query(
+          `UPDATE stores SET status = 'Suspended' WHERE store_id = $1 RETURNING store_id, name AS store_name, status`,
+          [storeId]
+        );
+      }
+      return res.json({
+        message: 'Store suspended',
+        store: result.rows[0],
+      });
+    }
+
+    const cur = await pool.query(`SELECT status FROM stores WHERE store_id = $1 LIMIT 1`, [storeId]);
+    if (cur.rows.length === 0) {
       return res.status(404).json({ error: 'Store not found' });
     }
+    if (!isStoreSuspendedValue(cur.rows[0].status)) {
+      return res.status(400).json({ error: 'Store is not suspended' });
+    }
+    let result;
+    try {
+      result = await pool.query(
+        `UPDATE stores
+         SET status_before_suspension = NULL,
+             status = 'Active'
+         WHERE store_id = $1
+         RETURNING store_id, name AS store_name, status, status_before_suspension`,
+        [storeId]
+      );
+    } catch (e) {
+      if (e.code !== '42703') throw e;
+      result = await pool.query(
+        `UPDATE stores SET status = 'Active' WHERE store_id = $1 RETURNING store_id, name AS store_name, status`,
+        [storeId]
+      );
+    }
     return res.json({
-      message: 'Store status updated',
+      message: 'Store reactivated',
       store: result.rows[0],
     });
   } catch (err) {
@@ -168,6 +316,11 @@ async function updateStoreStatus(req, res) {
     return res.status(500).json({ error: 'Failed to update store status' });
   }
 }
+
+
+
+
+
 
 async function notifyStoreOwner(req, res) {
   const pool = req.app.locals.pool;
@@ -201,7 +354,7 @@ async function notifyStoreOwner(req, res) {
     }
     const row = storeResult.rows[0];
 
-   
+    
     try {
       await pool.query(
         `INSERT INTO store_admins (admin_id, store_id, activity_note)
@@ -210,7 +363,7 @@ async function notifyStoreOwner(req, res) {
       );
     } catch (activityErr) {
       console.error('Admin store notification activity insert error:', activityErr);
-     
+      
     }
 
     console.log('Simulated admin notification to store owner:', {
@@ -235,10 +388,50 @@ async function notifyStoreOwner(req, res) {
   }
 }
 
+async function generateStoreAccessToken(req, res) {
+  const pool = req.app.locals.pool;
+  if (!pool) return res.status(500).json({ error: 'Database not configured' });
+
+  const storeId = parseInt(req.params.id, 10);
+  if (Number.isNaN(storeId)) return res.status(400).json({ error: 'Invalid store id' });
+
+  try {
+    const result = await pool.query(
+      `SELECT s.store_id, s.name AS store_name, s.store_owner_id,
+              so.first_name AS owner_first_name, so.last_name AS owner_last_name
+       FROM stores s
+       JOIN store_owners so ON so.store_owner_id = s.store_owner_id
+       WHERE s.store_id = $1
+       LIMIT 1`,
+      [storeId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Store not found' });
+    const row = result.rows[0];
+    const token = generateToken(row.store_owner_id, 'store_owner');
+    return res.json({
+      access: {
+        role: 'store_owner',
+        token,
+        redirect_to: '/dashboard/store',
+        store: {
+          store_id: row.store_id,
+          store_name: row.store_name,
+          owner_id: row.store_owner_id,
+          owner_name: [row.owner_first_name, row.owner_last_name].filter(Boolean).join(' '),
+        },
+      },
+    });
+  } catch (err) {
+    console.error('Admin generate store access token error:', err);
+    return res.status(500).json({ error: 'Failed to generate store access token' });
+  }
+}
+
 module.exports = {
   getAllStores,
   getStoreById,
   updateStoreStatus,
   notifyStoreOwner,
+  generateStoreAccessToken,
 };
 

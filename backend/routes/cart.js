@@ -2,46 +2,12 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const customerAuth = require('../middleware/customerAuth');
+const { isStoreActive } = require('../utils/storeVisibility');
+const { computeTotals, parseKey, revalidateCartItems, mergeGuestCartItems } = require('../utils/cartRevalidation');
+const { getCart, setCart } = require('../utils/cartStorage');
 
 function cartKey(productId, variantId) {
   return variantId ? `${productId}_${variantId}` : String(productId);
-}
-
-async function getCart(pool, customerId) {
-  try {
-    const r = await pool.query(
-      'SELECT cart FROM customers WHERE customer_id = $1',
-      [customerId]
-    );
-    if (!r.rows[0]) return [];
-    const cart = r.rows[0].cart;
-    if (Array.isArray(cart)) return cart;
-    if (typeof cart === 'string') {
-      try {
-        const parsed = JSON.parse(cart);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (_) {
-        return [];
-      }
-    }
-    return [];
-  } catch (err) {
-    if (err.code === '42703') return [];
-    throw err;
-  }
-}
-
-async function setCart(pool, customerId, items) {
-  const payload = Array.isArray(items) ? items : [];
-  try {
-    await pool.query(
-      'UPDATE customers SET cart = $1 WHERE customer_id = $2',
-      [JSON.stringify(payload), customerId]
-    );
-  } catch (err) {
-    if (err.code === '42703') return;
-    throw err;
-  }
 }
 
 async function validateProductAndVariant(pool, productId, variantId, quantity) {
@@ -51,6 +17,7 @@ async function validateProductAndVariant(pool, productId, variantId, quantity) {
   const prod = await pool.query(
     `SELECT
        product_id,
+       store_id,
        product_name,
        title,
        price,
@@ -64,6 +31,7 @@ async function validateProductAndVariant(pool, productId, variantId, quantity) {
   if (!prod.rows[0]) return { error: 'Product not found' };
   const p = prod.rows[0];
   if (p.status !== 'Active') return { error: 'Product not available' };
+  if (!(await isStoreActive(pool, p.store_id))) return { error: 'Store not available' };
 
   let unitPrice = parseFloat(p.price);
   let optionRow = null;
@@ -95,6 +63,10 @@ async function validateProductAndVariant(pool, productId, variantId, quantity) {
   return { product: p, unitPrice, optionRow, available };
 }
 
+
+
+
+
 async function getAvailableStock(pool, productId, variantId) {
   const pid = parseInt(productId, 10);
   if (variantId) {
@@ -113,27 +85,42 @@ async function getAvailableStock(pool, productId, variantId) {
   return 999999;
 }
 
+
 router.use(customerAuth);
+
+router.post('/revalidate', async (req, res) => {
+  const pool = req.app.locals.pool;
+  if (!pool) return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  try {
+    const items = await getCart(pool, req.customerId);
+    const result = await revalidateCartItems(items, {
+      validateProductAndVariant: (productId, variantId, quantity) =>
+        validateProductAndVariant(pool, productId, variantId, quantity),
+    });
+    if (result.changed) {
+      await setCart(pool, req.customerId, result.items);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('Cart revalidate error:', err);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
 
 router.get('/', async (req, res) => {
   const pool = req.app.locals.pool;
   if (!pool) return res.status(500).json({ error: 'INTERNAL_ERROR', requestId: crypto.randomUUID ? crypto.randomUUID() : undefined });
   try {
     const items = await getCart(pool, req.customerId);
-    const totals = items.reduce(
-      (acc, it) => {
-        acc.items += (it.quantity || 0);
-        acc.grand += (it.subtotal || (it.unitPrice || 0) * (it.quantity || 0));
-        return acc;
-      },
-      { items: 0, grand: 0 }
-    );
-    return res.json({ items, totals });
+    const totals = computeTotals(items);
+    return res.json({ items, totals, warnings: [] });
   } catch (err) {
     console.error('Cart get error:', err);
     return res.status(500).json({ error: 'Failed to load cart' });
   }
 });
+
 
 router.post('/add', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -144,12 +131,12 @@ router.post('/add', async (req, res) => {
   const valid = await validateProductAndVariant(pool, productId, variantId || null, quantity);
   if (valid.error) {
     if (valid.error === 'OUT_OF_STOCK') {
-      return res.status(409).json({ error: 'OUT_OF_STOCK', available: valid.available });
+      return res.status(409).json({ error: 'OUT_OF_STOCK', code: 'OUT_OF_STOCK', available: valid.available, message: 'Requested quantity exceeds available stock.' });
     }
     let code = 'INVALID_PAYLOAD';
     if (valid.error === 'Invalid variant' || valid.error === 'Variant not found') {
       code = 'INVALID_VARIANT';
-    } else if (valid.error === 'Product not found' || valid.error === 'Product not available') {
+    } else if (valid.error === 'Product not found' || valid.error === 'Product not available' || valid.error === 'Store not available') {
       code = 'INVALID_PRODUCT';
     }
     return res.status(400).json({ error: code });
@@ -159,7 +146,7 @@ router.post('/add', async (req, res) => {
   const effectivePrice = valid.unitPrice;
   const subtotal = effectivePrice * quantity;
 
- 
+  
   let itemOptions = null;
   if (Array.isArray(options) && options.length > 0) {
     const normalized = options.filter(
@@ -191,13 +178,26 @@ router.post('/add', async (req, res) => {
     subtotal,
   };
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    const lockRow = await client.query(
+      'SELECT customer_id FROM customers WHERE customer_id = $1 FOR UPDATE',
+      [req.customerId]
+    );
+    if (!lockRow.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'CUSTOMER_NOT_FOUND' });
+    }
     let items = await getCart(pool, req.customerId);
     const existing = items.find((i) => i.key === key);
     if (existing) {
       const newQty = (existing.quantity || 0) + quantity;
       const available = await getAvailableStock(pool, productId, variantId || null);
-      if (newQty > available) return res.status(409).json({ error: 'OUT_OF_STOCK', available });
+      if (newQty > available) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'OUT_OF_STOCK', available });
+      }
       existing.quantity = newQty;
       existing.unitPrice = effectivePrice;
       existing.subtotal = effectivePrice * newQty;
@@ -206,21 +206,26 @@ router.post('/add', async (req, res) => {
     }
     console.debug && console.debug('[cart] options:', newItem.options);
     await setCart(pool, req.customerId, items);
-    const totals = items.reduce(
-      (acc, it) => {
-        acc.items += (it.quantity || 0);
-        acc.grand += (it.subtotal || (it.unitPrice || 0) * (it.quantity || 0));
-        return acc;
-      },
-      { items: 0, grand: 0 }
-    );
-    return res.json({ items, totals });
+    await client.query('COMMIT');
+    const totals = computeTotals(items);
+    return res.json({ items, totals, warnings: [] });
   } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
     const requestId = crypto.randomUUID ? crypto.randomUUID() : undefined;
-    console.error('Cart add error:', err, requestId);
+    console.error('Cart add error:', {
+      requestId,
+      customerId: req.customerId,
+      payload: { productId, variantId: variantId || null, quantity },
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+    });
     return res.status(500).json({ error: 'INTERNAL_ERROR', requestId });
+  } finally {
+    client.release();
   }
 });
+
 
 router.put('/update', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -238,9 +243,9 @@ router.put('/update', async (req, res) => {
       items.splice(idx, 1);
     } else {
       const item = items[idx];
-      const [productId, variantId] = key.includes('_') ? key.split('_') : [key, null];
+      const { productId, variantId } = parseKey(item);
       const available = await getAvailableStock(pool, productId, variantId);
-      if (quantity > available) return res.status(409).json({ error: 'OUT_OF_STOCK', available });
+      if (quantity > available) return res.status(409).json({ error: 'OUT_OF_STOCK', code: 'OUT_OF_STOCK', available, message: 'Requested quantity exceeds available stock.' });
       const effectivePrice = await (async () => {
         const prod = await pool.query('SELECT price FROM products WHERE product_id = $1', [parseInt(productId, 10)]);
         if (!prod.rows[0]) return item.unitPrice || 0;
@@ -256,21 +261,15 @@ router.put('/update', async (req, res) => {
       item.subtotal = effectivePrice * quantity;
     }
     await setCart(pool, req.customerId, items);
-    const totals = items.reduce(
-      (acc, it) => {
-        acc.items += (it.quantity || 0);
-        acc.grand += (it.subtotal || (it.unitPrice || 0) * (it.quantity || 0));
-        return acc;
-      },
-      { items: 0, grand: 0 }
-    );
-    return res.json({ items, totals });
+    const totals = computeTotals(items);
+    return res.json({ items, totals, warnings: [] });
   } catch (err) {
     const requestId = crypto.randomUUID ? crypto.randomUUID() : undefined;
     console.error('Cart update error:', err, requestId);
     return res.status(500).json({ error: 'INTERNAL_ERROR', requestId });
   }
 });
+
 
 router.delete('/remove/:key', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -281,20 +280,27 @@ router.delete('/remove/:key', async (req, res) => {
     let items = await getCart(pool, req.customerId);
     items = items.filter((i) => i.key !== key);
     await setCart(pool, req.customerId, items);
-    const totals = items.reduce(
-      (acc, it) => {
-        acc.items += (it.quantity || 0);
-        acc.grand += (it.subtotal || (it.unitPrice || 0) * (it.quantity || 0));
-        return acc;
-      },
-      { items: 0, grand: 0 }
-    );
-    return res.json({ items, totals });
+    const totals = computeTotals(items);
+    return res.json({ items, totals, warnings: [] });
   } catch (err) {
     console.error('Cart remove error:', err);
     return res.status(500).json({ error: 'Failed to remove item' });
   }
 });
+
+router.post('/clear', async (req, res) => {
+  const pool = req.app.locals.pool;
+  if (!pool) return res.status(500).json({ error: 'Database not configured' });
+
+  try {
+    await setCart(pool, req.customerId, []);
+    return res.json({ items: [], totals: { items: 0, grand: 0 }, warnings: [] });
+  } catch (err) {
+    console.error('Cart clear error:', err);
+    return res.status(500).json({ error: 'Failed to clear cart' });
+  }
+});
+
 
 router.post('/merge', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -302,47 +308,15 @@ router.post('/merge', async (req, res) => {
   const guestItems = Array.isArray(req.body?.items) ? req.body.items : [];
 
   try {
-    let items = await getCart(pool, req.customerId);
-    for (const g of guestItems) {
-      const productId = g.productId;
-      const variantId = g.variantId ?? null;
-      const qty = Math.max(1, parseInt(g.quantity, 10) || 1);
-      const key = cartKey(productId, variantId);
-      const valid = await validateProductAndVariant(pool, productId, variantId, qty);
-      if (valid.error) continue;
-      const unitPrice = valid.unitPrice;
-      const existing = items.find((i) => i.key === key);
-      if (existing) {
-        const newQty = (existing.quantity || 0) + qty;
-        const stock = await getAvailableStock(pool, productId, variantId);
-        existing.quantity = Math.min(newQty, stock);
-        existing.subtotal = (existing.unitPrice || unitPrice) * existing.quantity;
-      } else {
-        items.push({
-          key,
-          productId: parseInt(productId, 10),
-          title: g.title || valid.product.product_name,
-          image: g.image || valid.product.image || (valid.product.images && valid.product.images[0]) || null,
-          variantId: variantId ? parseInt(variantId, 10) : null,
-          options: g.options || null,
-          unitPrice,
-          quantity: Math.min(qty, await getAvailableStock(pool, productId, variantId)),
-          subtotal: 0,
-        });
-        const last = items[items.length - 1];
-        last.subtotal = last.unitPrice * last.quantity;
-      }
-    }
+    const currentItems = await getCart(pool, req.customerId);
+    const merged = await mergeGuestCartItems(currentItems, guestItems, {
+      validateProductAndVariant: (productId, variantId, quantity) =>
+        validateProductAndVariant(pool, productId, variantId, quantity),
+      getAvailableStock: (productId, variantId) => getAvailableStock(pool, productId, variantId),
+    });
+    const { items, warnings } = merged;
     await setCart(pool, req.customerId, items);
-    const totals = items.reduce(
-      (acc, it) => {
-        acc.items += (it.quantity || 0);
-        acc.grand += (it.subtotal || (it.unitPrice || 0) * (it.quantity || 0));
-        return acc;
-      },
-      { items: 0, grand: 0 }
-    );
-    return res.json({ items, totals });
+    return res.json({ items, totals: merged.totals, warnings });
   } catch (err) {
     console.error('Cart merge error:', err);
     return res.status(500).json({ error: 'Failed to merge cart' });

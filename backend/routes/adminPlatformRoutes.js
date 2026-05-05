@@ -4,7 +4,6 @@ const {
   getPolicies,
   updatePolicies,
   getPlans,
-  createPlan,
   updatePlan,
   updatePlanStatus,
   getPlatformConfig,
@@ -19,7 +18,6 @@ router.get('/policies', getPolicies);
 router.patch('/policies', updatePolicies);
 
 router.get('/plans', getPlans);
-router.post('/plans', createPlan);
 router.patch('/plans/:id', updatePlan);
 router.patch('/plans/:id/status', updatePlanStatus);
 
