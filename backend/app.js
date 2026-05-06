@@ -27,14 +27,16 @@ const { ensureAdminsTableAndSeed } = require('./scripts/ensureAdmins');
 const app = express();
 
 function parseCorsOrigins(value) {
+  const defaultOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001'];
   if (!value) {
-    return ['http://localhost:3000', 'http://127.0.0.1:3000'];
+    return defaultOrigins;
   }
-  if (Array.isArray(value)) return value;
-  return String(value)
+  if (Array.isArray(value)) return [...defaultOrigins, ...value];
+  const envOrigins = String(value)
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  return [...defaultOrigins, ...envOrigins];
 }
 
 const corsOrigins = parseCorsOrigins(process.env.CORS_ORIGIN);

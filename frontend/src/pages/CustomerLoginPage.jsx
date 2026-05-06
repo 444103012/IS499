@@ -1,8 +1,20 @@
 
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
+import { buildStorefrontPath } from '../utils/storefrontRoutes';
 
 const CustomerLoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -17,7 +29,7 @@ const CustomerLoginPage = () => {
   const isRTL = i18n.language === 'ar';
 
   
-  const storeHome = storeSlug ? `/${storeSlug}/customer` : '/shop';
+  const storeHome = storeSlug ? buildStorefrontPath(storeSlug) : '/';
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -155,7 +167,7 @@ const CustomerLoginPage = () => {
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.noAccount')}{' '}
           <Link
-            to={storeSlug ? `/${storeSlug}/customer/register` : '/customer/register'}
+            to={storeSlug ? buildStorefrontPath(storeSlug, 'register') : '/customer/register'}
             className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green"
           >
             {t('customerAuth.createAccount')}

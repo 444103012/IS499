@@ -1,9 +1,24 @@
 
 
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
+import { buildStorefrontPath } from '../utils/storefrontRoutes';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+const PHONE_REGEX = /^05\d{8}$/;
 
 const CustomerRegisterPage = () => {
   const { t, i18n } = useTranslation();
@@ -19,13 +34,12 @@ const CustomerRegisterPage = () => {
     password: '',
     confirmPassword: '',
   });
-  const [phoneError, setPhoneError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
 
-
-  const storeHome = storeSlug ? `/${storeSlug}/customer` : '/shop';
+  
+  const storeHome = storeSlug ? buildStorefrontPath(storeSlug) : '/';
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -46,19 +60,6 @@ const CustomerRegisterPage = () => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setError('');
-    if (name === 'phone') {
-      const trimmed = value.trim();
-      if (!trimmed) {
-        setPhoneError(isRTL ? 'رقم الجوال مطلوب' : 'Phone number is required');
-      } else {
-        const phonePattern = /^(\+?\d{8,15})$/;
-        if (!phonePattern.test(trimmed)) {
-          setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
-        } else {
-          setPhoneError('');
-        }
-      }
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -86,12 +87,27 @@ const CustomerRegisterPage = () => {
       return;
     }
 
-    const phonePattern = /^(\+?\d{8,15})$/;
-    if (!phonePattern.test(trimmedPhone)) {
-      setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      alert(isRTL ? 'يرجى إدخال بريد إلكتروني صالح' : 'Please enter a valid email address');
       return;
-    } else {
-      setPhoneError('');
+    }
+
+    if (!PASSWORD_REGEX.test(password)) {
+      alert(
+        isRTL
+          ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف واحد ورقم واحد على الأقل'
+          : 'Password must be at least 8 characters and include at least one letter and one number'
+      );
+      return;
+    }
+
+    if (!PHONE_REGEX.test(trimmedPhone)) {
+      alert(
+        isRTL
+          ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
+          : 'Phone number must start with 05 and be exactly 10 digits'
+      );
+      return;
     }
 
     setLoading(true);
@@ -112,7 +128,7 @@ const CustomerRegisterPage = () => {
       navigate(getRedirectPath(), { replace: true });
     } catch (err) {
       if (!err.response) {
-       
+        
         setError(
           isRTL
             ? 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000'
@@ -129,8 +145,13 @@ const CustomerRegisterPage = () => {
         } else if (errorMsg === 'Missing required fields') {
           setError(t('customerAuth.missingFields'));
         } else if (errorMsg === 'Invalid phone format') {
-          setPhoneError(isRTL ? 'صيغة رقم الجوال غير صحيحة' : 'Invalid phone number format');
+          alert(
+            isRTL
+              ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
+              : 'Phone number must start with 05 and be exactly 10 digits'
+          );
         } else if (errorMsg === 'Registration failed') {
+          
           
           setError(
             isRTL
@@ -225,14 +246,14 @@ const CustomerRegisterPage = () => {
               type="tel"
               value={form.phone}
               onChange={handleChange}
+              onInvalid={(e) => e.target.setCustomValidity('Phone number must contain exactly 10 digits')}
+              onInput={(e) => e.target.setCustomValidity('')}
               placeholder={t('customerAuth.phone')}
+              required
+              pattern="05[0-9]{8}"
+              title="Phone number must contain exactly 10 digits"
               className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
             />
-            {phoneError && (
-              <p className={`text-xs text-red-600 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {phoneError}
-              </p>
-            )}
           </div>
           
           <div className={isRTL ? 'text-right' : 'text-left'}>
@@ -251,7 +272,7 @@ const CustomerRegisterPage = () => {
               className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
             />
             <p className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {isRTL ? 'يجب أن تكون 8 أحرف على الأقل' : 'Must be at least 8 characters'}
+              {isRTL ? '8 أحرف على الأقل وتحتوي على حرف ورقم' : 'At least 8 characters and must include a letter and a number'}
             </p>
           </div>
           
@@ -289,7 +310,7 @@ const CustomerRegisterPage = () => {
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.hasAccount')}{' '}
           <Link
-            to={storeSlug ? `/${storeSlug}/customer/login` : '/customer/login'}
+            to={storeSlug ? buildStorefrontPath(storeSlug, 'login') : '/customer/login'}
             className="text-storelaunch-green font-medium hover:text-storelaunch-deep-green"
           >
             {t('customerAuth.signIn')}
