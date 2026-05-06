@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { validatePasswordChangeInput } = require('../utils/passwordValidation');
 
 const router = express.Router();
