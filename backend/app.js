@@ -193,4 +193,5 @@ app.use((err, _req, res, next) => {
   next();
 });
 
-module.exports = { app, appReady };
+module.exports = app;
+module.exports.appReady = appReady;
