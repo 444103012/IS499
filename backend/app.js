@@ -115,6 +115,10 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'backend', health: '/api/health' });
+});
+
 app.get('/api/stores/:slug', async (req, res) => {
   const db = req.app.locals.pool;
   if (!db) return res.status(500).json({ error: 'Database not configured' });
