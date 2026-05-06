@@ -13,7 +13,8 @@ const toImageUrl = (path) => (path && !path.startsWith('http') ? `${API_BASE.rep
 
 export default function CartItemCard({ item, isRTL }) {
   const { updateItem, removeItem } = useCart();
-  const { key, title, image, unitPrice, quantity, subtotal, options, productId, variantId } = item;
+  const { key, title, image, unitPrice, quantity, subtotal, options, productId, variantId, stockQty } = item;
+  const atStockLimit = stockQty != null && quantity >= stockQty;
   const editPath = (() => {
     if (typeof window === 'undefined') return '#';
     const [, maybeStore] = window.location.pathname.split('/');
@@ -59,9 +60,31 @@ export default function CartItemCard({ item, isRTL }) {
         </div>
         <div className="cart-item-price"><CurrencyAmount value={unitPrice} isRTL={isRTL} /></div>
         <div className="cart-item-stepper" style={{ justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
-          <button type="button" onClick={handleDecrease} aria-label="Decrease">−</button>
-          <span style={{ minWidth: '1.5rem', textAlign: 'center' }}>{quantity}</span>
-          <button type="button" onClick={handleIncrease} aria-label="Increase">+</button>
+          {isRTL ? (
+            <>
+              <button
+                type="button"
+                onClick={handleIncrease}
+                aria-label="Increase"
+                disabled={atStockLimit}
+                style={atStockLimit ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+              >+</button>
+              <span style={{ minWidth: '1.5rem', textAlign: 'center' }}>{quantity}</span>
+              <button type="button" onClick={handleDecrease} aria-label="Decrease">−</button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={handleDecrease} aria-label="Decrease">−</button>
+              <span style={{ minWidth: '1.5rem', textAlign: 'center' }}>{quantity}</span>
+              <button
+                type="button"
+                onClick={handleIncrease}
+                aria-label="Increase"
+                disabled={atStockLimit}
+                style={atStockLimit ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+              >+</button>
+            </>
+          )}
         </div>
       </div>
       <div

@@ -147,6 +147,7 @@ router.get('/', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
   try {
+    await ensureCustomerOrderRequestTable(pool);
     const store_id = await getStoreId(pool, store_owner_id);
     if (!store_id) return res.json({ orders: [], total: 0, page: 1, limit: 10 });
 
@@ -205,7 +206,11 @@ router.get('/', async (req, res) => {
     const listSql = `
       SELECT o.order_id, o.store_order_seq, o.order_date, o.status AS fulfillment_status, o.total_amount,
              c.customer_id, c.first_name, c.last_name,
-             pay.payment_status, pay.method AS payment_method
+             pay.payment_status, pay.method AS payment_method,
+             EXISTS (
+               SELECT 1 FROM customer_order_requests r
+               WHERE r.order_id = o.order_id AND r.action_type = 'return' AND r.status = 'pending'
+             ) AS has_pending_return
       FROM orders o
       LEFT JOIN customers c ON c.customer_id = o.customer_id
       LEFT JOIN LATERAL (
@@ -226,6 +231,7 @@ router.get('/', async (req, res) => {
       payment_status: row.payment_status || 'Pending',
       fulfillment_status: row.fulfillment_status || 'Processing',
       payment_method: row.payment_method,
+      has_pending_return: Boolean(row.has_pending_return),
     }));
 
     res.json({ orders, total, page, limit });

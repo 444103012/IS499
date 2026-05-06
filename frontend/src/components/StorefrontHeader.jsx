@@ -310,14 +310,14 @@ const StorefrontHeader = ({
 
   useEffect(() => {
     const closeOnOutside = (event) => {
-      if (!isFilterMenuOpen) return;
+      if (!isFilterMenuOpen || !isDesktop) return;
       if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
         setIsFilterMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', closeOnOutside);
     return () => document.removeEventListener('mousedown', closeOnOutside);
-  }, [isFilterMenuOpen]);
+  }, [isFilterMenuOpen, isDesktop]);
 
   useEffect(() => {
     const onEsc = (event) => {

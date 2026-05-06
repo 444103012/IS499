@@ -64,6 +64,7 @@ async function revalidateCartItems(items, deps) {
       quantity: requestedQty,
       unitPrice,
       subtotal: unitPrice * requestedQty,
+      stockQty: Number(valid.available ?? 999999),
     };
 
     if (Number(current.unitPrice || 0) !== unitPrice) {

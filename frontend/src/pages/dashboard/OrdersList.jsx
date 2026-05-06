@@ -197,10 +197,17 @@ const OrdersList = () => {
           <>
             <div className="md:hidden divide-y divide-gray-100">
               {orders.map((o) => (
-                <div key={o.order_id} className="p-4 space-y-3">
+                <div key={o.order_id} className={`p-4 space-y-3 ${o.has_pending_return ? 'bg-amber-50 border-l-4 border-amber-400' : ''}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">#{displayOrderNumber(o)}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-gray-900 truncate">#{displayOrderNumber(o)}</p>
+                        {o.has_pending_return && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 shrink-0">
+                            {isRTL ? 'طلب إرجاع' : 'Return Request'}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-700 truncate">{o.customer_name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{formatDate(o.order_date)}</p>
                     </div>
@@ -261,9 +268,16 @@ const OrdersList = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {orders.map((o) => (
-                    <tr key={o.order_id} className="hover:bg-gray-50">
+                    <tr key={o.order_id} className={`hover:bg-gray-50 ${o.has_pending_return ? 'bg-amber-50' : ''}`}>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        #{displayOrderNumber(o)}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>#{displayOrderNumber(o)}</span>
+                          {o.has_pending_return && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                              {isRTL ? 'طلب إرجاع' : 'Return Request'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {o.customer_name}

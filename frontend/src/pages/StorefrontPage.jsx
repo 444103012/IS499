@@ -489,7 +489,7 @@ const StorefrontPage = () => {
                       to={storeSlug ? buildStorefrontPath(normalizedStoreSlug, `product/${product.product_id}`) : `/product/${product.product_id}`}
                       onClick={saveScrollPosition}
                       state={{ fromStorefront: true, storeSlug: normalizedStoreSlug }}
-                      className="text-left w-full flex gap-3 sm:gap-4 rounded-xl overflow-hidden shadow-sm border transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-storelaunch-green"
+                      className={`${isRTL ? 'text-right' : 'text-left'} w-full flex gap-3 sm:gap-4 rounded-xl overflow-hidden shadow-sm border transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-storelaunch-green`}
                       style={{ backgroundColor: cardBg, borderColor: cardBorder }}
                     >
                       <div className="relative w-24 min-h-[5.5rem] sm:min-h-0 sm:w-36 shrink-0 self-stretch sm:self-auto bg-gray-100 flex items-center justify-center">
@@ -549,7 +549,7 @@ const StorefrontPage = () => {
                     to={storeSlug ? buildStorefrontPath(normalizedStoreSlug, `product/${product.product_id}`) : `/product/${product.product_id}`}
                     onClick={saveScrollPosition}
                     state={{ fromStorefront: true, storeSlug: normalizedStoreSlug }}
-                    className="text-left w-full border rounded-xl overflow-hidden shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-storelaunch-green"
+                    className={`${isRTL ? 'text-right' : 'text-left'} w-full border rounded-xl overflow-hidden shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-storelaunch-green`}
                     style={{ backgroundColor: cardBg, borderColor: cardBorder }}
                   >
                     <div className="relative aspect-[4/3] sm:aspect-square bg-gray-100 flex items-center justify-center">

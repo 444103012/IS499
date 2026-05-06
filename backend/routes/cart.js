@@ -176,6 +176,7 @@ router.post('/add', async (req, res) => {
     unitPrice: effectivePrice,
     quantity,
     subtotal,
+    stockQty: valid.available,
   };
 
   const client = await pool.connect();
@@ -259,6 +260,7 @@ router.put('/update', async (req, res) => {
       item.quantity = quantity;
       item.unitPrice = effectivePrice;
       item.subtotal = effectivePrice * quantity;
+      item.stockQty = available;
     }
     await setCart(pool, req.customerId, items);
     const totals = computeTotals(items);
