@@ -39,11 +39,22 @@ function parseCorsOrigins(value) {
   return [...defaultOrigins, ...envOrigins];
 }
 
-const corsOrigins = parseCorsOrigins(process.env.CORS_ORIGIN);
-const allowVercelPreviews = process.env.CORS_ALLOW_VERCEL_PREVIEWS === 'true';
+function normalizeOrigins(origins) {
+  return [...new Set(origins.map((origin) => String(origin).trim()).filter(Boolean))];
+}
+
+const corsOrigins = normalizeOrigins([
+  ...parseCorsOrigins(process.env.CORS_ORIGIN),
+  process.env.FRONTEND_BASE_URL,
+]);
+const allowVercelPreviews =
+  process.env.CORS_ALLOW_VERCEL_PREVIEWS === 'true' ||
+  (process.env.CORS_ALLOW_VERCEL_PREVIEWS == null && process.env.NODE_ENV === 'production');
 
 function isAllowedCorsOrigin(origin) {
   if (!origin) return true;
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
   if (corsOrigins.includes(origin)) return true;
   if (allowVercelPreviews && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
     return true;
