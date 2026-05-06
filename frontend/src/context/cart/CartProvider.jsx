@@ -46,6 +46,29 @@ function saveGuestCart(items, totals) {
   } catch (_) {}
 }
 
+async function fetchAvailableStockForItem({ productId, variantId }) {
+  const pid = Number(productId);
+  if (!Number.isFinite(pid) || pid <= 0) return 0;
+  try {
+    const { data } = await api.get(`/api/products/${pid}`);
+    const product = data?.product;
+    if (!product) return 0;
+    const options = Array.isArray(product.options) ? product.options : [];
+    if (variantId != null) {
+      const vid = Number(variantId);
+      const variant = options.find((opt) => Number(opt.option_id) === vid);
+      return Math.max(0, Number(variant?.stock_qty || 0));
+    }
+    if (options.length > 0) {
+      return options.reduce((sum, opt) => sum + Math.max(0, Number(opt.stock_qty || 0)), 0);
+    }
+    if (product.total_stock != null) return Math.max(0, Number(product.total_stock));
+    return 999999;
+  } catch (_) {
+    return null;
+  }
+}
+
 export default function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [totals, setTotals] = useState(defaultTotals);
@@ -184,14 +207,18 @@ export default function CartProvider({ children }) {
         setLoading(false);
       }
     } else {
+      const available = await fetchAvailableStockForItem({ productId, variantId: variantId ?? null });
       setItems((prevItems) => {
         const next = [...prevItems];
         const idx = next.findIndex((i) => i.key === key);
         if (idx >= 0) {
-          next[idx].quantity = (next[idx].quantity || 0) + qty;
+          const requestedQty = (next[idx].quantity || 0) + qty;
+          next[idx].quantity = available == null ? requestedQty : Math.min(requestedQty, available);
           next[idx].subtotal = (next[idx].unitPrice || 0) * next[idx].quantity;
         } else {
-          next.push(newItem);
+          const initialQty = available == null ? qty : Math.min(qty, available);
+          if (initialQty <= 0) return prevItems;
+          next.push({ ...newItem, quantity: initialQty, subtotal: (newItem.unitPrice || 0) * initialQty });
         }
         const newTotals = computeTotals(next);
         setTotals(newTotals);
@@ -226,7 +253,21 @@ export default function CartProvider({ children }) {
     // Apply change to UI immediately
     applyOptimisticUpdate(key, qty);
 
-    if (!isLoggedIn) return Promise.resolve();
+    if (!isLoggedIn) {
+      return (async () => {
+        const current = items.find((i) => i.key === key);
+        if (!current || qty === 0) return;
+        const available = await fetchAvailableStockForItem({
+          productId: current.productId,
+          variantId: current.variantId ?? null,
+        });
+        if (available == null) return;
+        if (qty > available) {
+          applyOptimisticUpdate(key, available);
+          setError(`الكمية غير متوفرة. المتاح الآن: ${available}`);
+        }
+      })();
+    }
 
     // Debounce the server call — cancel any in-flight timer for this key
     if (updateDebounceRefs.current[key]) {
@@ -271,7 +312,7 @@ export default function CartProvider({ children }) {
       }
     }, 400);
     return Promise.resolve();
-  }, [isLoggedIn, applyOptimisticUpdate]);
+  }, [isLoggedIn, applyOptimisticUpdate, items]);
 
   const removeItem = useCallback(async (key) => {
     if (isLoggedIn) {

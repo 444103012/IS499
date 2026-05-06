@@ -165,10 +165,21 @@ app.get('/api/stores/:slug', async (req, res) => {
   const normalizedSlug = req.params.slug.trim().toLowerCase();
   try {
     const result = await db.query(
-      `SELECT store_id, name, domain_name, description, logo, theme, status
-       FROM stores
-       WHERE LOWER(name) = $1 OR LOWER(domain_name) = $1
-       ORDER BY store_id DESC
+      `SELECT
+         s.store_id,
+         s.name,
+         s.domain_name,
+         s.description,
+         s.logo,
+         s.theme,
+         s.status,
+         COALESCE(ss.branding, '{}'::jsonb) AS branding,
+         COALESCE(ss.info, '{}'::jsonb) AS info,
+         COALESCE(ss.footer, '{}'::jsonb) AS footer
+       FROM stores s
+       LEFT JOIN store_settings ss ON ss.store_id = s.store_id
+       WHERE LOWER(s.name) = $1 OR LOWER(s.domain_name) = $1
+       ORDER BY s.store_id DESC
        LIMIT 1`,
       [normalizedSlug]
     );
