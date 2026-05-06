@@ -1,9 +1,13 @@
 
 
-import React, { useState, useEffect } from 'react';
-import { getAllStoreOwners, updateStoreOwnerStatus } from '../../services/adminManagementApi';
+
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getAllStoreOwners, updateStoreOwnerStatus, accessStoreOwnerAsAdmin } from '../../services/adminManagementApi';
+import AdminTablePagination from '../../components/admin/AdminTablePagination';
 
 const STATUS_OPTIONS = ['Active', 'Suspended', 'Disabled'];
+const PAGE_SIZE = 10;
 
 function StatusBadge({ status }) {
   const classes = {
@@ -26,43 +30,56 @@ function formatDate(d) {
 
 export default function ManageStoreOwners() {
   const [owners, setOwners] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const lastAppliedSearchRef = useRef(search.trim());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
+  const [accessingId, setAccessingId] = useState(null);
 
   useEffect(() => {
-    getAllStoreOwners()
-      .then(setOwners)
-      .catch((err) => setError(err.response?.data?.error || err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    const t = setTimeout(() => {
+      const trimmed = search.trim();
+      setDebouncedSearch(trimmed);
+      if (lastAppliedSearchRef.current !== trimmed) {
+        lastAppliedSearchRef.current = trimmed;
+        setPage(1);
+      }
+    }, 280);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  useEffect(() => {
-    if (!search.trim()) {
-      setFiltered(owners);
-      return;
+  const fetchOwners = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getAllStoreOwners({ page, limit: PAGE_SIZE, search: debouncedSearch });
+      setOwners(data.store_owners);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
     }
-    const q = search.trim().toLowerCase();
-    setFiltered(
-      owners.filter(
-        (o) =>
-          (o.first_name && o.first_name.toLowerCase().includes(q)) ||
-          (o.last_name && o.last_name.toLowerCase().includes(q)) ||
-          (o.email && o.email.toLowerCase().includes(q)) ||
-          (o.store_name && o.store_name.toLowerCase().includes(q))
-      )
-    );
-  }, [owners, search]);
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    fetchOwners();
+  }, [fetchOwners]);
+
+  useEffect(() => {
+    const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1;
+    if (page > totalPages) setPage(totalPages);
+  }, [total, page]);
 
   const handleStatusChange = async (owner_id, newStatus) => {
     setUpdatingId(owner_id);
     try {
       await updateStoreOwnerStatus(owner_id, newStatus);
-      setOwners((prev) =>
-        prev.map((o) => (o.owner_id === owner_id ? { ...o, status: newStatus } : o))
-      );
+      await fetchOwners();
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     } finally {
@@ -70,7 +87,24 @@ export default function ManageStoreOwners() {
     }
   };
 
-  if (loading) {
+  const handleAccessOwner = async (ownerId) => {
+    setAccessingId(ownerId);
+    setError('');
+    try {
+      const access = await accessStoreOwnerAsAdmin(ownerId);
+      localStorage.setItem('admin_token_backup', localStorage.getItem('admin_token') || '');
+      localStorage.setItem('token', access.token);
+      localStorage.removeItem('customer_token');
+      localStorage.removeItem('user_type');
+      window.location.assign(access.redirect_to || '/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to access store owner account');
+    } finally {
+      setAccessingId(null);
+    }
+  };
+
+  if (loading && owners.length === 0 && !error) {
     return (
       <div className="p-6">
         <p className="text-gray-500">Loading store owners...</p>
@@ -94,7 +128,7 @@ export default function ManageStoreOwners() {
         />
       </div>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto ${loading ? 'opacity-60' : ''}`}>
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -107,14 +141,14 @@ export default function ManageStoreOwners() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {owners.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     No store owners found
                   </td>
                 </tr>
               ) : (
-                filtered.map((o) => (
+                owners.map((o) => (
                   <tr key={o.owner_id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       {[o.first_name, o.last_name].filter(Boolean).join(' ') || '—'}
@@ -129,13 +163,23 @@ export default function ManageStoreOwners() {
                       <select
                         value={o.status || 'Active'}
                         onChange={(e) => handleStatusChange(o.owner_id, e.target.value)}
-                        disabled={updatingId === o.owner_id}
+                        disabled={updatingId === o.owner_id || loading}
                         className="text-sm border border-gray-300 rounded px-2 py-1"
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                      <button
+                        type="button"
+                        onClick={() => handleAccessOwner(o.owner_id)}
+                        disabled={accessingId === o.owner_id || loading}
+                        className={`ml-2 text-xs border border-storelaunch-green text-storelaunch-green px-2 py-1 rounded ${
+                          accessingId === o.owner_id || loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-green-50'
+                        }`}
+                      >
+                        Access
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -143,6 +187,14 @@ export default function ManageStoreOwners() {
             </tbody>
           </table>
         </div>
+        <AdminTablePagination
+          page={page}
+          total={total}
+          limit={PAGE_SIZE}
+          loading={loading}
+          itemLabel="store owners"
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

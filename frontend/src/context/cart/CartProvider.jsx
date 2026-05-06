@@ -1,12 +1,25 @@
 
 
-import React, { useState, useEffect, useCallback } from 'react';
+
+
+
+
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../api/axios';
 import CartContext from './CartContext';
 
 const CART_STORAGE_KEY = 'storelaunch_guest_cart';
 
 const defaultTotals = { items: 0, grand: 0 };
+const computeTotals = (cartItems = []) => cartItems.reduce(
+  (acc, it) => {
+    acc.items += it.quantity || 0;
+    acc.grand += (it.subtotal ?? (it.unitPrice || 0) * (it.quantity || 0));
+    return acc;
+  },
+  { items: 0, grand: 0 }
+);
 
 function loadGuestCart() {
   try {
@@ -36,30 +49,28 @@ function saveGuestCart(items, totals) {
 export default function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [totals, setTotals] = useState(defaultTotals);
+  const [warnings, setWarnings] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const updateDebounceRefs = useRef({});
 
   const isLoggedIn = typeof localStorage !== 'undefined' && !!localStorage.getItem('customer_token');
-
-  const persistGuest = useCallback((newItems, newTotals) => {
-    setItems(newItems);
-    setTotals(newTotals);
-    saveGuestCart(newItems, newTotals);
-  }, []);
 
   const fetchCart = useCallback(async () => {
     if (!isLoggedIn) return;
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get('/api/cart');
+      const { data } = await api.post('/api/cart/revalidate');
       setItems(data.items || []);
       setTotals(data.totals || defaultTotals);
+      setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load cart');
       setItems([]);
       setTotals(defaultTotals);
+      setWarnings([]);
     } finally {
       setLoading(false);
     }
@@ -73,6 +84,7 @@ export default function CartProvider({ children }) {
           .then(({ data }) => {
             setItems(data.items || []);
             setTotals(data.totals || defaultTotals);
+            setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
             localStorage.removeItem(CART_STORAGE_KEY);
           })
           .catch(() => fetchCart());
@@ -83,6 +95,7 @@ export default function CartProvider({ children }) {
       const { items: gi, totals: gt } = loadGuestCart();
       setItems(gi);
       setTotals(gt);
+      setWarnings([]);
     }
   }, [isLoggedIn]);
 
@@ -135,6 +148,7 @@ export default function CartProvider({ children }) {
         const { data } = response;
         setItems(data.items || []);
         setTotals(data.totals || defaultTotals);
+        setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
         setDrawerOpen(true);
       } catch (err) {
         if (console.log) {
@@ -170,43 +184,71 @@ export default function CartProvider({ children }) {
         setLoading(false);
       }
     } else {
-      const next = [...items];
-      const idx = next.findIndex((i) => i.key === key);
-      if (idx >= 0) {
-        next[idx].quantity = (next[idx].quantity || 0) + qty;
-        next[idx].subtotal = (next[idx].unitPrice || 0) * next[idx].quantity;
-      } else {
-        next.push(newItem);
-      }
-      const newTotals = next.reduce(
-        (acc, it) => {
-          acc.items += it.quantity || 0;
-          acc.grand += (it.subtotal ?? (it.unitPrice || 0) * (it.quantity || 0));
-          return acc;
-        },
-        { items: 0, grand: 0 }
-      );
-      persistGuest(next, newTotals);
+      setItems((prevItems) => {
+        const next = [...prevItems];
+        const idx = next.findIndex((i) => i.key === key);
+        if (idx >= 0) {
+          next[idx].quantity = (next[idx].quantity || 0) + qty;
+          next[idx].subtotal = (next[idx].unitPrice || 0) * next[idx].quantity;
+        } else {
+          next.push(newItem);
+        }
+        const newTotals = computeTotals(next);
+        setTotals(newTotals);
+        saveGuestCart(next, newTotals);
+        return next;
+      });
       setDrawerOpen(true);
     }
-  }, [isLoggedIn, items, persistGuest]);
+  }, [isLoggedIn]);
 
-  const updateItem = useCallback(async (key, quantity) => {
+  const applyOptimisticUpdate = useCallback((key, qty) => {
+    setItems((prevItems) => {
+      let next;
+      if (qty === 0) {
+        next = prevItems.filter((i) => i.key !== key);
+      } else {
+        const idx = prevItems.findIndex((i) => i.key === key);
+        if (idx < 0) return prevItems;
+        next = [...prevItems];
+        next[idx] = { ...next[idx], quantity: qty, subtotal: (next[idx].unitPrice || 0) * qty };
+      }
+      const newTotals = computeTotals(next);
+      setTotals(newTotals);
+      if (!isLoggedIn) saveGuestCart(next, newTotals);
+      return next;
+    });
+  }, [isLoggedIn]);
+
+  const updateItem = useCallback((key, quantity) => {
     const qty = Math.max(0, parseInt(quantity, 10) || 0);
-    if (isLoggedIn) {
-      setLoading(true);
+
+    // Apply change to UI immediately
+    applyOptimisticUpdate(key, qty);
+
+    if (!isLoggedIn) return Promise.resolve();
+
+    // Debounce the server call — cancel any in-flight timer for this key
+    if (updateDebounceRefs.current[key]) {
+      clearTimeout(updateDebounceRefs.current[key]);
+    }
+    updateDebounceRefs.current[key] = setTimeout(async () => {
+      delete updateDebounceRefs.current[key];
       setError(null);
       try {
         const { data } = await api.put('/api/cart/update', { key, quantity: qty });
         setItems(data.items || []);
         setTotals(data.totals || defaultTotals);
+        setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
       } catch (err) {
         if (err.response?.status === 409 && typeof err.response?.data?.available === 'number') {
           const available = err.response.data.available;
+          applyOptimisticUpdate(key, available);
           try {
             const { data } = await api.put('/api/cart/update', { key, quantity: available });
             setItems(data.items || []);
             setTotals(data.totals || defaultTotals);
+            setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
           } catch (_) {}
           setError(`الكمية غير متوفرة. المتاح الآن: ${available}`);
           return;
@@ -226,33 +268,10 @@ export default function CartProvider({ children }) {
           userMsg = code || `HTTP ${status}`;
         }
         setError(userMsg);
-        throw err;
-      } finally {
-        setLoading(false);
       }
-    } else {
-      let next = items;
-      if (qty === 0) {
-        next = items.filter((i) => i.key !== key);
-      } else {
-        const idx = items.findIndex((i) => i.key === key);
-        if (idx >= 0) {
-          next = [...items];
-          next[idx].quantity = qty;
-          next[idx].subtotal = (next[idx].unitPrice || 0) * qty;
-        }
-      }
-      const newTotals = next.reduce(
-        (acc, it) => {
-          acc.items += it.quantity || 0;
-          acc.grand += (it.subtotal ?? (it.unitPrice || 0) * (it.quantity || 0));
-          return acc;
-        },
-        { items: 0, grand: 0 }
-      );
-      persistGuest(next, newTotals);
-    }
-  }, [isLoggedIn, items, persistGuest]);
+    }, 400);
+    return Promise.resolve();
+  }, [isLoggedIn, applyOptimisticUpdate]);
 
   const removeItem = useCallback(async (key) => {
     if (isLoggedIn) {
@@ -262,27 +281,57 @@ export default function CartProvider({ children }) {
         const { data } = await api.delete(`/api/cart/remove/${encodeURIComponent(key)}`);
         setItems(data.items || []);
         setTotals(data.totals || defaultTotals);
+        setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to remove');
       } finally {
         setLoading(false);
       }
     } else {
-      const next = items.filter((i) => i.key !== key);
-      const newTotals = next.reduce(
-        (acc, it) => {
-          acc.items += it.quantity || 0;
-          acc.grand += (it.subtotal ?? (it.unitPrice || 0) * (it.quantity || 0));
-          return acc;
-        },
-        { items: 0, grand: 0 }
-      );
-      persistGuest(next, newTotals);
+      setItems((prevItems) => {
+        const next = prevItems.filter((i) => i.key !== key);
+        const newTotals = computeTotals(next);
+        setTotals(newTotals);
+        saveGuestCart(next, newTotals);
+        return next;
+      });
     }
-  }, [isLoggedIn, items, persistGuest]);
+  }, [isLoggedIn]);
 
-  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const openDrawer = useCallback(() => {
+    setDrawerOpen(true);
+    if (isLoggedIn) fetchCart();
+  }, [fetchCart, isLoggedIn]);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const revalidateCart = useCallback(async () => {
+    await fetchCart();
+  }, [fetchCart]);
+  const clearCartError = useCallback(() => setError(null), []);
+  const clearCart = useCallback(async () => {
+    if (isLoggedIn) {
+      setLoading(true);
+      setError(null);
+      try {
+        await api.post('/api/cart/clear');
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to clear cart');
+        throw err;
+      } finally {
+        setItems([]);
+        setTotals(defaultTotals);
+        setWarnings([]);
+        setLoading(false);
+      }
+      return;
+    }
+
+    setItems([]);
+    setTotals(defaultTotals);
+    setWarnings([]);
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } catch (_) {}
+  }, [isLoggedIn]);
 
   const value = {
     items,
@@ -290,11 +339,15 @@ export default function CartProvider({ children }) {
     drawerOpen,
     openDrawer,
     closeDrawer,
+    revalidateCart,
     addItem,
     updateItem,
     removeItem,
     loading,
     error,
+    clearCartError,
+    clearCart,
+    warnings,
     isLoggedIn,
   };
 

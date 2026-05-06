@@ -1,15 +1,18 @@
 
 
-import React, { useState, useEffect } from 'react';
-import { getAllUsers, updateUserStatus } from '../../services/adminManagementApi';
 
-const STATUS_OPTIONS = ['Active', 'Suspended', 'Disabled'];
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getAllUsers, updateUserStatus } from '../../services/adminManagementApi';
+import AdminTablePagination from '../../components/admin/AdminTablePagination';
+
+const STATUS_OPTIONS = ['Active', 'Suspended'];
+const PAGE_SIZE = 10;
 
 function StatusBadge({ status }) {
   const classes = {
     Active: 'bg-green-100 text-green-800',
     Suspended: 'bg-yellow-100 text-yellow-800',
-    Disabled: 'bg-red-100 text-red-800',
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${classes[status] || 'bg-gray-100 text-gray-800'}`}>
@@ -26,42 +29,54 @@ function formatDate(d) {
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const lastAppliedSearchRef = useRef(search.trim());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
-
   useEffect(() => {
-    getAllUsers()
-      .then(setUsers)
-      .catch((err) => setError(err.response?.data?.error || err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    const t = setTimeout(() => {
+      const trimmed = search.trim();
+      setDebouncedSearch(trimmed);
+      if (lastAppliedSearchRef.current !== trimmed) {
+        lastAppliedSearchRef.current = trimmed;
+        setPage(1);
+      }
+    }, 280);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  useEffect(() => {
-    if (!search.trim()) {
-      setFiltered(users);
-      return;
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getAllUsers({ page, limit: PAGE_SIZE, search: debouncedSearch });
+      setUsers(data.users);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
     }
-    const q = search.trim().toLowerCase();
-    setFiltered(
-      users.filter(
-        (u) =>
-          (u.first_name && u.first_name.toLowerCase().includes(q)) ||
-          (u.last_name && u.last_name.toLowerCase().includes(q)) ||
-          (u.email && u.email.toLowerCase().includes(q))
-      )
-    );
-  }, [users, search]);
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1;
+    if (page > totalPages) setPage(totalPages);
+  }, [total, page]);
 
   const handleStatusChange = async (customer_id, newStatus) => {
     setUpdatingId(customer_id);
     try {
       await updateUserStatus(customer_id, newStatus);
-      setUsers((prev) =>
-        prev.map((u) => (u.customer_id === customer_id ? { ...u, status: newStatus } : u))
-      );
+      await fetchUsers();
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     } finally {
@@ -69,7 +84,7 @@ export default function ManageUsers() {
     }
   };
 
-  if (loading) {
+  if (loading && users.length === 0 && !error) {
     return (
       <div className="p-6">
         <p className="text-gray-500">Loading users...</p>
@@ -93,7 +108,7 @@ export default function ManageUsers() {
         />
       </div>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto ${loading ? 'opacity-60' : ''}`}>
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -105,14 +120,14 @@ export default function ManageUsers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                     No users found
                   </td>
                 </tr>
               ) : (
-                filtered.map((u) => (
+                users.map((u) => (
                   <tr key={u.customer_id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       {[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'}
@@ -126,7 +141,7 @@ export default function ManageUsers() {
                       <select
                         value={u.status || 'Active'}
                         onChange={(e) => handleStatusChange(u.customer_id, e.target.value)}
-                        disabled={updatingId === u.customer_id}
+                        disabled={updatingId === u.customer_id || loading}
                         className="text-sm border border-gray-300 rounded px-2 py-1"
                       >
                         {STATUS_OPTIONS.map((s) => (
@@ -140,6 +155,14 @@ export default function ManageUsers() {
             </tbody>
           </table>
         </div>
+        <AdminTablePagination
+          page={page}
+          total={total}
+          limit={PAGE_SIZE}
+          loading={loading}
+          itemLabel="users"
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );
