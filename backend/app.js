@@ -40,7 +40,25 @@ function parseCorsOrigins(value) {
 }
 
 function normalizeOrigins(origins) {
-  return [...new Set(origins.map((origin) => String(origin).trim()).filter(Boolean))];
+  return [...new Set(origins.map((origin) => normalizeOrigin(origin)).filter(Boolean))];
+}
+
+function normalizeOrigin(origin) {
+  if (!origin) return '';
+  const raw = String(origin).trim();
+  if (!raw) return '';
+
+  const wildcardMatch = raw.match(/^(https?):\/\/\*\.(.+)$/i);
+  if (wildcardMatch) {
+    return `${wildcardMatch[1].toLowerCase()}://*.${wildcardMatch[2].toLowerCase()}`;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    return `${parsed.protocol}//${parsed.host}`.toLowerCase();
+  } catch (_err) {
+    return raw.replace(/\/+$/, '').toLowerCase();
+  }
 }
 
 const corsOrigins = normalizeOrigins([
@@ -53,12 +71,34 @@ const allowVercelPreviews =
 
 function isAllowedCorsOrigin(origin) {
   if (!origin) return true;
-  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
-  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
-  if (corsOrigins.includes(origin)) return true;
-  if (allowVercelPreviews && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(normalizedOrigin)) return true;
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(normalizedOrigin)) return true;
+  if (corsOrigins.includes(normalizedOrigin)) return true;
+  if (allowVercelPreviews && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin)) {
     return true;
   }
+
+  // Allow wildcard origin entries, e.g. https://*.storelaunch.site
+  for (const configuredOrigin of corsOrigins) {
+    const wildcardMatch = configuredOrigin.match(/^(https?):\/\/\*\.(.+)$/i);
+    if (!wildcardMatch) continue;
+
+    const protocol = wildcardMatch[1].toLowerCase();
+    const domain = wildcardMatch[2].toLowerCase();
+    const requestMatch = normalizedOrigin.match(/^(https?):\/\/(.+)$/i);
+    if (!requestMatch) continue;
+
+    const requestProtocol = requestMatch[1].toLowerCase();
+    const requestHost = requestMatch[2].toLowerCase();
+    if (requestProtocol !== protocol) continue;
+
+    if (requestHost === domain || requestHost.endsWith(`.${domain}`)) {
+      return true;
+    }
+  }
+
   return false;
 }
 
