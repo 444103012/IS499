@@ -1,6 +1,12 @@
+
+
+
+
+
 import React, { useState } from 'react';
 import { useOnboarding, THEMES, THEME_TIERS } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
+import { getNormalizedStoreBranding } from '../../utils/storeBranding';
 
 function themeTierToMinPlan(tier) {
   return THEME_TIERS[tier];
@@ -22,9 +28,14 @@ export default function ChooseTheme({ isRTL, t, onNext, onBack }) {
     setLoading(true);
     setError('');
     try {
+      const normalizedBranding = getNormalizedStoreBranding(selectedTheme, {});
       await axiosInstance.post('/api/onboarding/select-theme', {
         store_id: storeId,
         theme: selectedTheme,
+        branding: {
+          productLayout: normalizedBranding.productLayout,
+          layerColors: normalizedBranding.layerColors,
+        },
       });
       onNext();
     } catch (err) {
@@ -64,6 +75,7 @@ export default function ChooseTheme({ isRTL, t, onNext, onBack }) {
                 </div>
               )}
               <div className={`font-bold text-storelaunch-dark ${isRTL ? 'text-right' : 'text-left'}`}>{name}</div>
+              {}
               <div className={`flex gap-1.5 mt-2 flex-wrap ${isRTL ? 'justify-end' : ''}`}>
                 {(colors.slice(0, 5)).map((c, i) => (
                   <span
@@ -73,6 +85,7 @@ export default function ChooseTheme({ isRTL, t, onNext, onBack }) {
                   />
                 ))}
               </div>
+              {}
               <div
                 className="mt-3 h-14 rounded-lg border border-gray-200 overflow-hidden"
                 style={{

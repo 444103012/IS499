@@ -1,8 +1,12 @@
 const POLICY_MAX_LEN = 100000;
-const PLAN_NAME_MAX_LEN = 100;
 const THEME_MAX_LEN = 100;
-
 const PLAN_STATUSES = ['Enabled', 'Disabled'];
+const {
+  PLAN_NAME_MAX_LEN,
+  PLAN_SLUG_MAX_LEN,
+  ensurePlatformPlansTableAndSeed,
+  getPlatformPlans,
+} = require('../services/platformPlansService');
 
 function isPlainObject(v) {
   return !!v && typeof v === 'object' && !Array.isArray(v);
@@ -18,17 +22,7 @@ async function ensurePlatformTables(pool) {
     );
   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS platform_plans (
-      plan_id SERIAL PRIMARY KEY,
-      name VARCHAR(${PLAN_NAME_MAX_LEN}) NOT NULL,
-      price NUMERIC(10, 2) NOT NULL DEFAULT 0,
-      features JSONB NOT NULL DEFAULT '[]'::JSONB,
-      status VARCHAR(20) NOT NULL DEFAULT 'Enabled',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
+  await ensurePlatformPlansTableAndSeed(pool);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS platform_config (
@@ -52,6 +46,8 @@ async function ensurePlatformTables(pool) {
      ON CONFLICT (id) DO NOTHING`
   );
 }
+
+
 
 async function getPolicies(req, res) {
   const pool = req.app.locals.pool;
@@ -112,17 +108,14 @@ async function updatePolicies(req, res) {
   }
 }
 
+
+
 async function getPlans(req, res) {
   const pool = req.app.locals.pool;
   if (!pool) return res.status(500).json({ error: 'Database not configured' });
   try {
-    await ensurePlatformTables(pool);
-    const r = await pool.query(
-      `SELECT plan_id, name, price, features, status
-       FROM platform_plans
-       ORDER BY plan_id DESC`
-    );
-    return res.json({ plans: r.rows });
+    const plans = await getPlatformPlans(pool, { enabledOnly: false });
+    return res.json({ plans });
   } catch (err) {
     console.error('Admin get platform plans error:', err);
     return res.status(500).json({ error: 'Failed to fetch plans' });
@@ -137,6 +130,8 @@ function validatePlanPayload(body, { requireNameAndPrice = false } = {}) {
   const hasPrice = Object.prototype.hasOwnProperty.call(body, 'price');
   const hasFeatures = Object.prototype.hasOwnProperty.call(body, 'features');
   const hasStatus = Object.prototype.hasOwnProperty.call(body, 'status');
+  const hasSlug = Object.prototype.hasOwnProperty.call(body, 'slug');
+  const hasRank = Object.prototype.hasOwnProperty.call(body, 'rank');
 
   if (requireNameAndPrice && (!hasName || !hasPrice)) {
     return { ok: false, error: 'name and price are required' };
@@ -166,7 +161,20 @@ function validatePlanPayload(body, { requireNameAndPrice = false } = {}) {
     out.status = body.status.trim();
   }
 
-  if (!hasName && !hasPrice && !hasFeatures && !hasStatus) {
+  if (hasSlug) {
+    if (typeof body.slug !== 'string' || !body.slug.trim()) return { ok: false, error: 'slug is required' };
+    const slug = body.slug.trim().toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(slug)) return { ok: false, error: 'slug can only contain lowercase letters, numbers, and hyphens' };
+    if (slug.length > PLAN_SLUG_MAX_LEN) return { ok: false, error: 'slug too long' };
+    out.slug = slug;
+  }
+  if (hasRank) {
+    const rank = Number(body.rank);
+    if (!Number.isInteger(rank) || rank < 0 || rank > 1000) return { ok: false, error: 'rank must be an integer between 0 and 1000' };
+    out.rank = rank;
+  }
+
+  if (!hasName && !hasPrice && !hasFeatures && !hasStatus && !hasSlug && !hasRank) {
     return { ok: false, error: 'No fields to update' };
   }
 
@@ -179,15 +187,15 @@ async function createPlan(req, res) {
 
   const validation = validatePlanPayload(req.body, { requireNameAndPrice: true });
   if (!validation.ok) return res.status(400).json({ error: validation.error, valid: validation.valid });
-  const { name, price, features, status } = validation.data;
+  const { name, price, features, status, slug, rank } = validation.data;
 
   try {
     await ensurePlatformTables(pool);
     const r = await pool.query(
-      `INSERT INTO platform_plans (name, price, features, status)
-       VALUES ($1, $2, $3, $4)
-       RETURNING plan_id, name, price, features, status`,
-      [name, price, JSON.stringify(features || []), status || 'Enabled']
+      `INSERT INTO platform_plans (slug, rank, name, price, features, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING plan_id, slug, rank, name, price, features, status`,
+      [slug || String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'), Number.isInteger(rank) ? rank : 99, name, price, JSON.stringify(features || []), status || 'Enabled']
     );
     return res.status(201).json({ message: 'Plan created', plan: r.rows[0] });
   } catch (err) {
@@ -205,6 +213,9 @@ async function updatePlan(req, res) {
   const validation = validatePlanPayload(req.body, { requireNameAndPrice: false });
   if (!validation.ok) return res.status(400).json({ error: validation.error, valid: validation.valid });
   const payload = validation.data;
+  if (Object.prototype.hasOwnProperty.call(payload, 'slug')) {
+    return res.status(400).json({ error: 'slug cannot be changed' });
+  }
 
   try {
     await ensurePlatformTables(pool);
@@ -214,14 +225,16 @@ async function updatePlan(req, res) {
            price = COALESCE($2, price),
            features = COALESCE($3::jsonb, features),
            status = COALESCE($4, status),
+           rank = COALESCE($5, rank),
            updated_at = NOW()
-       WHERE plan_id = $5
-       RETURNING plan_id, name, price, features, status`,
+       WHERE plan_id = $6
+       RETURNING plan_id, slug, rank, name, price, features, status`,
       [
         Object.prototype.hasOwnProperty.call(payload, 'name') ? payload.name : null,
         Object.prototype.hasOwnProperty.call(payload, 'price') ? payload.price : null,
         Object.prototype.hasOwnProperty.call(payload, 'features') ? JSON.stringify(payload.features) : null,
         Object.prototype.hasOwnProperty.call(payload, 'status') ? payload.status : null,
+        Object.prototype.hasOwnProperty.call(payload, 'rank') ? payload.rank : null,
         planId,
       ]
     );
@@ -250,7 +263,7 @@ async function updatePlanStatus(req, res) {
       `UPDATE platform_plans
        SET status = $1, updated_at = NOW()
        WHERE plan_id = $2
-       RETURNING plan_id, name, price, features, status`,
+       RETURNING plan_id, slug, rank, name, price, features, status`,
       [status, planId]
     );
     if (r.rows.length === 0) return res.status(404).json({ error: 'Plan not found' });
@@ -260,6 +273,8 @@ async function updatePlanStatus(req, res) {
     return res.status(500).json({ error: 'Failed to update plan status' });
   }
 }
+
+
 
 async function getPlatformConfig(req, res) {
   const pool = req.app.locals.pool;

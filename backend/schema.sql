@@ -1,3 +1,4 @@
+
 CREATE TABLE customers (
     customer_id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -7,8 +8,10 @@ CREATE TABLE customers (
     password_hash TEXT NOT NULL,
     status VARCHAR(50) DEFAULT 'Active',
     preferred_lang VARCHAR(10) DEFAULT 'en',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    saved_address JSONB
 );
+
 
 CREATE TABLE store_owners (
     store_owner_id SERIAL PRIMARY KEY,
@@ -22,6 +25,7 @@ CREATE TABLE store_owners (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+
 CREATE TABLE admins (
     admin_id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -32,6 +36,8 @@ CREATE TABLE admins (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+
+
 CREATE TABLE stores (
     store_id SERIAL PRIMARY KEY,
     store_owner_id INTEGER REFERENCES store_owners(store_owner_id) ON DELETE CASCADE,
@@ -41,9 +47,12 @@ CREATE TABLE stores (
     store_type VARCHAR(100),        
     description TEXT,     
     theme VARCHAR(50) DEFAULT 'Default',           
-    status VARCHAR(50) DEFAULT 'Pending', 
+    status VARCHAR(50) DEFAULT 'Pending',
+    status_before_suspension VARCHAR(50),
+    payment_status VARCHAR(50) NOT NULL DEFAULT 'unpaid',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
 
 CREATE TABLE IF NOT EXISTS payment_providers (
     id SERIAL PRIMARY KEY,
@@ -52,12 +61,17 @@ CREATE TABLE IF NOT EXISTS payment_providers (
     credentials JSONB
 );
 
+
 CREATE TABLE IF NOT EXISTS shipping_providers (
     id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES stores(store_id) ON DELETE CASCADE,
     carrier_name VARCHAR(100),
     credentials JSONB
 );
+
+
+
+
 
 CREATE TABLE products (
     product_id SERIAL PRIMARY KEY,
@@ -71,6 +85,8 @@ CREATE TABLE products (
     images JSONB DEFAULT '[]'
 );
 
+
+
 CREATE TABLE product_options (
     option_id SERIAL PRIMARY KEY,
     product_id INTEGER REFERENCES products(product_id) ON DELETE CASCADE,
@@ -81,6 +97,7 @@ CREATE TABLE product_options (
     images JSONB DEFAULT '[]'
 );
 
+
 CREATE TABLE carts (
     cart_id SERIAL PRIMARY KEY,
     customer_id INTEGER REFERENCES customers(customer_id) ON DELETE CASCADE,
@@ -88,6 +105,7 @@ CREATE TABLE carts (
     total_price DECIMAL(10, 2) DEFAULT 0.00,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
 
 CREATE TABLE cart_items (
     cart_item_id SERIAL PRIMARY KEY,
@@ -98,14 +116,18 @@ CREATE TABLE cart_items (
     subtotal DECIMAL(10, 2) GENERATED ALWAYS AS (quantity * unit_price) STORED
 );
 
+
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
     customer_id INTEGER REFERENCES customers(customer_id),
     store_id INTEGER REFERENCES stores(store_id),
     order_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status VARCHAR(50) DEFAULT 'Pending',
-    total_amount DECIMAL(10, 2) NOT NULL
+    total_amount DECIMAL(10, 2) NOT NULL,
+    store_order_seq INTEGER,
+    customer_order_seq INTEGER
 );
+
 
 CREATE TABLE order_items (
     order_item_id SERIAL PRIMARY KEY,
@@ -114,6 +136,7 @@ CREATE TABLE order_items (
     quantity INTEGER NOT NULL,
     price DECIMAL(10, 2) NOT NULL
 );
+
 
 CREATE TABLE shipments (
     shipment_id SERIAL PRIMARY KEY,
@@ -128,6 +151,7 @@ CREATE TABLE shipments (
     delivered_at TIMESTAMP WITH TIME ZONE
 );
 
+
 CREATE TABLE payments (
     payment_id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(order_id),
@@ -138,6 +162,7 @@ CREATE TABLE payments (
     provider_ref VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
 
 CREATE TABLE reviews (
     review_id SERIAL PRIMARY KEY,
@@ -150,6 +175,17 @@ CREATE TABLE reviews (
     review_date TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS customer_order_requests (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(order_id),
+    customer_id INTEGER NOT NULL REFERENCES customers(customer_id),
+    action_type VARCHAR(20) NOT NULL,
+    payload JSONB,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 CREATE TABLE subscriptions (
     subscription_id SERIAL PRIMARY KEY,
     store_id INTEGER REFERENCES stores(store_id) ON DELETE CASCADE,
@@ -157,8 +193,21 @@ CREATE TABLE subscriptions (
     plan_type VARCHAR(50), 
     start_date DATE,
     end_date DATE,
-    status VARCHAR(50) DEFAULT 'Active'
+    status VARCHAR(50) DEFAULT 'Active',
+    paid_date TIMESTAMP WITH TIME ZONE
 );
+
+CREATE TABLE IF NOT EXISTS store_activation_attempts (
+    id SERIAL PRIMARY KEY,
+    store_id INTEGER NOT NULL REFERENCES stores(store_id) ON DELETE CASCADE,
+    attempted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    status VARCHAR(20) NOT NULL,
+    payment_method VARCHAR(100),
+    amount_sar DECIMAL(10, 2),
+    transaction_ref VARCHAR(255),
+    error_message TEXT
+);
+
 
 CREATE TABLE store_admins (
     id SERIAL PRIMARY KEY, 
@@ -169,6 +218,26 @@ CREATE TABLE store_admins (
     activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+
+
+
+
+
+
 ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]';
 
+
+
+
+
+
 ALTER TABLE product_options ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]';
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS saved_address JSONB;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_order_seq INTEGER;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_order_seq INTEGER;
+
+CREATE INDEX IF NOT EXISTS idx_stores_store_id_payment_status
+  ON stores (store_id, payment_status);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_store_id_paid_date
+  ON subscriptions (store_id, paid_date);

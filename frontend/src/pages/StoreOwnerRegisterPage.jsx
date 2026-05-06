@@ -1,7 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+const PHONE_REGEX = /^05\d{8}$/;
+
 
 const ERROR_MESSAGES_AR = {
   'Missing required fields': 'يرجى تعبئة جميع الحقول المطلوبة',
@@ -15,7 +21,7 @@ const getErrorMessageAr = (message) => ERROR_MESSAGES_AR[message] || message || 
 const StoreOwnerRegisterPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
- 
+  
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -54,22 +60,49 @@ const StoreOwnerRegisterPage = () => {
     }
 
     const { first_name, last_name, email, phone, password } = form;
-    if (!first_name?.trim() || !last_name?.trim() || !email?.trim() || !phone?.trim() || !password) {
+    const trimmedFirstName = first_name?.trim();
+    const trimmedLastName = last_name?.trim();
+    const trimmedEmail = email?.trim();
+    const trimmedPhone = phone?.trim();
+    if (!trimmedFirstName || !trimmedLastName || !trimmedEmail || !trimmedPhone || !password) {
       setError(isRTL ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      alert(isRTL ? 'يرجى إدخال بريد إلكتروني صالح' : 'Please enter a valid email address');
+      return;
+    }
+
+    if (!PASSWORD_REGEX.test(password)) {
+      alert(
+        isRTL
+          ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف واحد ورقم واحد على الأقل'
+          : 'Password must be at least 8 characters and include at least one letter and one number'
+      );
+      return;
+    }
+
+    if (!PHONE_REGEX.test(trimmedPhone)) {
+      alert(
+        isRTL
+          ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
+          : 'Phone number must start with 05 and be exactly 10 digits'
+      );
       return;
     }
 
     setLoading(true);
     try {
       const { data } = await axiosInstance.post('/api/store-owners/register', {
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        first_name: trimmedFirstName,
+        last_name: trimmedLastName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
         password,
       });
 
-     
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
       navigate('/store-setup');
@@ -157,8 +190,12 @@ const StoreOwnerRegisterPage = () => {
               type="tel"
               value={form.phone}
               onChange={handleChange}
+              onInvalid={(e) => e.target.setCustomValidity('Phone number must contain exactly 10 digits')}
+              onInput={(e) => e.target.setCustomValidity('')}
               placeholder={t('auth.phone')}
               required
+              pattern="05[0-9]{8}"
+              title="Phone number must contain exactly 10 digits"
               className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
             />
           </div>
@@ -174,6 +211,7 @@ const StoreOwnerRegisterPage = () => {
               onChange={handleChange}
               placeholder={t('auth.password')}
               required
+              minLength={8}
               className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
             />
           </div>

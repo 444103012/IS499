@@ -54,7 +54,7 @@
         "description": "مثالي للبدء",
         "price": "0",
         "priceAr": "٠",
-        "currency": "ريال",
+        "currency": "﷼",
         "cta": "ابدأ مجاناً",
         "features": {
           "bankTransfer": "تحويل بنكي فقط",
@@ -70,7 +70,7 @@
         "priceAr": "٦٩",
         "priceYearly": "690",
         "priceYearlyAr": "٦٩٠",
-        "currency": "ريال",
+        "currency": "﷼",
         "cta": "ابدأ الآن",
         "popular": "الأكثر شعبية",
         "features": {
@@ -88,7 +88,7 @@
         "priceAr": "١٩٩",
         "priceYearly": "1990",
         "priceYearlyAr": "١٩٩٠",
-        "currency": "ريال",
+        "currency": "﷼",
         "cta": "اتصل بالمبيعات",
         "features": {
           "allPro": "جميع مميزات المحترف",
@@ -177,12 +177,14 @@
       "storeType": "نوع المتجر",
       "chooseType": "اختر النوع",
       "storeDescription": "وصف المتجر",
-      "descriptionPlaceholder": "صف متجرك"
+      "descriptionPlaceholder": "صف متجرك",
+      "urlPreviewIntro": "يُنشأ رابط المتجر من هذا الاسم (مع إزالة المسافات). بعد الإعداد، تغيير اسم المتجر لا يغيّر الرابط — عدّل المسار فقط من إعدادات النطاق.",
+      "urlPreviewHint": "يُنشأ رابط المتجر من هذا الاسم (مع إزالة المسافات). بعد هذه الخطوة، تغيير اسم المتجر لا يغيّر الرابط. لتغيير المسار لاحقًا استخدم إعدادات النطاق."
     },
     "choosePlan": {
       "title": "اختر خطة الاشتراك",
       "free": "مجاني",
-      "sarPerMonth": "ريال/شهر"
+      "sarPerMonth": "﷼/شهر"
     },
     "chooseTheme": {
       "title": "اختر القالب",
@@ -190,6 +192,7 @@
     },
     "payment": {
       "title": "إعداد مزود الدفع",
+      "atLeastOneRequired": "اختر طريقة دفع واحدة على الأقل للمتابعة.",
       "provider": "مزود الدفع",
       "chooseProvider": "اختر المزود",
       "apiKey": "مفتاح API",
@@ -199,6 +202,7 @@
     },
     "shipping": {
       "title": "إعداد مزود الشحن",
+      "atLeastOneRequired": "اختر طريقة شحن واحدة على الأقل للمتابعة.",
       "carrier": "شركة الشحن",
       "chooseCarrier": "اختر الشركة",
       "apiKey": "مفتاح API",
@@ -273,6 +277,7 @@
       "loadingTable": "جاري تحميل البيانات…",
       "unnamedProduct": "منتج",
       "analyticsUnavailable": "التحليلات غير متوفرة حالياً."
+      ,"exportAdvancedOnly": "ميزة التصدير متاحة فقط في الخطة المتقدمة."
     },
     "productsPage": {
       "title": "المنتجات",
@@ -284,6 +289,15 @@
       "active": "نشط",
       "inactive": "غير نشط",
       "filters": "تصفية",
+      "clearFilters": "مسح الفلاتر",
+      "stockStatus": "حالة المخزون",
+      "inStock": "متوفر",
+      "lowStock": "مخزون منخفض",
+      "outOfStock": "نفد المخزون",
+      "minPrice": "الحد الأدنى للسعر",
+      "maxPrice": "الحد الأعلى للسعر",
+      "createdFrom": "تاريخ الإنشاء من",
+      "createdTo": "تاريخ الإنشاء إلى",
       "sortDefault": "ترتيب",
       "sortNameAsc": "الاسم (أ–ي)",
       "sortNameDesc": "الاسم (ي–أ)",
@@ -398,15 +412,72 @@
         "paginationShowing": "عرض {{from}}–{{to}} من {{total}}",
         "previous": "السابق",
         "next": "التالي"
+        ,
+        "defaultOptionName": "خيار",
+        "create": {
+          "button": "إنشاء طلب",
+          "title": "إنشاء طلب",
+          "close": "إغلاق نافذة إنشاء الطلب",
+          "submit": "إنشاء",
+          "cancel": "إلغاء",
+          "customerName": "اسم العميل",
+          "customerPhone": "رقم جوال العميل",
+          "mapUrl": "رابط خرائط Google (اختياري)",
+          "address": "العنوان (اختياري)",
+          "notes": "ملاحظات (اختياري)",
+          "paymentStatus": "حالة الدفع",
+          "fulfillmentStatus": "حالة التنفيذ",
+          "items": "عناصر الطلب",
+          "addItem": "إضافة عنصر",
+          "removeItem": "حذف",
+          "selectProduct": "اختر خيار المنتج",
+          "requiredCustomer": "اسم العميل ورقم الجوال مطلوبان.",
+          "requiredItems": "أضف عنصراً صالحاً واحداً على الأقل.",
+          "invalidMapUrl": "يجب أن يكون رابط خرائط Google رابطاً صحيحاً.",
+          "loadProductsError": "فشل تحميل خيارات المنتجات.",
+          "submitError": "فشل إنشاء الطلب.",
+          "success": "تم إنشاء الطلب بنجاح.",
+          "outOfStock": "المخزون غير كافٍ للخيار رقم {{optionId}}. المتاح: {{available}}.",
+          "invalidOptions": "خيارات منتج غير صالحة لهذا المتجر: {{ids}}.",
+          "stockAvailable": "المخزون",
+          "shippingMethod": "طريقة الشحن",
+          "shippingLoading": "جاري تحميل خيارات الشحن…",
+          "selectShippingMethod": "اختر طريقة الشحن",
+          "noShippingEnabled": "لا توجد شركة شحن مفعّلة. فعّل شركة شحن واحدة على الأقل من إعدادات المتجر لإنشاء الطلبات.",
+          "openShippingSettings": "فتح إعدادات الشحن",
+          "shippingMethodRequired": "اختر طريقة الشحن.",
+          "shippingMethodInvalid": "طريقة الشحن المختارة غير متاحة. حدّث الصفحة وحاول مرة أخرى.",
+          "paymentLinkTitle": "رابط الدفع للعميل",
+          "paymentLinkHint": "شارك هذا الرابط مع العميل للدفع عبر الإنترنت (مويصر).",
+          "paymentLinkCopy": "نسخ الرابط",
+          "paymentLinkClose": "إغلاق",
+          "noPaymentGateway": "الدفع الإلكتروني غير مهيأ (مويصر). اضبط MOYASAR_SECRET_KEY على الخادم لإنشاء روابط الدفع.",
+          "paymentLinkError": "تعذر إنشاء رابط الدفع."
+        }
       },
       "customersManagement": {
         "title": "إدارة العملاء",
         "searchLabel": "بحث",
-        "searchPlaceholder": "البحث بالاسم أو البريد",
+        "searchPlaceholder": "البحث بالاسم أو البريد أو الجوال",
         "loading": "جاري تحميل العملاء...",
         "noCustomers": "لم يتم العثور على عملاء.",
-        "detailTitle": "تفاصيل العميل",
-        "selectCustomer": "اختر عميلاً لعرض التفاصيل"
+        "detailTitle": "الملف وسجل المشتريات",
+        "selectCustomer": "اختر عميلاً لعرض التفاصيل",
+        "columnEmail": "البريد",
+        "ordersCount": "الطلبات",
+        "totalSpend": "إجمالي الإنفاق",
+        "lastPurchase": "آخر عملية شراء",
+        "firstPurchase": "أول عملية شراء",
+        "viewProfile": "عرض",
+        "backToList": "العودة إلى العملاء",
+        "loadingDetail": "جاري تحميل بيانات العميل…",
+        "profileSection": "الملف الشخصي",
+        "purchaseHistory": "سجل المشتريات",
+        "purchaseHistoryHint": "جميع الطلبات لهذا العميل في متجرك، من الأحدث إلى الأقدم.",
+        "noOrdersHistory": "لا توجد طلبات بعد.",
+        "viewOrder": "عرض الطلب",
+        "invalidCustomerId": "معرّف عميل غير صالح.",
+        "loadDetailError": "تعذر تحميل بيانات هذا العميل."
       },
       "productForm": {
         "backToProducts": "← المنتجات",
@@ -440,7 +511,7 @@
         "additionalPriceLabel": "سعر إضافي",
         "variantImagesUpload": "إضافة صورة للخيار",
         "variantImagesUploading": "جاري الرفع…",
-        "variantAdd": "+ إضافة خيار",
+        "addVariant": "+ إضافة خيار",
         "saveNew": "حفظ المنتج",
         "saveEdit": "حفظ التغييرات",
         "cancel": "إلغاء",
@@ -452,7 +523,7 @@
       "storeManagement": {
         "title": "إدارة المتجر",
         "hub": {
-          "subtitle": "إدارة إعدادات المتجر والهوية والنطاقات والدفع والشحن والسياسات والعملاء من مكان واحد."
+          "subtitle": "إدارة إعدادات المتجر والهوية والنطاقات والدفع والشحن والعملاء من مكان واحد."
         },
         "tabs": {
           "storeInfo": "معلومات المتجر",
@@ -460,14 +531,41 @@
           "domain": "إعدادات النطاق",
           "payments": "مزودو الدفع",
           "shipping": "مزودو الشحن",
-          "policies": "سياسات المتجر",
           "customers": "إدارة العملاء",
-          "footer": "تذييل المتجر",
-          "deleteAccount": "حذف الحساب"
+          "footer": "تذييل المتجر"
         },
         "back": "رجوع",
+        "subscriptionPlans": {
+          "pro": "برو",
+          "advanced": "متقدمة"
+        },
+        "providers": {
+          "bankTransfer": "التحويل البنكي",
+          "mada": "مدى",
+          "stcPay": "STC Pay",
+          "applePay": "Apple Pay",
+          "stripe": "Stripe",
+          "noShippingNeeded": "لا حاجة للشحن",
+          "smsa": "SMSA",
+          "aramex": "أرامكس",
+          "spl": "سبل (البريد السعودي)"
+        },
+        "locked": {
+          "title": "ميزة مقفلة",
+          "upgradeToUnlock": "قم بالترقية لفتح هذه الميزة",
+          "availableInPlan": "هذه الميزة متاحة في خطة {{plan}}."
+        },
         "storeInfo": {
           "sectionTitle": "معلومات المتجر",
+          "changeLogo": "شعار المتجر",
+          "changeLogoButton": "تغيير الشعار",
+          "uploadingLogo": "جاري الرفع...",
+          "logoHint": "الأنواع المسموحة: JPG, PNG, GIF, WebP (حتى 5MB)",
+          "logoInvalidType": "نوع الملف غير صالح. يرجى رفع صورة.",
+          "logoInvalidSize": "حجم الصورة يجب أن يكون 5MB أو أقل.",
+          "logoSelectFirst": "يرجى اختيار صورة أولاً.",
+          "logoUploadSuccess": "تم تحديث الشعار بنجاح.",
+          "logoUploadError": "فشل تحديث الشعار.",
           "storeName": "اسم المتجر",
           "storeDescription": "وصف المتجر",
           "businessCategory": "نوع النشاط",
@@ -477,7 +575,10 @@
           "status": "حالة المتجر",
           "statusActive": "نشط",
           "statusSuspended": "معلق",
-          "createdAt": "تاريخ إنشاء المتجر"
+          "createdAt": "تاريخ إنشاء المتجر",
+          "storeUrl": "رابط المتجر (المسار)",
+          "storeUrlHint": "تغيير اسم المتجر أعلاه لا يغيّر هذا العنوان. لتغيير المسار افتح إعدادات النطاق.",
+          "storeUrlEditLink": "فتح إعدادات النطاق"
         },
         "branding": {
           "sectionTitle": "الهوية والمظهر",
@@ -498,11 +599,14 @@
         },
         "domain": {
           "sectionTitle": "إعدادات النطاق",
-          "defaultDomain": "نطاق StoreLaunch الافتراضي",
-          "customDomain": "نطاق مخصص",
-          "customDomainPlaceholder": "مثال: shop.yourdomain.com",
-          "dnsInstructions": "تعليمات DNS",
-          "dnsHelp": "قم بتوجيه CNAME للنطاق المخصص إلى نطاق StoreLaunch الموضح أعلاه.",
+          "baseUrl": "الرابط الأساسي",
+          "storeSlug": "معرف المتجر",
+          "slugPlaceholder": "your-store",
+          "slugRulesTitle": "قواعد المعرّف",
+          "slugRulesHelp": "استخدم أحرفاً إنجليزية صغيرة وأرقاماً وشرطات فقط (3-40 حرفاً).",
+          "slugLengthError": "يجب أن يكون المعرّف بين 3 و40 حرفاً.",
+          "slugPatternError": "يمكن أن يحتوي المعرّف على أحرف صغيرة وأرقام وشرطات فقط.",
+          "previewLabel": "المعاينة",
           "status": "حالة التحقق من النطاق",
           "statusPending": "بانتظار التحقق",
           "statusVerified": "تم التحقق",
@@ -547,8 +651,8 @@
           "privacyPolicy": "سياسة الخصوصية",
           "terms": "الشروط والأحكام"
         },
-        "deleteAccount": {
-          "sectionTitle": "منطقة الخطر",
+        "danger": {
+          "sectionTitle": "تعطيل المتجر",
           "suspend": "إيقاف المتجر مؤقتاً",
           "deactivate": "إلغاء تفعيل المتجر",
           "reactivate": "إعادة تفعيل المتجر",
@@ -598,7 +702,8 @@
           "business": "إعدادات النشاط",
           "notifications": "الإشعارات",
           "language": "اللغة",
-          "security": "الأمان"
+          "security": "الأمان",
+          "store": "حالة المتجر"
         },
         "profile": {
           "sectionTitle": "إعدادات الملف الشخصي",
@@ -620,8 +725,7 @@
           "crNumber": "رقم السجل التجاري (اختياري)",
           "taxNumber": "الرقم الضريبي (اختياري)",
           "invoiceFooter": "نص تذييل الفاتورة",
-          "defaultCurrency": "العملة الافتراضية",
-          "timezone": "المنطقة الزمنية"
+          "defaultCurrency": "العملة الافتراضية"
         },
         "notifications": {
           "sectionTitle": "الإشعارات",
@@ -651,6 +755,18 @@
         },
         "actions": {
           "saveChanges": "حفظ التغييرات"
+        },
+        "password": {
+          "sectionTitle": "تغيير كلمة المرور",
+          "currentPassword": "كلمة المرور الحالية",
+          "newPassword": "كلمة المرور الجديدة",
+          "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+          "changeButton": "تحديث كلمة المرور",
+          "minLengthError": "يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.",
+          "confirmMismatch": "كلمة المرور الجديدة وتأكيدها غير متطابقين.",
+          "invalidCurrent": "كلمة المرور الحالية غير صحيحة.",
+          "changeSuccess": "تم تحديث كلمة المرور بنجاح.",
+          "changeError": "فشل تحديث كلمة المرور."
         },
         "toast": {
           "saveSuccess": "تم حفظ الإعدادات.",
@@ -684,7 +800,7 @@
     "error": "فشل تحميل المنتجات",
     "retry": "إعادة المحاولة",
     "showingResults": "عرض {{count}} منتج",
-    "sar": "ريال",
+    "sar": "﷼",
     "viewDetails": "عرض التفاصيل",
     "backToCatalog": "العودة للكتالوج",
     "productDetails": "تفاصيل المنتج",
@@ -697,6 +813,18 @@
     "options": "الخيارات",
     "productNotFound": "المنتج غير موجود",
     "productNotAvailable": "هذا المنتج غير متاح",
-    "store": "المتجر"
+    "store": "المتجر",
+    "footer": {
+      "about": "نبذة",
+      "contact": "التواصل",
+      "email": "البريد",
+      "phone": "الجوال",
+      "address": "العنوان",
+      "follow": "تابعنا",
+      "store": "المتجر"
+    }
+  },
+  "admin": {
+    "openStoreDetails": "فتح تفاصيل المتجر"
   }
 }

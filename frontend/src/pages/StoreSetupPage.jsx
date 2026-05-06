@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StoreSetupProvider, useStoreSetup } from '../context/StoreSetupContext';
 import StoreSetupProgressBar from '../components/StoreSetupProgressBar';
@@ -22,13 +23,22 @@ const stepComponents = [
 ];
 
 function StoreSetupContent() {
-  const { step } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { storeId, setStoreId } = useStoreSetup();
+  const { setStoreId, hydrateFromResume } = useStoreSetup();
   const [loading, setLoading] = useState(true);
-  const [stepNum, setStepNum] = useState(1);
+  const latestPathRef = useRef(location.pathname);
+
+  latestPathRef.current = location.pathname;
+
+  
+  const pathStep = location.pathname.replace(/^\/store-setup\/?/, '') || '';
+  const stepFromUrl = parseInt(pathStep, 10);
+  const stepNum = (!Number.isNaN(stepFromUrl) && stepFromUrl >= 1 && stepFromUrl <= TOTAL_STEPS)
+    ? stepFromUrl
+    : 1;
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
@@ -40,30 +50,38 @@ function StoreSetupContent() {
     (async () => {
       try {
         const { data } = await axiosInstance.get('/api/store-setup/status');
+        if (cancelled) return;
         const backendStep = data.setup_step != null ? Number(data.setup_step) : 0;
         if (data.store_id) setStoreId(data.store_id);
-        const resolved = backendStep >= 1 && backendStep <= TOTAL_STEPS ? backendStep : 1;
-        if (!cancelled) setStepNum(resolved);
+        if (data.resume) hydrateFromResume(data.resume);
+        if (backendStep === 6) {
+          navigate('/dashboard', { replace: true });
+          setLoading(false);
+          return;
+        }
+        const resolved = Math.min(TOTAL_STEPS, backendStep + 1);
+        const pathNow = (latestPathRef.current || '').replace(/^\/store-setup\/?/, '') || '';
+        const currentStep = parseInt(pathNow, 10);
+        const onBareRoute = pathNow === '' || Number.isNaN(currentStep) || currentStep < 1 || currentStep > TOTAL_STEPS;
+        if (onBareRoute) {
+          navigate(`/store-setup/${resolved}`, { replace: true });
+        }
       } catch {
-        if (!cancelled) setStepNum(1);
+        if (!cancelled) {
+          const pathNow = (latestPathRef.current || '').replace(/^\/store-setup\/?/, '') || '';
+          const onBareRoute = pathNow === '' || !/^[1-6]$/.test(pathNow.trim());
+          if (onBareRoute) navigate('/store-setup/1', { replace: true });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [setStoreId]);
-
-  useEffect(() => {
-    if (loading) return;
-    if (step !== String(stepNum)) {
-      navigate(`/store-setup/${stepNum}`, { replace: true });
-    }
-  }, [loading, step, stepNum, navigate]);
+  }, [setStoreId, hydrateFromResume, navigate]);
 
   const goTo = (next) => {
     const n = Math.min(TOTAL_STEPS, Math.max(1, next));
     navigate(`/store-setup/${n}`);
-    setStepNum(n);
   };
 
   const toggleLanguage = () => {

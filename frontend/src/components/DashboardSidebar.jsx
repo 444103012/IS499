@@ -1,8 +1,11 @@
 
 
+
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+
 
 const SIDEBAR_BG_GRADIENT = 'linear-gradient(180deg, #061f2e 0%, #0A3C5A 22%, #0d4a6e 45%, #093652 68%, #071f2d 100%)';
 const SIDEBAR_BORDER = 'rgba(10, 60, 90, 0.6)';
@@ -62,31 +65,113 @@ const MenuIcon = () => (
   </svg>
 );
 
-export default function DashboardSidebar({ collapsed, onToggle, isRTL }) {
+export default function DashboardSidebar({
+  collapsed,
+  onToggle,
+  isRTL,
+  mobileOpen = false,
+  onMobileClose = () => {},
+}) {
   const { t, i18n } = useTranslation();
   const rtl = isRTL ?? i18n.language === 'ar';
 
+  const desktopWidthClass = collapsed
+    ? (rtl ? 'w-[72px] border-l' : 'w-[72px] border-r')
+    : (rtl ? 'w-64 border-l' : 'w-64 border-r');
+
   return (
-    <aside
-      style={{
-        background: SIDEBAR_BG_GRADIENT,
-        borderColor: SIDEBAR_BORDER,
-      }}
-      className={`min-h-screen flex flex-col shrink-0 transition-all duration-300 ease-in-out ${
-        collapsed ? (rtl ? 'w-[72px] border-l' : 'w-[72px] border-r') : (rtl ? 'w-64 border-l' : 'w-64 border-r')
-      } shadow-xl ${rtl ? 'rounded-l-2xl' : 'rounded-r-2xl'}`}
-      dir={rtl ? 'rtl' : 'ltr'}
-    >
+    <>
+      <div
+        className={`lg:hidden fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 ${
+          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        aria-hidden={!mobileOpen}
+        onClick={onMobileClose}
+      />
+      <aside
+        style={{
+          background: SIDEBAR_BG_GRADIENT,
+          borderColor: SIDEBAR_BORDER,
+        }}
+        className={`min-h-screen flex flex-col shrink-0 transition-all duration-300 ease-in-out shadow-xl ${
+          rtl ? 'rounded-l-2xl' : 'rounded-r-2xl'
+        } ${desktopWidthClass} hidden lg:flex`}
+        dir={rtl ? 'rtl' : 'ltr'}
+      >
+        <div className="shrink-0 p-2 border-b" style={{ borderColor: SIDEBAR_BORDER }}>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={collapsed ? t('dashboard.menu.menuExpand') : t('dashboard.menu.menuCollapse')}
+            className="w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/90 hover:text-white transition-colors duration-200 hover:bg-white/10"
+          >
+            <MenuIcon />
+            {!collapsed && <span className="text-sm font-medium">{t('dashboard.menu.menu')}</span>}
+          </button>
+        </div>
+        <nav className="p-2 flex-1 overflow-auto">
+          <div className="space-y-0.5">
+            {menuItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                title={collapsed ? t(`dashboard.menu.${item.key}`) : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
+                    isActive
+                      ? 'bg-white/15 text-white font-semibold'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <span
+                        className={`absolute top-2 bottom-2 w-0.5 bg-white/70 rounded-full ${rtl ? 'right-0' : 'left-0'}`}
+                        aria-hidden
+                      />
+                    )}
+                    <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 relative z-10 bg-white/10 text-white">
+                      {icons[item.icon]}
+                    </span>
+                    {!collapsed && <span className="flex-1 relative z-10">{t(`dashboard.menu.${item.key}`)}</span>}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      </aside>
+
+      <aside
+        style={{
+          background: SIDEBAR_BG_GRADIENT,
+          borderColor: SIDEBAR_BORDER,
+        }}
+        className={`lg:hidden fixed top-0 bottom-0 z-50 w-72 border-r transition-transform duration-300 ease-in-out ${
+          rtl
+            ? `${mobileOpen ? 'translate-x-0' : 'translate-x-full'} right-0 border-l border-r-0 rounded-l-2xl`
+            : `${mobileOpen ? 'translate-x-0' : '-translate-x-full'} left-0 border-r rounded-r-2xl`
+        }`}
+        dir={rtl ? 'rtl' : 'ltr'}
+        aria-hidden={!mobileOpen}
+      >
       <div className="shrink-0 p-2 border-b" style={{ borderColor: SIDEBAR_BORDER }}>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={collapsed ? t('dashboard.menu.menuExpand') : t('dashboard.menu.menuCollapse')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/90 hover:text-white transition-colors duration-200 hover:bg-white/10"
-        >
-          <MenuIcon />
-          {!collapsed && <span className="text-sm font-medium">{t('dashboard.menu.menu')}</span>}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onMobileClose}
+            aria-label={t('dashboard.menu.menuCollapse')}
+            className="inline-flex items-center justify-center w-11 h-11 rounded-xl text-white/90 hover:text-white transition-colors duration-200 hover:bg-white/10"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={rtl ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'} />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-white/95">{t('dashboard.menu.menu')}</span>
+        </div>
       </div>
       <nav className="p-2 flex-1 overflow-auto">
         <div className="space-y-0.5">
@@ -95,13 +180,13 @@ export default function DashboardSidebar({ collapsed, onToggle, isRTL }) {
               key={item.to}
               to={item.to}
               end={item.end}
-              title={collapsed ? t(`dashboard.menu.${item.key}`) : undefined}
+              onClick={onMobileClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
                   isActive
                     ? 'bg-white/15 text-white font-semibold'
                     : 'text-white/80 hover:bg-white/10 hover:text-white'
-                } ${collapsed ? 'justify-center' : ''}`
+                }`
               }
             >
               {({ isActive }) => (
@@ -115,13 +200,14 @@ export default function DashboardSidebar({ collapsed, onToggle, isRTL }) {
                   <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 relative z-10 bg-white/10 text-white">
                     {icons[item.icon]}
                   </span>
-                  {!collapsed && <span className="flex-1 relative z-10">{t(`dashboard.menu.${item.key}`)}</span>}
+                  <span className="flex-1 relative z-10">{t(`dashboard.menu.${item.key}`)}</span>
                 </>
               )}
             </NavLink>
           ))}
         </div>
       </nav>
-    </aside>
+      </aside>
+    </>
   );
 }

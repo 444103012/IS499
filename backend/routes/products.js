@@ -15,6 +15,7 @@ const { uploadProductImage, uploadVariantImage } = require('../middleware/upload
 
 const router = express.Router();
 
+
 async function getProductStoreId(pool, product_id, store_owner_id) {
   const r = await pool.query(
     `SELECT p.store_id FROM products p
@@ -25,15 +26,18 @@ async function getProductStoreId(pool, product_id, store_owner_id) {
   return r.rows[0] ? r.rows[0].store_id : null;
 }
 
+
 router.post('/upload-image', uploadProductImage.single('image'), (req, res) => {
   if (!req.file || !req.file.location) return res.status(400).json({ error: 'No image file provided' });
   res.json({ path: req.file.location });
 });
 
+
 router.post('/upload-variant-image', uploadVariantImage.single('image'), (req, res) => {
   if (!req.file || !req.file.location) return res.status(400).json({ error: 'No image file provided' });
   res.json({ path: req.file.location });
 });
+
 
 router.post('/create', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -86,9 +90,11 @@ router.post('/create', async (req, res) => {
   }
 });
 
+
 router.get('/categories', async (req, res) => {
   res.json({ categories: [] });
 });
+
 
 router.get('/', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -166,6 +172,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 router.put('/:id', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
@@ -230,6 +237,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+
 router.delete('/:id', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
@@ -246,6 +254,7 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete product' });
   }
 });
+
 
 router.post('/:id/options', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -273,6 +282,7 @@ router.post('/:id/options', async (req, res) => {
     res.status(500).json({ error: 'Failed to add option' });
   }
 });
+
 
 router.put('/options/:option_id', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -312,6 +322,7 @@ router.put('/options/:option_id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update option' });
   }
 });
+
 
 router.delete('/options/:option_id', async (req, res) => {
   const pool = req.app.locals.pool;

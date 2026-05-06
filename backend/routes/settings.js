@@ -1,4 +1,6 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
+const { validatePasswordChangeInput } = require('../utils/passwordValidation');
 
 const router = express.Router();
 
@@ -12,6 +14,7 @@ async function ensureOwnerSettingsColumns(pool) {
     ADD COLUMN IF NOT EXISTS language_pref TEXT;
   `);
 }
+
 
 router.get('/profile', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -32,6 +35,7 @@ router.get('/profile', async (req, res) => {
     res.status(500).json({ error: 'Failed to load profile' });
   }
 });
+
 
 router.put('/profile', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -55,18 +59,30 @@ router.put('/profile', async (req, res) => {
   }
 });
 
+
 router.put('/password', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
   const { currentPassword, newPassword } = req.body || {};
-  if (!newPassword || newPassword.length < 8) {
-    return res.status(400).json({ error: 'PasswordTooShort' });
-  }
+  const validationError = validatePasswordChangeInput(currentPassword, newPassword);
+  if (validationError) return res.status(400).json({ error: validationError });
   try {
-   
+    const ownerResult = await pool.query(
+      'SELECT password_hash FROM store_owners WHERE store_owner_id = $1',
+      [store_owner_id]
+    );
+    if (!ownerResult.rows[0]) {
+      return res.status(404).json({ error: 'Owner not found' });
+    }
+    const isCurrentValid = await bcrypt.compare(currentPassword, ownerResult.rows[0].password_hash);
+    if (!isCurrentValid) {
+      return res.status(401).json({ error: 'InvalidCurrentPassword' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
     await pool.query(
-      'UPDATE store_owners SET password_hash = crypt($1, gen_salt(\'bf\')) WHERE store_owner_id = $2',
-      [newPassword, store_owner_id]
+      'UPDATE store_owners SET password_hash = $1 WHERE store_owner_id = $2',
+      [newHash, store_owner_id]
     );
     res.json({ success: true });
   } catch (err) {
@@ -74,6 +90,7 @@ router.put('/password', async (req, res) => {
     res.status(500).json({ error: 'Failed to update password' });
   }
 });
+
 
 router.put('/language', async (req, res) => {
   const pool = req.app.locals.pool;
@@ -95,6 +112,7 @@ router.put('/language', async (req, res) => {
   }
 });
 
+
 router.put('/notifications', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
@@ -115,8 +133,9 @@ router.put('/notifications', async (req, res) => {
   }
 });
 
+
 router.get('/security/sessions', async (req, res) => {
- 
+  
   const { store_owner_id } = req.user;
   res.json({
     sessions: [
@@ -130,10 +149,12 @@ router.get('/security/sessions', async (req, res) => {
   });
 });
 
+
 router.delete('/security/sessions', async (req, res) => {
- 
+  
   res.json({ success: true });
 });
+
 
 router.put('/security/2fa', async (req, res) => {
   const pool = req.app.locals.pool;

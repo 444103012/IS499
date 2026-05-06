@@ -1,3 +1,7 @@
+
+
+
+
 import React, { useState } from 'react';
 import { useOnboarding, PAYMENT_PROVIDERS } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
@@ -26,7 +30,7 @@ export default function PaymentSetup({ isRTL, t, onNext, onBack }) {
     try {
       const providerName = payment.provider;
       if (providerName) {
-        const nameMap = { mada: 'Mada', stc_pay: 'STC Pay', apple_pay: 'Apple Pay', stripe: 'Stripe' };
+        const nameMap = { mada: 'Mada', stc_pay: 'STC Pay', apple_pay: 'Apple Pay' };
         await axiosInstance.post('/api/onboarding/payment', {
           store_id: storeId,
           provider_name: nameMap[providerName] || providerName,

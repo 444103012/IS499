@@ -8,6 +8,7 @@ const imageFilter = (req, file, cb) => {
   else cb(new Error("Only images (JPEG, PNG, GIF, WebP) are allowed"), false);
 };
 
+
 const storeLogoS3 = multerS3({
   s3,
   bucket,
@@ -19,6 +20,7 @@ const storeLogoS3 = multerS3({
   },
 });
 
+
 const productImageS3 = multerS3({
   s3,
   bucket,
@@ -29,6 +31,7 @@ const productImageS3 = multerS3({
     cb(null, `products/${Date.now()}-${safe}`);
   },
 });
+
 
 const variantImageS3 = multerS3({
   s3,

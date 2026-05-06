@@ -37,7 +37,7 @@ async function ensureAdminsTableAndSeed(pool) {
     await pool.query(ADMIN_SEED_SQL.createTable);
     await pool.query(ADMIN_SEED_SQL.createIndex);
   } catch (e) {
-   
+    
   }
   try {
     await pool.query(ADMIN_SEED_SQL.insertFull, [HASH]);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
+import CurrencyAmount from '../../components/common/CurrencyAmount';
 
 const CustomersManagementPage = () => {
   const { t, i18n } = useTranslation();
@@ -9,8 +10,6 @@ const CustomersManagementPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedLoading, setSelectedLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
 
@@ -36,24 +35,6 @@ const CustomersManagementPage = () => {
       cancelled = true;
     };
   }, [t]);
-
-  const showToast = (type, message) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
-
-  const loadCustomer = async (id) => {
-    setSelectedCustomer(null);
-    setSelectedLoading(true);
-    try {
-      const { data } = await axiosInstance.get(`/api/customers/${id}`);
-      setSelectedCustomer(data);
-    } catch {
-      showToast('error', t('dashboard.settings.toast.saveError'));
-    } finally {
-      setSelectedLoading(false);
-    }
-  };
 
   const filtered = customers.filter((c) => {
     if (!search.trim()) return true;
@@ -81,7 +62,7 @@ const CustomersManagementPage = () => {
       <div className={`flex items-center gap-3 mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <button
           type="button"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/dashboard/store')}
           className="inline-flex items-center gap-1 text-sm text-storelaunch-dark hover:underline"
         >
           {isRTL ? (
@@ -100,8 +81,7 @@ const CustomersManagementPage = () => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-md p-6">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6">
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -130,22 +110,25 @@ const CustomersManagementPage = () => {
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {t('dashboard.ordersPage.tableCustomer')}
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">
-                      Email
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('dashboard.customersManagement.columnEmail')}
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {t('dashboard.settings.profile.phone')}
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">
-                      Orders
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('dashboard.customersManagement.ordersCount')}
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">
-                      Total
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-left' : 'text-right'}`}>
+                      {t('dashboard.customersManagement.totalSpend')}
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-left' : 'text-right'}`}>
+                      {t('dashboard.customersManagement.lastPurchase')}
+                    </th>
+                    <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-left' : 'text-right'}`}>
                       {t('dashboard.ordersPage.tableActions')}
                     </th>
                   </tr>
@@ -156,21 +139,29 @@ const CustomersManagementPage = () => {
                       <td className="px-3 py-2">
                         {[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}
                       </td>
-                      <td className="px-3 py-2">{c.email}</td>
-                      <td className="px-3 py-2">{c.phone}</td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-3 py-2 break-all max-w-[180px]">{c.email || '—'}</td>
+                      <td className="px-3 py-2">{c.phone || '—'}</td>
+                      <td className={`px-3 py-2 tabular-nums ${isRTL ? 'text-right' : 'text-left'}`}>
                         {c.orders_count || 0}
                       </td>
-                      <td className="px-3 py-2 text-right">
-                        {Number(c.total_spend || 0).toFixed(2)}
+                      <td className={`px-3 py-2 tabular-nums ${isRTL ? 'text-left' : 'text-right'}`}>
+                        <CurrencyAmount value={c.total_spend || 0} isRTL={isRTL} size="sm" />
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className={`px-3 py-2 text-gray-700 whitespace-nowrap ${isRTL ? 'text-left' : 'text-right'}`}>
+                        {c.last_order_at
+                          ? new Date(c.last_order_at).toLocaleString(undefined, {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })
+                          : '—'}
+                      </td>
+                      <td className={`px-3 py-2 ${isRTL ? 'text-left' : 'text-right'}`}>
                         <button
                           type="button"
-                          onClick={() => loadCustomer(c.customer_id)}
-                          className="text-[#0E8F96] hover:underline text-sm font-medium"
+                          onClick={() => navigate(`/dashboard/store/customers/${c.customer_id}`)}
+                          className="text-[#0E8F96] hover:underline font-medium"
                         >
-                          {t('dashboard.ordersPage.view')}
+                          {t('dashboard.customersManagement.viewProfile')}
                         </button>
                       </td>
                     </tr>
@@ -179,76 +170,6 @@ const CustomersManagementPage = () => {
               </table>
             </div>
           )}
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-xl shadow-md p-6">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-            {t('dashboard.customersManagement.detailTitle')}
-          </h3>
-          {selectedLoading && (
-            <p className="text-sm text-gray-500">
-              {t('dashboard.customersManagement.loading')}
-            </p>
-          )}
-          {!selectedLoading && !selectedCustomer && (
-            <p className="text-sm text-gray-500">
-              {t('dashboard.customersManagement.selectCustomer')}
-            </p>
-          )}
-          {!selectedLoading && selectedCustomer && (
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="font-medium">
-                  {[selectedCustomer.customer.first_name, selectedCustomer.customer.last_name]
-                    .filter(Boolean)
-                    .join(' ')}
-                </p>
-                <p className="text-gray-600">{selectedCustomer.customer.email}</p>
-                <p className="text-gray-600">{selectedCustomer.customer.phone}</p>
-              </div>
-              <div>
-                <p>
-                  {t('dashboard.storeManagement.storeInfo.createdAt')}:{" "}
-                  {selectedCustomer.summary.first_order_at
-                    ? new Date(
-                        selectedCustomer.summary.first_order_at,
-                      ).toLocaleDateString()
-                    : '—'}
-                </p>
-                <p>
-                  {t('dashboard.ordersPage.tableTotal')}:{" "}
-                  {Number(selectedCustomer.summary.total_spend || 0).toFixed(2)}
-                </p>
-                <p>
-                  {t('dashboard.ordersPage.title')}:{" "}
-                  {selectedCustomer.summary.orders_count || 0}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-1">
-                  {t('dashboard.ordersPage.title')}
-                </h4>
-                <div className="max-h-64 overflow-y-auto border border-gray-100 rounded-lg">
-                  {selectedCustomer.orders.map((o) => (
-                    <div
-                      key={o.order_id}
-                      className="px-3 py-2 border-b border-gray-100 text-xs"
-                    >
-                      <p className="font-medium">
-                        #{o.order_id} — {Number(o.total_amount || 0).toFixed(2)}
-                      </p>
-                      <p className="text-gray-600">
-                        {o.order_date
-                          ? new Date(o.order_date).toLocaleDateString()
-                          : ''}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

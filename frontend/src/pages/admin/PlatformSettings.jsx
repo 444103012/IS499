@@ -1,11 +1,12 @@
 
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import CurrencyAmount from '../../components/common/CurrencyAmount';
 import {
   getPolicies,
   updatePolicies,
   getPlans,
-  createPlan,
   updatePlan,
   updatePlanStatus,
   getPlatformConfig,
@@ -85,12 +86,6 @@ function StatusBadge({ status }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{s}</span>;
 }
 
-function formatPrice(v) {
-  const n = Number(v);
-  if (Number.isNaN(n)) return '—';
-  return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-}
-
 function safeFeaturesToText(features) {
   if (Array.isArray(features)) return features.map((f) => String(f)).join('\n');
   return '';
@@ -104,29 +99,33 @@ function parseFeaturesText(text) {
 }
 
 export default function PlatformSettings() {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const [activeTab, setActiveTab] = useState('policies');
 
- 
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
- 
+  
   const [termsText, setTermsText] = useState('');
   const [privacyText, setPrivacyText] = useState('');
   const [policiesUpdatedAt, setPoliciesUpdatedAt] = useState(null);
 
- 
+  
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
+  const [planSlug, setPlanSlug] = useState('');
+  const [planRank, setPlanRank] = useState(0);
   const [planName, setPlanName] = useState('');
   const [planPrice, setPlanPrice] = useState('0');
   const [planFeaturesText, setPlanFeaturesText] = useState('');
 
- 
+  
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maxStoresPerOwner, setMaxStoresPerOwner] = useState(1);
   const [defaultTheme, setDefaultTheme] = useState('Default');
@@ -134,7 +133,7 @@ export default function PlatformSettings() {
 
   const themeOptions = useMemo(() => ['Default', 'Modern', 'Minimal', 'Classic'], []);
 
- 
+  
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -174,16 +173,10 @@ export default function PlatformSettings() {
       .finally(() => setPlansLoading(false));
   }, [activeTab]);
 
-  const openCreatePlan = () => {
-    setEditingPlan(null);
-    setPlanName('');
-    setPlanPrice('0');
-    setPlanFeaturesText('');
-    setPlanModalOpen(true);
-  };
-
   const openEditPlan = (p) => {
     setEditingPlan(p);
+    setPlanSlug(p.slug || '');
+    setPlanRank(Number(p.rank || 0));
     setPlanName(p.name || '');
     setPlanPrice(String(p.price ?? '0'));
     setPlanFeaturesText(safeFeaturesToText(p.features));
@@ -237,19 +230,14 @@ export default function PlatformSettings() {
     try {
       const payload = {
         name: planName,
+        rank: Number(planRank),
         price: Number(planPrice),
         features: parseFeaturesText(planFeaturesText),
       };
-      if (editingPlan) {
-        const res = await updatePlan(editingPlan.plan_id, payload);
-        const updated = res.plan;
-        setPlans((prev) => prev.map((p) => (p.plan_id === updated.plan_id ? updated : p)));
-        setNotice('Plan updated.');
-      } else {
-        const res = await createPlan(payload);
-        setPlans((prev) => [res.plan, ...prev]);
-        setNotice('Plan created.');
-      }
+      const res = await updatePlan(editingPlan.plan_id, payload);
+      const updated = res.plan;
+      setPlans((prev) => prev.map((p) => (p.plan_id === updated.plan_id ? updated : p)));
+      setNotice('Plan updated.');
       closePlanModal();
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to save plan');
@@ -280,7 +268,7 @@ export default function PlatformSettings() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-storelaunch-dark">Platform Settings</h1>
@@ -350,13 +338,7 @@ export default function PlatformSettings() {
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">Global Subscription Plans</h2>
-            <button
-              type="button"
-              onClick={openCreatePlan}
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-white bg-storelaunch-green hover:bg-emerald-600"
-            >
-              Create Plan
-            </button>
+            <p className="text-xs text-gray-500">Core plans are centrally managed (Basic, Pro, Advanced).</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -380,14 +362,19 @@ export default function PlatformSettings() {
                 ) : plans.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                      No plans yet. Create your first plan.
+                      No plans available.
                     </td>
                   </tr>
                 ) : (
-                  plans.map((p) => (
+                  [...plans].sort((a, b) => Number(a.rank || 0) - Number(b.rank || 0)).map((p) => (
                     <tr key={p.plan_id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
-                      <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        <div>{p.name}</div>
+                        <div className="text-xs text-gray-500">{p.slug}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <CurrencyAmount value={p.price ?? 0} isRTL={isRTL} size="sm" />
+                      </td>
                       <td className="px-4 py-3">
                         {Array.isArray(p.features) ? `${p.features.length} items` : '—'}
                       </td>
@@ -425,10 +412,29 @@ export default function PlatformSettings() {
 
           <Modal
             open={planModalOpen}
-            title={editingPlan ? 'Edit Plan' : 'Create Plan'}
+            title="Edit Plan"
             onClose={closePlanModal}
           >
             <form onSubmit={handleSubmitPlan} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600">Slug (fixed identity)</label>
+                <input
+                  value={planSlug}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-600"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600">Rank (order)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={planRank}
+                  onChange={(e) => setPlanRank(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600">Plan Name</label>
                 <input
@@ -469,7 +475,7 @@ export default function PlatformSettings() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || !editingPlan}
                   className={`px-3 py-2 rounded-lg text-sm font-semibold text-white bg-storelaunch-green hover:bg-emerald-600 ${
                     saving ? 'opacity-60 cursor-not-allowed' : ''
                   }`}

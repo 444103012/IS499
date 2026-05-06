@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -30,6 +32,14 @@ function formatDate(d) {
   if (!d) return '—';
   const date = new Date(d);
   return date.toLocaleString();
+}
+
+function operationalChoice(status) {
+  return String(status ?? '')
+    .trim()
+    .toLowerCase() === 'active'
+    ? 'Active'
+    : 'Pending';
 }
 
 function progressLabel(step) {
@@ -66,27 +76,40 @@ export default function StoreDetails() {
   }, [id]);
 
   const handleBack = () => {
-    navigate('/admin/dashboard/stores');
+    navigate('/admin/dashboard/store-owners');
   };
 
   const handleToggleStatus = async () => {
     if (!data || !data.store) return;
     const currentStatus = data.store.status || 'Pending';
-    const nextStatus = currentStatus === 'Suspended' ? 'Active' : 'Suspended';
+    const action =
+      String(currentStatus).trim().toLowerCase() === 'suspended' ? 'reactivate' : 'suspend';
     setUpdatingStatus(true);
     setError('');
     try {
-      await updateStoreStatus(data.store.store_id, nextStatus);
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              store: { ...prev.store, status: nextStatus },
-            }
-          : prev
-      );
+      await updateStoreStatus(data.store.store_id, action);
+      const refreshed = await getStoreById(data.store.store_id);
+      setData(refreshed);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to update status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleSetOperationalStatus = async (nextStatus) => {
+    if (!data || !data.store) return;
+    const currentStatus = data.store.status || 'Pending';
+    if (String(currentStatus).trim().toLowerCase() === 'suspended') return;
+    if (operationalChoice(currentStatus) === nextStatus) return;
+    setUpdatingStatus(true);
+    setError('');
+    try {
+      await updateStoreStatus(data.store.store_id, { action: 'set_status', status: nextStatus });
+      const refreshed = await getStoreById(data.store.store_id);
+      setData(refreshed);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Failed to update store status');
     } finally {
       setUpdatingStatus(false);
     }
@@ -129,7 +152,7 @@ export default function StoreDetails() {
           onClick={handleBack}
           className="mb-4 text-sm text-storelaunch-green hover:underline"
         >
-          ← Back to stores
+          ← Back to stores & owners
         </button>
         <p className="text-red-600 text-sm">{error}</p>
       </div>
@@ -141,7 +164,7 @@ export default function StoreDetails() {
   const plan = data?.plan;
   const setupStep = data?.setup_progress?.step || owner?.setup_step || 0;
   const status = store?.status || 'Pending';
-  const isSuspended = status === 'Suspended';
+  const isSuspended = String(status).trim().toLowerCase() === 'suspended';
   const actionLabel = isSuspended ? 'Reactivate Store' : 'Suspend Store';
 
   return (
@@ -151,7 +174,7 @@ export default function StoreDetails() {
         onClick={handleBack}
         className="text-sm text-storelaunch-green hover:underline"
       >
-        ← Back to stores
+        ← Back to stores & owners
       </button>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -163,8 +186,20 @@ export default function StoreDetails() {
             Store ID #{store?.store_id} • Created {formatDate(store?.created_at)}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={status} />
+          {!isSuspended ? (
+            <select
+              aria-label="Set store to Active or Pending"
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+              value={operationalChoice(status)}
+              disabled={updatingStatus}
+              onChange={(e) => void handleSetOperationalStatus(e.target.value)}
+            >
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+            </select>
+          ) : null}
           <button
             type="button"
             onClick={handleToggleStatus}
@@ -242,13 +277,17 @@ export default function StoreDetails() {
           <h2 className="text-sm font-semibold text-gray-800">Plan Information</h2>
           <div className="text-sm space-y-1">
             <p>
+              <span className="font-medium text-gray-700">Store Status:</span>{' '}
+              {status}
+            </p>
+            <p>
               <span className="font-medium text-gray-700">Plan:</span>{' '}
               {plan?.plan_type ? plan.plan_type : '—'}
             </p>
             {plan && (
               <>
                 <p>
-                  <span className="font-medium text-gray-700">Status:</span>{' '}
+                  <span className="font-medium text-gray-700">Subscription Status:</span>{' '}
                   {plan.status || '—'}
                 </p>
                 <p>

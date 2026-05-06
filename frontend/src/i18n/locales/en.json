@@ -54,7 +54,7 @@
         "description": "Perfect for getting started",
         "price": "0",
         "priceAr": "0",
-        "currency": "SAR",
+        "currency": "﷼",
         "cta": "Get Started Free",
         "features": {
           "bankTransfer": "Bank Transfer only",
@@ -70,7 +70,7 @@
         "priceAr": "69",
         "priceYearly": "690",
         "priceYearlyAr": "690",
-        "currency": "SAR",
+        "currency": "﷼",
         "cta": "Get Started",
         "popular": "Most Popular",
         "features": {
@@ -88,7 +88,7 @@
         "priceAr": "199",
         "priceYearly": "1990",
         "priceYearlyAr": "1990",
-        "currency": "SAR",
+        "currency": "﷼",
         "cta": "Contact Sales",
         "features": {
           "allPro": "All Pro Features",
@@ -177,12 +177,14 @@
       "storeType": "Store Type",
       "chooseType": "Choose type",
       "storeDescription": "Store Description",
-      "descriptionPlaceholder": "Describe your store"
+      "descriptionPlaceholder": "Describe your store",
+      "urlPreviewIntro": "Your store URL is created from this name (spaces are removed). After setup, renaming your store does not change this URL — change the slug only in Domain Settings.",
+      "urlPreviewHint": "Your store URL is created from this name (spaces are removed). After this step, changing the store name does not change the URL. Change the slug later under Domain Settings."
     },
     "choosePlan": {
       "title": "Choose Subscription Plan",
       "free": "Free",
-      "sarPerMonth": "SAR/mo"
+      "sarPerMonth": "﷼/mo"
     },
     "chooseTheme": {
       "title": "Choose Theme",
@@ -190,6 +192,7 @@
     },
     "payment": {
       "title": "Payment Provider Setup",
+      "atLeastOneRequired": "Select at least one payment method to continue.",
       "provider": "Payment provider",
       "chooseProvider": "Choose provider",
       "apiKey": "API Key",
@@ -199,6 +202,7 @@
     },
     "shipping": {
       "title": "Shipping Provider Setup",
+      "atLeastOneRequired": "Select at least one shipping method to continue.",
       "carrier": "Shipping carrier",
       "chooseCarrier": "Choose carrier",
       "apiKey": "API Key",
@@ -273,6 +277,7 @@
       "loadingTable": "Loading data…",
       "unnamedProduct": "Product",
       "analyticsUnavailable": "Analytics unavailable right now."
+      ,"exportAdvancedOnly": "Export is available on the Advanced plan only."
     },
     "productsPage": {
       "title": "Products",
@@ -284,6 +289,15 @@
       "active": "Active",
       "inactive": "Inactive",
       "filters": "Filters",
+      "clearFilters": "Clear filters",
+      "stockStatus": "Stock status",
+      "inStock": "In stock",
+      "lowStock": "Low stock",
+      "outOfStock": "Out of stock",
+      "minPrice": "Min price",
+      "maxPrice": "Max price",
+      "createdFrom": "Created from",
+      "createdTo": "Created to",
       "sortDefault": "Sort",
       "sortNameAsc": "Name (A–Z)",
       "sortNameDesc": "Name (Z–A)",
@@ -398,15 +412,72 @@
         "paginationShowing": "Showing {{from}}–{{to}} of {{total}}",
         "previous": "Previous",
         "next": "Next"
+        ,
+        "defaultOptionName": "Option",
+        "create": {
+          "button": "Create Order",
+          "title": "Create Order",
+          "close": "Close create order modal",
+          "submit": "Create",
+          "cancel": "Cancel",
+          "customerName": "Customer name",
+          "customerPhone": "Customer phone",
+          "mapUrl": "Google map URL (optional)",
+          "address": "Address (optional)",
+          "notes": "Notes (optional)",
+          "paymentStatus": "Payment status",
+          "fulfillmentStatus": "Fulfillment status",
+          "items": "Order items",
+          "addItem": "Add item",
+          "removeItem": "Remove",
+          "selectProduct": "Select product option",
+          "requiredCustomer": "Customer name and phone are required.",
+          "requiredItems": "Add at least one valid item.",
+          "invalidMapUrl": "Google map URL must be a valid URL.",
+          "loadProductsError": "Failed to load product options.",
+          "submitError": "Failed to create order.",
+          "success": "Order created successfully.",
+          "outOfStock": "Insufficient stock for variant #{{optionId}}. Available: {{available}}.",
+          "invalidOptions": "Invalid product options for this store: {{ids}}.",
+          "stockAvailable": "Stock",
+          "shippingMethod": "Shipping method",
+          "shippingLoading": "Loading shipping options…",
+          "selectShippingMethod": "Select shipping method",
+          "noShippingEnabled": "No shipping carrier is enabled. Enable at least one carrier in store settings to create orders.",
+          "openShippingSettings": "Open shipping settings",
+          "shippingMethodRequired": "Select a shipping method.",
+          "shippingMethodInvalid": "The selected shipping method is not available. Refresh and try again.",
+          "paymentLinkTitle": "Customer payment link",
+          "paymentLinkHint": "Share this link with the customer to pay online (Moyasar).",
+          "paymentLinkCopy": "Copy link",
+          "paymentLinkClose": "Close",
+          "noPaymentGateway": "Online payment is not configured (Moyasar). Set MOYASAR_SECRET_KEY on the server to generate payment links.",
+          "paymentLinkError": "Could not create payment link."
+        }
       },
       "customersManagement": {
         "title": "Customers Management",
         "searchLabel": "Search",
-        "searchPlaceholder": "Search by name or email",
+        "searchPlaceholder": "Search by name, email, or phone",
         "loading": "Loading customers...",
         "noCustomers": "No customers found.",
-        "detailTitle": "Customer details",
-        "selectCustomer": "Select a customer to view details"
+        "detailTitle": "Customer profile & purchase history",
+        "selectCustomer": "Select a customer to view details",
+        "columnEmail": "Email",
+        "ordersCount": "Orders",
+        "totalSpend": "Total spend",
+        "lastPurchase": "Last purchase",
+        "firstPurchase": "First purchase",
+        "viewProfile": "View",
+        "backToList": "Back to customers",
+        "loadingDetail": "Loading customer…",
+        "profileSection": "Profile",
+        "purchaseHistory": "Purchase history",
+        "purchaseHistoryHint": "All orders placed by this customer at your store, newest first.",
+        "noOrdersHistory": "No orders yet.",
+        "viewOrder": "View order",
+        "invalidCustomerId": "Invalid customer.",
+        "loadDetailError": "Could not load this customer."
       },
       "productForm": {
         "backToProducts": "← Products",
@@ -440,7 +511,7 @@
         "additionalPriceLabel": "Additional price",
         "variantImagesUpload": "Add variant image(s)",
         "variantImagesUploading": "Uploading…",
-        "variantAdd": "+ Add variant",
+        "addVariant": "+ Add variant",
         "saveNew": "Save product",
         "saveEdit": "Save changes",
         "cancel": "Cancel",
@@ -452,7 +523,7 @@
       "storeManagement": {
         "title": "Store Management",
         "hub": {
-          "subtitle": "Manage all store settings, branding, domains, payments, shipping, policies, and customers from one place."
+          "subtitle": "Manage all store settings, branding, domains, payments, shipping, and customers from one place."
         },
         "tabs": {
           "storeInfo": "Store Information",
@@ -460,14 +531,41 @@
           "domain": "Domain Settings",
           "payments": "Payment Providers",
           "shipping": "Shipping Providers",
-          "policies": "Store Policies",
           "customers": "Customers Management",
-          "footer": "Store Footer",
-          "deleteAccount": "Delete Account"
+          "footer": "Store Footer"
         },
         "back": "Back",
+        "subscriptionPlans": {
+          "pro": "Pro",
+          "advanced": "Advanced"
+        },
+        "providers": {
+          "bankTransfer": "Bank Transfer",
+          "mada": "Mada",
+          "stcPay": "STC Pay",
+          "applePay": "Apple Pay",
+          "stripe": "Stripe",
+          "noShippingNeeded": "No Shipping Needed",
+          "smsa": "SMSA",
+          "aramex": "Aramex",
+          "spl": "SPL (Saudi Post)"
+        },
+        "locked": {
+          "title": "Feature locked",
+          "upgradeToUnlock": "Upgrade to unlock",
+          "availableInPlan": "This feature is available in the {{plan}} plan."
+        },
         "storeInfo": {
           "sectionTitle": "Store Information",
+          "changeLogo": "Store logo",
+          "changeLogoButton": "Change logo",
+          "uploadingLogo": "Uploading...",
+          "logoHint": "Accepted: JPG, PNG, GIF, WebP (max 5MB)",
+          "logoInvalidType": "Invalid file type. Please upload an image.",
+          "logoInvalidSize": "Image size must be 5MB or less.",
+          "logoSelectFirst": "Please select an image file first.",
+          "logoUploadSuccess": "Logo updated successfully.",
+          "logoUploadError": "Failed to update logo.",
           "storeName": "Store name",
           "storeDescription": "Store description",
           "businessCategory": "Business category",
@@ -477,7 +575,10 @@
           "status": "Store status",
           "statusActive": "Active",
           "statusSuspended": "Suspended",
-          "createdAt": "Store creation date"
+          "createdAt": "Store creation date",
+          "storeUrl": "Store URL (path)",
+          "storeUrlHint": "Changing the store name above does not change this address. To change the slug, open Domain Settings.",
+          "storeUrlEditLink": "Open Domain Settings"
         },
         "branding": {
           "sectionTitle": "Branding & Appearance",
@@ -498,11 +599,14 @@
         },
         "domain": {
           "sectionTitle": "Domain Settings",
-          "defaultDomain": "Default StoreLaunch domain",
-          "customDomain": "Custom domain",
-          "customDomainPlaceholder": "e.g. shop.yourdomain.com",
-          "dnsInstructions": "DNS instructions",
-          "dnsHelp": "Point your custom domain CNAME to the StoreLaunch domain shown above.",
+          "baseUrl": "Base URL",
+          "storeSlug": "Store slug",
+          "slugPlaceholder": "your-store",
+          "slugRulesTitle": "Slug rules",
+          "slugRulesHelp": "Use lowercase letters, numbers, and hyphens only (3-40 characters).",
+          "slugLengthError": "Slug must be between 3 and 40 characters.",
+          "slugPatternError": "Slug can contain only lowercase letters, numbers, and hyphens.",
+          "previewLabel": "Preview",
           "status": "Domain verification status",
           "statusPending": "Pending verification",
           "statusVerified": "Verified",
@@ -547,8 +651,8 @@
           "privacyPolicy": "Privacy policy",
           "terms": "Terms & conditions"
         },
-        "deleteAccount": {
-          "sectionTitle": "Danger Zone",
+        "danger": {
+          "sectionTitle": "Deactivate Store",
           "suspend": "Suspend store",
           "deactivate": "Deactivate store",
           "reactivate": "Reactivate store",
@@ -598,7 +702,8 @@
           "business": "Business",
           "notifications": "Notifications",
           "language": "Language",
-          "security": "Security"
+          "security": "Security",
+          "store": "Store status"
         },
         "profile": {
           "sectionTitle": "Profile Settings",
@@ -620,8 +725,7 @@
           "crNumber": "CR number (optional)",
           "taxNumber": "Tax number (optional)",
           "invoiceFooter": "Invoice footer text",
-          "defaultCurrency": "Default currency",
-          "timezone": "Timezone"
+          "defaultCurrency": "Default currency"
         },
         "notifications": {
           "sectionTitle": "Notifications",
@@ -651,6 +755,18 @@
         },
         "actions": {
           "saveChanges": "Save changes"
+        },
+        "password": {
+          "sectionTitle": "Change password",
+          "currentPassword": "Current password",
+          "newPassword": "New password",
+          "confirmNewPassword": "Confirm new password",
+          "changeButton": "Update password",
+          "minLengthError": "New password must be at least 8 characters.",
+          "confirmMismatch": "New password and confirmation do not match.",
+          "invalidCurrent": "Current password is incorrect.",
+          "changeSuccess": "Password updated successfully.",
+          "changeError": "Failed to update password."
         },
         "toast": {
           "saveSuccess": "Settings saved.",
@@ -684,7 +800,7 @@
     "error": "Failed to load products",
     "retry": "Retry",
     "showingResults": "Showing {{count}} products",
-    "sar": "SAR",
+    "sar": "﷼",
     "viewDetails": "View Details",
     "backToCatalog": "Back to Catalog",
     "productDetails": "Product Details",
@@ -697,6 +813,18 @@
     "options": "Options",
     "productNotFound": "Product not found",
     "productNotAvailable": "This product is not available",
-    "store": "Store"
+    "store": "Store",
+    "footer": {
+      "about": "About",
+      "contact": "Contact",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "follow": "Follow us",
+      "store": "Store"
+    }
+  },
+  "admin": {
+    "openStoreDetails": "Open store details"
   }
 }

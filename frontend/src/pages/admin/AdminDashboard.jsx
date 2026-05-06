@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect } from 'react';
 import { getDashboardStats } from '../../services/adminManagementApi';
 
@@ -39,9 +41,8 @@ export default function AdminDashboard() {
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold text-storelaunch-dark mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard title="Total Users" value={stats?.total_users} loading={loading} />
-        <StatCard title="Total Store Owners" value={stats?.total_store_owners} loading={loading} />
         <StatCard title="Total Stores" value={stats?.total_stores} loading={loading} />
         <StatCard title="Total Products" value={stats?.total_products} loading={loading} />
       </div>

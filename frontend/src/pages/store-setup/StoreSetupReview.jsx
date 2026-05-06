@@ -1,6 +1,18 @@
+
+
+
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStoreSetup, PLANS, THEMES, PAYMENT_PROVIDERS, SHIPPING_CARRIERS, STORE_TYPES } from '../../context/StoreSetupContext';
+import {
+  useStoreSetup,
+  PLANS,
+  THEMES,
+  PAYMENT_PROVIDERS,
+  SHIPPING_CARRIERS,
+  STORE_TYPES,
+  storeSetupStep1DraftKey,
+} from '../../context/StoreSetupContext';
 import axiosInstance from '../../api/axios';
 
 export default function StoreSetupReview({ isRTL, t, onBack }) {
@@ -35,6 +47,14 @@ export default function StoreSetupReview({ isRTL, t, onBack }) {
     setError('');
     try {
       await axiosInstance.post('/api/store-setup/finish');
+      const ownerId = typeof localStorage !== 'undefined' ? localStorage.getItem('store_owner_id') : null;
+      if (ownerId) {
+        try {
+          localStorage.removeItem(storeSetupStep1DraftKey(ownerId));
+        } catch {
+          /* ignore */
+        }
+      }
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to finish');
@@ -71,6 +91,11 @@ export default function StoreSetupReview({ isRTL, t, onBack }) {
           <h3 className="font-semibold text-storelaunch-dark mb-2">{t('onboarding.review.shipping')}</h3>
           <p>{shippingLabels.length ? shippingLabels.join(', ') : '—'}</p>
         </section>
+      </div>
+      <div className={`mt-4 rounded-lg border border-storelaunch-green/30 bg-storelaunch-green/5 px-4 py-3 text-sm text-storelaunch-dark ${isRTL ? 'text-right' : 'text-left'}`}>
+        {isRTL
+          ? 'الخطوات التالية: راجع متجرك باستخدام "View Store" ثم أكمل الدفع واضغط "Go Live" لنشر المتجر للعملاء.'
+          : 'Next steps: Review your store using "View Store", then complete payment and click "Go Live" to publish your store to customers.'}
       </div>
       {error && <p className={`mt-2 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{error}</p>}
       <div className={`mt-8 flex justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>

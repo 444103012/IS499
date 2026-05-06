@@ -1,16 +1,45 @@
-import React, { useState } from 'react';
+
+
+
+
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useOnboarding, STORE_TYPES } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
+import { previewStoreSlugFromName } from '../../utils/previewStoreSlugFromName';
 
 export default function StoreDetails({ isRTL, t, onNext }) {
   const { storeDetails, updateStoreDetails, setStoreId } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [nameAvailable, setNameAvailable] = useState(null); 
+  const [nameChecking, setNameChecking] = useState(false);
+  const nameCheckTimer = useRef(null);
+
+  const checkNameAvailability = useCallback(async (name) => {
+    if (!name || name.trim().length < 2) {
+      setNameAvailable(null);
+      return;
+    }
+    setNameChecking(true);
+    try {
+      const { data } = await axiosInstance.get(`/api/onboarding/check-name?name=${encodeURIComponent(name.trim())}`);
+      setNameAvailable(data.available);
+    } catch {
+      setNameAvailable(null);
+    } finally {
+      setNameChecking(false);
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     updateStoreDetails({ [name]: value });
     setError('');
+    if (name === 'storeName') {
+      setNameAvailable(null);
+      if (nameCheckTimer.current) clearTimeout(nameCheckTimer.current);
+      nameCheckTimer.current = setTimeout(() => checkNameAvailability(value), 600);
+    }
   };
 
   const handleLogoChange = (e) => {
@@ -22,7 +51,13 @@ export default function StoreDetails({ isRTL, t, onNext }) {
     setError('');
   };
 
-  const canNext = storeDetails.storeName?.trim();
+  const canNext = storeDetails.storeName?.trim() && nameAvailable !== false;
+
+  const baseDomain = 'storelaunch.site';
+  const slugPreview = useMemo(
+    () => previewStoreSlugFromName(storeDetails.storeName || ''),
+    [storeDetails.storeName]
+  );
 
   const handleSubmit = async () => {
     if (!canNext) return;
@@ -54,14 +89,57 @@ export default function StoreDetails({ isRTL, t, onNext }) {
           <label className="block text-sm font-medium text-storelaunch-dark mb-1">
             {t('onboarding.storeDetails.storeName')} *
           </label>
-          <input
-            type="text"
-            name="storeName"
-            value={storeDetails.storeName}
-            onChange={handleChange}
-            placeholder={t('onboarding.storeDetails.storeNamePlaceholder')}
-            className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="storeName"
+              value={storeDetails.storeName}
+              onChange={handleChange}
+              placeholder={t('onboarding.storeDetails.storeNamePlaceholder')}
+              className={`w-full p-2 border rounded-md ${
+                nameAvailable === false ? 'border-red-400 focus:ring-red-400' :
+                nameAvailable === true ? 'border-green-400 focus:ring-green-400' :
+                'border-gray-300'
+              } ${isRTL ? 'text-right' : 'text-left'}`}
+            />
+            {nameChecking && (
+              <span className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'} text-gray-400 text-xs`}>
+                {isRTL ? 'جاري التحقق...' : 'Checking...'}
+              </span>
+            )}
+            {!nameChecking && nameAvailable === true && (
+              <span className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'} text-green-600`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+            )}
+            {!nameChecking && nameAvailable === false && (
+              <span className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'} text-red-500`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </span>
+            )}
+          </div>
+          {nameAvailable === false && (
+            <p className="mt-1 text-xs text-red-600">
+              {isRTL ? 'اسم المتجر مستخدم بالفعل. يرجى اختيار اسم آخر.' : 'This store name is already taken. Please choose a different name.'}
+            </p>
+          )}
+          {nameAvailable === true && (
+            <p className="mt-1 text-xs text-green-600">
+              {isRTL ? 'اسم المتجر متاح!' : 'Store name is available!'}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            {t('onboarding.storeDetails.urlPreviewIntro')}
+          </p>
+          {slugPreview.length >= 3 && (
+            <p className="mt-2 text-sm text-storelaunch-dark font-medium break-all">
+              {baseDomain}/{slugPreview}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-storelaunch-dark mb-1">

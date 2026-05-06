@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { generateToken } = require('../utils/token');
-
 const MIN_PASSWORD_LENGTH = 8;
 
 function validateBody(body, requiredFields) {
@@ -19,15 +18,15 @@ router.post('/register', async (req, res) => {
 
   const { email, phone, password, first_name, last_name, preferred_lang } = req.body;
 
- 
- 
+  
+  
   const missing = validateBody(req.body, ['email', 'password', 'first_name', 'last_name', 'phone']);
   if (missing.length > 0) {
     return res.status(400).json({ error: 'Missing required fields', fields: missing });
   }
 
- 
- 
+  
+  
   if (password.length < MIN_PASSWORD_LENGTH) {
     return res.status(400).json({ error: 'Weak password', detail: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
@@ -35,16 +34,16 @@ router.post('/register', async (req, res) => {
   const trimmedEmail = String(email).trim().toLowerCase();
   const trimmedPhone = phone ? String(phone).trim() : null;
 
- 
- 
+  
+  
   const phonePattern = /^(\+?\d{8,15})$/;
   if (!trimmedPhone || !phonePattern.test(trimmedPhone)) {
     return res.status(400).json({ error: 'Invalid phone format' });
   }
 
   try {
-   
-   
+    
+    
     const existingEmail = await pool.query(
       'SELECT customer_id FROM customers WHERE email = $1',
       [trimmedEmail]
@@ -53,8 +52,8 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-   
-   
+    
+    
     if (trimmedPhone) {
       const existingPhone = await pool.query(
         'SELECT customer_id FROM customers WHERE phone = $1',
@@ -70,8 +69,8 @@ router.post('/register', async (req, res) => {
     let row;
 
     try {
-     
-     
+      
+      
       const result = await pool.query(
         `INSERT INTO customers (first_name, last_name, email, phone, password_hash, preferred_lang)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -87,8 +86,8 @@ router.post('/register', async (req, res) => {
       );
       row = result.rows[0];
     } catch (innerErr) {
-     
-     
+      
+      
       if (innerErr.code === '42703') {
         const fallbackResult = await pool.query(
           `INSERT INTO customers (first_name, last_name, email, phone, password_hash)
@@ -145,8 +144,8 @@ router.post('/login', async (req, res) => {
 
   const { emailOrPhone, password } = req.body;
 
- 
- 
+  
+  
   if (!emailOrPhone?.trim() || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -210,10 +209,10 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
- 
- 
- 
- 
+  
+  
+  
+  
   return res.json({ message: 'Logout successful' });
 });
 
