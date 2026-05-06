@@ -2,12 +2,14 @@ const multer = require("multer");
 const multerS3 = require("multer-s3");
 const s3 = require("../utils/s3");
 
-const bucket = process.env.AWS_BUCKET;
+const bucket = process.env.AWS_BUCKET || process.env.AWS_S3_BUCKET;
+const accessKeyId = process.env.AWS_ACCESS_KEY || process.env.AWS_ACCESS_KEY_ID;
+const secretAccessKey = process.env.AWS_SECRET_KEY || process.env.AWS_SECRET_ACCESS_KEY;
 const canUseS3Uploads =
-  Boolean(process.env.AWS_BUCKET) &&
+  Boolean(bucket) &&
   Boolean(process.env.AWS_REGION) &&
-  Boolean(process.env.AWS_ACCESS_KEY) &&
-  Boolean(process.env.AWS_SECRET_KEY);
+  Boolean(accessKeyId) &&
+  Boolean(secretAccessKey);
 
 if (!canUseS3Uploads) {
   console.warn(

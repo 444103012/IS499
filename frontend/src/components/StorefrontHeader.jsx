@@ -573,8 +573,9 @@ const StorefrontHeader = ({
               }}
               onOpenFilters={() => {
                 if (!supportsCatalogControls) return;
-                setIsFilterMenuOpen(true);
                 setIsMobileMenuOpen(false);
+                // Open filters on next frame to avoid mobile tap-through to underlying cards.
+                requestAnimationFrame(() => setIsFilterMenuOpen(true));
               }}
               i18n={i18n}
               onToggleLanguage={toggleLanguage}

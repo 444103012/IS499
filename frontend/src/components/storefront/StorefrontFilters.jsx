@@ -128,14 +128,22 @@ const StorefrontFilters = ({
     <div className={`flex flex-wrap items-center gap-2 pt-1 ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'}`}>
       <button
         type="button"
-        onClick={onApply}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onApply(e);
+        }}
         className="min-h-[44px] h-11 sm:h-8 sm:min-h-0 px-4 sm:px-3 rounded-md text-sm sm:text-xs font-semibold text-white bg-storelaunch-green hover:bg-storelaunch-deep-green focus:outline-none focus:ring-2 focus:ring-storelaunch-green focus:ring-offset-1"
       >
         {isRTL ? 'تطبيق' : 'Apply'}
       </button>
       <button
         type="button"
-        onClick={onReset}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onReset(e);
+        }}
         className="min-h-[44px] h-11 sm:h-8 sm:min-h-0 px-4 sm:px-3 rounded-md border border-gray-300 text-sm sm:text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300"
       >
         {isRTL ? 'إعادة تعيين' : 'Reset'}
@@ -143,7 +151,11 @@ const StorefrontFilters = ({
       {hasActiveFilters && (
         <button
           type="button"
-          onClick={onReset}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onReset(e);
+          }}
           className="min-h-[44px] px-2 text-sm sm:text-xs font-semibold text-storelaunch-green hover:text-storelaunch-deep-green sm:h-8 sm:min-h-0"
         >
           {isRTL ? 'مسح الكل' : 'Clear all'}
