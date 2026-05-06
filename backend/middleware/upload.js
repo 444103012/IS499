@@ -3,63 +3,65 @@ const multerS3 = require("multer-s3");
 const s3 = require("../utils/s3");
 
 const bucket = process.env.AWS_BUCKET;
+const canUseS3Uploads =
+  Boolean(process.env.AWS_BUCKET) &&
+  Boolean(process.env.AWS_REGION) &&
+  Boolean(process.env.AWS_ACCESS_KEY) &&
+  Boolean(process.env.AWS_SECRET_KEY);
+
+if (!canUseS3Uploads) {
+  console.warn(
+    "S3 upload is not fully configured. Upload endpoints will reject files until AWS env vars are set."
+  );
+}
 const imageFilter = (req, file, cb) => {
   if (/^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype)) cb(null, true);
   else cb(new Error("Only images (JPEG, PNG, GIF, WebP) are allowed"), false);
 };
 
+const disabledStorage = multer.memoryStorage();
+const uploadUnavailableError = (req, file, cb) => {
+  cb(new Error("Upload service is not configured on server"));
+};
 
-const storeLogoS3 = multerS3({
-  s3,
-  bucket,
-  metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
-  key: (req, file, cb) => {
-    const name = file.originalname || "logo";
-    const safe = name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    cb(null, `store-logos/${Date.now()}-${safe}`);
-  },
-});
+function createStorage(keyPrefix, fallbackName) {
+  if (!canUseS3Uploads) return disabledStorage;
+  return multerS3({
+    s3,
+    bucket,
+    metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
+    key: (req, file, cb) => {
+      const name = file.originalname || fallbackName;
+      const safe = name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      cb(null, `${keyPrefix}/${Date.now()}-${safe}`);
+    },
+  });
+}
 
-
-const productImageS3 = multerS3({
-  s3,
-  bucket,
-  metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
-  key: (req, file, cb) => {
-    const name = file.originalname || "image";
-    const safe = name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    cb(null, `products/${Date.now()}-${safe}`);
-  },
-});
+const storeLogoS3 = createStorage("store-logos", "logo");
 
 
-const variantImageS3 = multerS3({
-  s3,
-  bucket,
-  metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
-  key: (req, file, cb) => {
-    const name = file.originalname || "image";
-    const safe = name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    cb(null, `variants/${Date.now()}-${safe}`);
-  },
-});
+const productImageS3 = createStorage("products", "image");
+
+
+const variantImageS3 = createStorage("variants", "image");
 
 const uploadStoreLogo = multer({
   storage: storeLogoS3,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFilter,
+  fileFilter: canUseS3Uploads ? imageFilter : uploadUnavailableError,
 });
 
 const uploadProductImage = multer({
   storage: productImageS3,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFilter,
+  fileFilter: canUseS3Uploads ? imageFilter : uploadUnavailableError,
 });
 
 const uploadVariantImage = multer({
   storage: variantImageS3,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFilter,
+  fileFilter: canUseS3Uploads ? imageFilter : uploadUnavailableError,
 });
 
 module.exports = {
