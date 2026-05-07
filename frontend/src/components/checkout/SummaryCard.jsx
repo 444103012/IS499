@@ -46,26 +46,7 @@ const SummaryCard = ({ items = [], itemsTotal, shippingAmount, taxAmount, grandT
           </span>
         </div>
       </div>
-      <div className="mt-5 pt-4 border-t border-gray-100">
-        <label className={`block text-xs font-medium text-gray-500 mb-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {isRTL ? 'كود الخصم' : 'Discount code'}
-        </label>
-        <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <input
-            type="text"
-            disabled
-            placeholder={isRTL ? 'قريباً' : 'Coming soon'}
-            className="flex-1 border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            disabled
-            className="px-3 py-2 text-xs rounded-lg border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-          >
-            {isRTL ? 'تطبيق' : 'Apply'}
-          </button>
-        </div>
-      </div>
+    
     </div>
   );
 };
