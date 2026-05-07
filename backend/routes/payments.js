@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
 const FRONTEND_BASE_URL = (process.env.FRONTEND_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+const CUSTOMER_FRONTEND_BASE_URL = 'http://localhost:3000';
 const MOYASAR_PUBLISHABLE_KEY = process.env.MOYASAR_PUBLISHABLE_KEY || '';
 const MOYASAR_SECRET_KEY = process.env.MOYASAR_SECRET_KEY || '';
 const MOYASAR_API_BASE = (process.env.MOYASAR_API_BASE || 'https://api.moyasar.com').replace(/\/$/, '');
@@ -261,7 +262,7 @@ router.post('/init', customerAuth, async (req, res) => {
     const callbackOrigin = BACKEND_BASE_URL || requestOrigin;
     const storeSlug = normalizeStoreSlug(order.store_name);
     const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}`;
-    const backUrl = `${FRONTEND_BASE_URL}${storeSlug ? `/${storeSlug}/checkout` : '/checkout'}`;
+    const backUrl = `${CUSTOMER_FRONTEND_BASE_URL}${storeSlug ? `/${storeSlug}/checkout` : '/checkout'}`;
     const callbackUrl = `${callbackOrigin}/api/payments/callback`;
 
     const session = await createMoyasarInvoiceSessionForOrder({
@@ -395,7 +396,7 @@ router.get('/return', async (req, res) => {
   const resultPath = storeSlug ? `/${storeSlug}/payment/result` : '/payment/result';
 
   if (Number.isNaN(orderId) || !invoiceId) {
-    const failedUrl = `${FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(req.query.orderId || '')}&status=failed`;
+    const failedUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(req.query.orderId || '')}&status=failed`;
     console.error('payments return invalid params', {
       orderId: req.query.orderId,
       invoiceId,
@@ -413,11 +414,11 @@ router.get('/return', async (req, res) => {
       source: 'return',
     });
     const providerRef = persisted?.providerRef || getMoyasarPaymentRef(verifiedInvoice) || '';
-    const redirectUrl = `${FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=${encodeURIComponent(status.toLowerCase())}${providerRef ? `&paymentId=${encodeURIComponent(providerRef)}` : ''}`;
+    const redirectUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=${encodeURIComponent(status.toLowerCase())}${providerRef ? `&paymentId=${encodeURIComponent(providerRef)}` : ''}`;
     return res.redirect(302, redirectUrl);
   } catch (err) {
     console.error('payments return error:', err);
-    const failedUrl = `${FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=failed`;
+    const failedUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=failed`;
     return res.redirect(302, failedUrl);
   }
 });

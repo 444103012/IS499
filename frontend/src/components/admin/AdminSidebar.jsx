@@ -31,14 +31,12 @@ export default function AdminSidebar() {
           Dashboard
         </NavLink>
         <NavLink to="/admin/dashboard/users" className={navClass}>
-          Manage Users
+          Manage Customers
         </NavLink>
-        <NavLink to="/admin/dashboard/store-owners" className={navClass}>
-          Manage Store Owners
-        </NavLink>
-        <NavLink to="/admin/dashboard/stores" className={navClass}>
+        <NavLink to="/admin/dashboard/ModerateStores" className={navClass}>
           Moderate Stores
         </NavLink>
+       
         <NavLink to="/admin/dashboard/platform" className={navClass}>
           Platform Settings
         </NavLink>

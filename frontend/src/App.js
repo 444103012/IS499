@@ -204,8 +204,8 @@ function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<ManageUsers />} />
-            <Route path="store-owners" element={<StoreOwnersAndStores />} />
-            <Route path="stores" element={<Navigate to="/admin/dashboard/store-owners" replace />} />
+            <Route path="ModerateStores" element={<StoreOwnersAndStores />} />
+            <Route path="stores" element={<Navigate to="/admin/dashboard/ModerateStores" replace />} />
             <Route path="stores/:id" element={<StoreDetails />} />
             <Route path="operations" element={<AdminOperationsPage />} />
             <Route path="error-handling" element={<AdminErrorHandlingLayout />}>

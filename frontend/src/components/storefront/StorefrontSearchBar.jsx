@@ -31,7 +31,7 @@ const StorefrontSearchBar = ({
       autoFocus={autoFocus}
       placeholder={placeholder}
       aria-label="Search storefront products"
-      className={`w-full ${compact ? 'h-11 min-h-[44px] sm:h-9 sm:min-h-0' : 'h-11 min-h-[44px]'} rounded-xl border border-gray-200 bg-white ${
+      className={`w-full ${compact ? 'h-11 min-h-[44px] sm:h-9 sm:min-h-0' : 'h-11 min-h-[44px]'} rounded-xl border border-gray-200 bg-white text-black ${
         isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10 text-left'
       } text-base sm:text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-storelaunch-green focus:border-storelaunch-green transition-colors`}
     />
