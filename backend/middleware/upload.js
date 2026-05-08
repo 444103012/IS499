@@ -3,18 +3,28 @@ const multerS3 = require("multer-s3");
 const s3 = require("../utils/s3");
 
 const bucket = process.env.AWS_BUCKET || process.env.AWS_S3_BUCKET;
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const secretAccessKey = process.env.AWS_SECRET_KEY_ID;
+const accessKeyId =
+  process.env.AWS_ACCESS_KEY_ID ||
+  process.env.AWS_ACCESS_KEY;
+const secretAccessKey =
+  process.env.AWS_SECRET_ACCESS_KEY ||
+  process.env.AWS_SECRET_KEY_ID ||
+  process.env.AWS_SECRET_KEY;
+const region = process.env.AWS_REGION;
 const canUseS3Uploads =
   Boolean(bucket) &&
-  Boolean(process.env.AWS_REGION) &&
+  Boolean(region) &&
   Boolean(accessKeyId) &&
   Boolean(secretAccessKey);
 
 if (!canUseS3Uploads) {
-  console.warn(
-    "S3 upload is not fully configured. Upload endpoints will reject files until AWS env vars are set."
-  );
+  const diagnostics = {
+    hasBucket: Boolean(bucket),
+    hasRegion: Boolean(region),
+    hasAccessKeyId: Boolean(accessKeyId),
+    hasSecretAccessKey: Boolean(secretAccessKey),
+  };
+  console.warn("S3 upload is not fully configured.", diagnostics);
 }
 const imageFilter = (req, file, cb) => {
   if (/^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype)) cb(null, true);
