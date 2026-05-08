@@ -128,14 +128,14 @@ export default function StoreOwnersAndStores() {
 
   if (loading && stores.length === 0 && !error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-gray-500">Loading stores…</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h1 className="text-xl font-bold text-storelaunch-dark">Stores & Owners</h1>
         <input

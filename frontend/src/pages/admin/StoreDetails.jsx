@@ -138,7 +138,7 @@ export default function StoreDetails() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-gray-500">Loading store details...</p>
       </div>
     );
@@ -146,7 +146,7 @@ export default function StoreDetails() {
 
   if (error && !data) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <button
           type="button"
           onClick={handleBack}
@@ -168,7 +168,7 @@ export default function StoreDetails() {
   const actionLabel = isSuspended ? 'Reactivate Store' : 'Suspend Store';
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       <button
         type="button"
         onClick={handleBack}
@@ -191,7 +191,7 @@ export default function StoreDetails() {
           {!isSuspended ? (
             <select
               aria-label="Set store to Active or Pending"
-              className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white w-full sm:w-auto"
               value={operationalChoice(status)}
               disabled={updatingStatus}
               onChange={(e) => void handleSetOperationalStatus(e.target.value)}
@@ -204,7 +204,7 @@ export default function StoreDetails() {
             type="button"
             onClick={handleToggleStatus}
             disabled={updatingStatus}
-            className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+            className={`inline-flex items-center justify-center w-full sm:w-auto px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               isSuspended
                 ? 'border-green-600 text-green-700 hover:bg-green-50'
                 : 'border-red-600 text-red-700 hover:bg-red-50'

@@ -11,7 +11,7 @@ const navClass = ({ isActive }) =>
       : 'text-gray-700 hover:bg-gray-100'
   }`;
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ mobileOpen = false, onClose = () => {} }) {
   const { admin, logout } = useAdminAuth();
   const navigate = useNavigate();
 
@@ -21,23 +21,27 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col transform transition-transform duration-200 lg:static lg:translate-x-0 lg:w-56 ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
       <div className="p-4 border-b border-gray-100">
         <h2 className="text-storelaunch-dark font-bold text-lg">StoreLaunch</h2>
         <p className="text-xs text-gray-500 mt-0.5">Admin</p>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        <NavLink to="/admin/dashboard" end className={navClass}>
+        <NavLink to="/admin/dashboard" end className={navClass} onClick={onClose}>
           Dashboard
         </NavLink>
-        <NavLink to="/admin/dashboard/users" className={navClass}>
+        <NavLink to="/admin/dashboard/users" className={navClass} onClick={onClose}>
           Manage Customers
         </NavLink>
-        <NavLink to="/admin/dashboard/ModerateStores" className={navClass}>
+        <NavLink to="/admin/dashboard/ModerateStores" className={navClass} onClick={onClose}>
           Moderate Stores
         </NavLink>
-       
-        <NavLink to="/admin/dashboard/platform" className={navClass}>
+
+        <NavLink to="/admin/dashboard/platform" className={navClass} onClick={onClose}>
           Platform Settings
         </NavLink>
       </nav>

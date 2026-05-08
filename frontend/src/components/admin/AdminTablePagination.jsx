@@ -35,7 +35,7 @@ export default function AdminTablePagination({
   const disableNav = loading || total === 0;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50 text-sm text-gray-700">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 sm:px-4 py-3 border-t border-gray-200 bg-gray-50 text-sm text-gray-700">
       <div className="flex flex-wrap items-center gap-3">
         <span>
           {total === 0 ? (
@@ -62,7 +62,7 @@ export default function AdminTablePagination({
         >
           Prev
         </button>
-        <div className="flex items-center gap-1">
+        <div className="hidden sm:flex items-center gap-1">
           {pageSlots.map((slot, idx) =>
             slot === 'ellipsis' ? (
               <span key={`e-${idx}`} className="px-1 text-gray-400 select-none">

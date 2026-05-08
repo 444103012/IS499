@@ -86,14 +86,14 @@ export default function ManageUsers() {
 
   if (loading && users.length === 0 && !error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-gray-500">Loading users...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-xl font-bold text-storelaunch-dark mb-4">Manage Customers</h1>
       {error && (
         <p className="mb-4 text-red-600 text-sm">{error}</p>
@@ -109,7 +109,7 @@ export default function ManageUsers() {
       </div>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className={`overflow-x-auto ${loading ? 'opacity-60' : ''}`}>
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-700">Name</th>

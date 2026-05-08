@@ -89,13 +89,13 @@ const EH_HUB = '/admin/dashboard/error-handling';
 
 export function ErrorHandlingDetailChrome({ title, loading, error, tableMissing, onRefresh, children }) {
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-4">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link to={EH_HUB} className="font-medium text-storelaunch-green hover:underline">
           ← Error handling
         </Link>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl font-bold text-storelaunch-dark">{title}</h1>
         <button type="button" onClick={onRefresh} disabled={loading} className={BTN_SECONDARY}>
           {loading ? '…' : 'Refresh'}

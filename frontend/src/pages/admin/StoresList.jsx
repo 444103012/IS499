@@ -136,14 +136,14 @@ export default function StoresList() {
 
   if (loading && stores.length === 0 && !error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-gray-500">Loading stores...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h1 className="text-xl font-bold text-storelaunch-dark">Moderate Stores</h1>
         <div className="w-full sm:w-auto">
@@ -161,7 +161,7 @@ export default function StoresList() {
       )}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className={`overflow-x-auto ${loading ? 'opacity-60' : ''}`}>
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[760px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-700">Store Name</th>

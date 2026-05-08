@@ -7,7 +7,7 @@ import { getDashboardStats } from '../../services/adminManagementApi';
 
 function StatCard({ title, value, loading }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
       <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">{title}</p>
       {loading ? (
         <div className="h-8 w-16 mt-2 bg-gray-200 rounded animate-pulse" />
@@ -32,17 +32,17 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-xl font-bold text-storelaunch-dark mb-6">Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="Total Users" value={stats?.total_users} loading={loading} />
+        <StatCard title="Total Customers" value={stats?.total_users} loading={loading} />
         <StatCard title="Total Stores" value={stats?.total_stores} loading={loading} />
         <StatCard title="Total Products" value={stats?.total_products} loading={loading} />
       </div>

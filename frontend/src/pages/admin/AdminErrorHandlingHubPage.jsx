@@ -88,7 +88,7 @@ export default function AdminErrorHandlingHubPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-storelaunch-dark">Error handling</h1>
         <button type="button" onClick={() => void load()} disabled={loading} className={BTN_SECONDARY}>

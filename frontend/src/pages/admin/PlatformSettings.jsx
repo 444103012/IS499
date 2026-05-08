@@ -261,14 +261,14 @@ export default function PlatformSettings() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <p className="text-gray-500">Loading platform settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="p-4 sm:p-6 space-y-4" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-storelaunch-dark">Platform Settings</h1>
@@ -336,13 +336,13 @@ export default function PlatformSettings() {
 
       {activeTab === 'plans' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-800">Global Subscription Plans</h2>
             <p className="text-xs text-gray-500">Core plans are centrally managed (Basic, Pro, Advanced).</p>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[680px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 font-medium text-gray-700">Name</th>

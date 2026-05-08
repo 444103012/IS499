@@ -7,11 +7,11 @@ export default function AdminDashboardPage() {
   const { admin, logout } = useAdminAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <header className="flex items-center justify-between mb-8">
-        <h1 className="text-storelaunch-dark text-2xl font-bold">Admin Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-600 text-sm">{admin?.email}</span>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+        <h1 className="text-storelaunch-dark text-xl sm:text-2xl font-bold">Admin Dashboard</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <span className="text-gray-600 text-sm break-all">{admin?.email}</span>
           <button
             type="button"
             onClick={logout}
