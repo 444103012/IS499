@@ -94,7 +94,7 @@ export default function ManageUsers() {
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold text-storelaunch-dark mb-4">Manage Users</h1>
+      <h1 className="text-xl font-bold text-storelaunch-dark mb-4">Manage Customers</h1>
       {error && (
         <p className="mb-4 text-red-600 text-sm">{error}</p>
       )}
