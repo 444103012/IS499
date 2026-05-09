@@ -76,7 +76,7 @@
         "features": {
           "allBasic": "جميع مميزات الأساسي",
           "paymentOptions": "خيارات دفع متعددة",
-          "shippingProviders": "مزودو شحن أكثر",
+          "shippingProviders": "مزود شحن محلي",
           "standardThemes": "قوالب قياسية",
           "reports": "تقارير وتحليلات قياسية"
         }
@@ -95,8 +95,8 @@
           "advancedReports": "تقارير وتحليلات متقدمة (تصدير)",
           "customDomain": "نطاق مخصص",
           "advancedThemes": "قوالب متقدمة",
-          "marketing": "أدوات التسويق والتحويل",
-          "pos": "تكامل نقاط البيع (POS)"
+          "marketing": "جميع طرق الشحن",
+          "pos": "جميع طرق الدفع"
         }
       }
     }

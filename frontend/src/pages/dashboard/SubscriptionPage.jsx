@@ -31,15 +31,15 @@ export default function SubscriptionPage() {
     'Arabic & English Support': 'دعم العربية والإنجليزية',
     'All Basic Features': 'جميع مميزات الأساسي',
     'Expanded Payment Options': 'خيارات دفع متعددة',
-    'More Shipping Providers': 'مزودو شحن أكثر',
+    'Local Shipping Provider': 'مزود شحن محلي',
     'Standard Themes': 'قوالب قياسية',
     'Standard Reports & Analytics': 'تقارير وتحليلات قياسية',
     'All Pro Features': 'جميع مميزات المحترف',
     'Advanced Reports & Analytics (Export)': 'تقارير وتحليلات متقدمة (تصدير)',
     'Custom Domain': 'نطاق مخصص',
     'Advanced Themes': 'قوالب متقدمة',
-    'Marketing & Conversion Tools': 'أدوات التسويق والتحويل',
-    'POS Integration': 'تكامل نقاط البيع (POS)',
+    'All Shipping Providers': 'جميع مزودي الشحن',
+    'All Payment Providers': 'جميع مزودي الدفع',
   };
 
   const translateFeature = (text) => (isRTL ? FEATURE_TRANSLATIONS_AR[text] || text : text);

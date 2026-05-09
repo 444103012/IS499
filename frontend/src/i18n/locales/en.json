@@ -95,8 +95,8 @@
           "advancedReports": "Advanced Reports & Analytics (Export)",
           "customDomain": "Custom Domain",
           "advancedThemes": "Advanced Themes",
-          "marketing": "Marketing & Conversion Tools",
-          "pos": "POS Integration"
+          "marketing": "All Shipping Providers",
+          "pos": "All Payment  Providers"
         }
       }
     }
