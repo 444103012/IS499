@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { generateToken } = require('../utils/token');
+const {
+  isValidPersonName,
+  isValidEmail,
+  isValidSaPhone,
+  isValidPassword,
+} = require('../utils/registerValidation');
 
 const REQUIRED_REGISTER = ['first_name', 'last_name', 'email', 'phone', 'password'];
 const REQUIRED_LOGIN = ['email', 'password'];
@@ -16,37 +22,63 @@ function validateBody(body, requiredFields) {
 
 router.post('/register', async (req, res) => {
   const pool = req.app.locals.pool;
-  if (!pool) return res.status(500).json({ error: 'Database not configured' });
+  if (!pool) return res.status(500).json({ error: 'DATABASE_NOT_CONFIGURED' });
 
   const missing = validateBody(req.body, REQUIRED_REGISTER);
   if (missing.length > 0) {
-    return res.status(400).json({ error: 'Missing required fields', fields: missing });
+    return res.status(400).json({ error: 'MISSING_REQUIRED_FIELDS', fields: missing });
   }
 
   const { first_name, last_name, email, phone, password } = req.body;
+  const trimmedFirst = String(first_name).trim();
+  const trimmedLast = String(last_name).trim();
+  if (!isValidPersonName(trimmedFirst)) {
+    return res.status(400).json({ error: 'INVALID_FIRST_NAME' });
+  }
+  if (!isValidPersonName(trimmedLast)) {
+    return res.status(400).json({ error: 'INVALID_LAST_NAME' });
+  }
+
   const trimmedEmail = String(email).trim().toLowerCase();
+  if (!isValidEmail(trimmedEmail)) {
+    return res.status(400).json({ error: 'INVALID_EMAIL' });
+  }
+
+  const trimmedPhone = String(phone).trim();
+  if (!isValidSaPhone(trimmedPhone)) {
+    return res.status(400).json({ error: 'INVALID_PHONE' });
+  }
+
+  if (!isValidPassword(password)) {
+    return res.status(400).json({ error: 'WEAK_PASSWORD' });
+  }
 
   try {
-    
-    
     const existing = await pool.query(
       'SELECT store_owner_id FROM store_owners WHERE email = $1',
       [trimmedEmail]
     );
     if (existing.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return res.status(409).json({ error: 'EMAIL_ALREADY_REGISTERED' });
+    }
+
+    const existingPhone = await pool.query(
+      'SELECT store_owner_id FROM store_owners WHERE phone = $1',
+      [trimmedPhone]
+    );
+    if (existingPhone.rows.length > 0) {
+      return res.status(409).json({ error: 'PHONE_ALREADY_REGISTERED' });
     }
 
     const password_hash = await hashPassword(password);
 
-    
     let result;
     try {
       result = await pool.query(
         `INSERT INTO store_owners (first_name, last_name, email, phone, password_hash)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING store_owner_id, first_name, last_name, email, phone, status, COALESCE(setup_step, 0) AS setup_step, created_at`,
-        [first_name.trim(), last_name.trim(), trimmedEmail, String(phone).trim(), password_hash]
+        [trimmedFirst, trimmedLast, trimmedEmail, trimmedPhone, password_hash]
       );
     } catch (insertErr) {
       if (insertErr.code === '42703' || (insertErr.message && insertErr.message.includes('setup_step'))) {
@@ -54,7 +86,7 @@ router.post('/register', async (req, res) => {
           `INSERT INTO store_owners (first_name, last_name, email, phone, password_hash)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING store_owner_id, first_name, last_name, email, phone, status, created_at`,
-          [first_name.trim(), last_name.trim(), trimmedEmail, String(phone).trim(), password_hash]
+          [trimmedFirst, trimmedLast, trimmedEmail, trimmedPhone, password_hash]
         );
       } else throw insertErr;
     }
@@ -82,7 +114,7 @@ router.post('/register', async (req, res) => {
     console.error('Register error:', err);
     const isDev = process.env.NODE_ENV !== 'production';
     return res.status(500).json({
-      error: 'Registration failed',
+      error: 'REGISTRATION_FAILED',
       ...(isDev && err.message && { detail: err.message }),
     });
   }

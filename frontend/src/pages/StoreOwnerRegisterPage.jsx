@@ -1,27 +1,17 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
+import { validateRegisterForm, mapRegisterApiError } from '../validation/register';
+import RegisterPasswordBlock from '../components/register/RegisterPasswordBlock';
+import RegisterFieldGroup from '../components/register/RegisterFieldGroup';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-const PHONE_REGEX = /^05\d{8}$/;
-
-
-const ERROR_MESSAGES_AR = {
-  'Missing required fields': 'يرجى تعبئة جميع الحقول المطلوبة',
-  'Email already registered': 'البريد الإلكتروني مسجل مسبقاً',
-  'Registration failed': 'فشل إنشاء الحساب. يرجى المحاولة لاحقاً',
-  'NetworkError': 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000',
-};
-
-const getErrorMessageAr = (message) => ERROR_MESSAGES_AR[message] || message || 'حدث خطأ. يرجى المحاولة لاحقاً';
+const NS = 'auth';
 
 const StoreOwnerRegisterPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  
+
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -30,67 +20,75 @@ const StoreOwnerRegisterPage = () => {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [bannerKey, setBannerKey] = useState('');
+  const [bannerDevDetail, setBannerDevDetail] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [multiErrorSummary, setMultiErrorSummary] = useState(false);
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
+  const focusFieldRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
   }, [i18n.language, isRTL]);
 
+  useLayoutEffect(() => {
+    const id = focusFieldRef.current;
+    if (!id) return;
+    focusFieldRef.current = null;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [fieldErrors]);
+
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
   };
 
-  
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError('');
+  const clearFieldError = (name) => {
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    setBannerKey('');
+    setBannerDevDetail('');
+    setMultiErrorSummary(false);
   };
 
-  
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    clearFieldError(e.target.name);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setBannerKey('');
+    setBannerDevDetail('');
+    setFieldErrors({});
+    setSubmitAttempted(false);
+    setMultiErrorSummary(false);
 
-    if (form.password !== form.confirmPassword) {
-      setError(t('auth.passwordMismatch'));
+    const { fieldErrors: nextFieldErrors, firstInvalidField } = validateRegisterForm(form, NS);
+    if (firstInvalidField) {
+      focusFieldRef.current = firstInvalidField;
+      setFieldErrors(nextFieldErrors);
+      setSubmitAttempted(true);
+      setMultiErrorSummary(Object.keys(nextFieldErrors).length > 1);
       return;
     }
 
     const { first_name, last_name, email, phone, password } = form;
-    const trimmedFirstName = first_name?.trim();
-    const trimmedLastName = last_name?.trim();
-    const trimmedEmail = email?.trim();
-    const trimmedPhone = phone?.trim();
-    if (!trimmedFirstName || !trimmedLastName || !trimmedEmail || !trimmedPhone || !password) {
-      setError(isRTL ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill all required fields');
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      alert(isRTL ? 'يرجى إدخال بريد إلكتروني صالح' : 'Please enter a valid email address');
-      return;
-    }
-
-    if (!PASSWORD_REGEX.test(password)) {
-      alert(
-        isRTL
-          ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف واحد ورقم واحد على الأقل'
-          : 'Password must be at least 8 characters and include at least one letter and one number'
-      );
-      return;
-    }
-
-    if (!PHONE_REGEX.test(trimmedPhone)) {
-      alert(
-        isRTL
-          ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
-          : 'Phone number must start with 05 and be exactly 10 digits'
-      );
-      return;
-    }
+    const trimmedFirstName = first_name.trim();
+    const trimmedLastName = last_name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
 
     setLoading(true);
     try {
@@ -102,26 +100,34 @@ const StoreOwnerRegisterPage = () => {
         password,
       });
 
-      
       localStorage.setItem('token', data.token);
       localStorage.setItem('store_owner_id', String(data.store_owner_id));
       navigate('/store-setup');
     } catch (err) {
-      const data = err.response?.data;
-      const msg = data?.error || err.message;
-      const detail = data?.detail;
-      setError(detail ? `${getErrorMessageAr(msg)} (${detail})` : getErrorMessageAr(msg));
+      if (!err.response) {
+        setBannerKey(`${NS}.registerApi.NETWORK_ERROR`);
+        setBannerDevDetail('');
+        return;
+      }
+      const errorMsg = err.response.data?.error || err.message;
+      const detail = err.response.data?.detail;
+      setBannerKey(mapRegisterApiError(errorMsg, NS));
+      setBannerDevDetail(process.env.NODE_ENV === 'development' && detail ? String(detail) : '');
     } finally {
       setLoading(false);
     }
   };
+
+  const fieldError = (name) => fieldErrors[name];
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <Link to="/" className={`text-storelaunch-dark text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
-            {isRTL ? '← ' : ''}{t('auth.backToHome')}{isRTL ? '' : ' →'}
+            {isRTL ? '← ' : ''}
+            {t('auth.backToHome')}
+            {isRTL ? '' : ' →'}
           </Link>
           <button
             type="button"
@@ -134,111 +140,84 @@ const StoreOwnerRegisterPage = () => {
         <h1 className={`text-storelaunch-dark text-xl font-bold mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('auth.registerTitle')}
         </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="first_name" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.firstName')}
-            </label>
-            <input
-              id="first_name"
-              name="first_name"
-              type="text"
-              value={form.first_name}
-              onChange={handleChange}
-              placeholder={t('auth.firstName')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="last_name" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.lastName')}
-            </label>
-            <input
-              id="last_name"
-              name="last_name"
-              type="text"
-              value={form.last_name}
-              onChange={handleChange}
-              placeholder={t('auth.lastName')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="email" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.email')}
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder={t('auth.email')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="phone" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.phone')}
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              value={form.phone}
-              onChange={handleChange}
-              onInvalid={(e) => e.target.setCustomValidity('Phone number must contain exactly 10 digits')}
-              onInput={(e) => e.target.setCustomValidity('')}
-              placeholder={t('auth.phone')}
-              required
-              pattern="05[0-9]{8}"
-              title="Phone number must contain exactly 10 digits"
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="password" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.password')}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder={t('auth.password')}
-              required
-              minLength={8}
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="confirmPassword" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('auth.confirmPassword')}
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder={t('auth.confirmPassword')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          {error && (
-            <p className={`text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{error}</p>
+        <form noValidate onSubmit={handleSubmit} className="space-y-4">
+          <RegisterFieldGroup
+            fieldId="first_name"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            labelKey="auth.firstName"
+            errorKey={fieldError('first_name')}
+            autoComplete="given-name"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="last_name"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+            labelKey="auth.lastName"
+            errorKey={fieldError('last_name')}
+            autoComplete="family-name"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            labelKey="auth.email"
+            errorKey={fieldError('email')}
+            type="text"
+            inputMode="email"
+            autoComplete="email"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="phone"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            labelKey="auth.phone"
+            errorKey={fieldError('phone')}
+            type="tel"
+            autoComplete="tel"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+
+          <RegisterPasswordBlock
+            ns={NS}
+            password={form.password}
+            confirmPassword={form.confirmPassword}
+            onFieldChange={handleChange}
+            fieldErrors={fieldErrors}
+            submitAttempted={submitAttempted}
+            isRTL={isRTL}
+          />
+
+          {multiErrorSummary && (
+            <p
+              className={`text-sm text-amber-900 bg-amber-50 border border-amber-100 rounded-md px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}
+              role="status"
+            >
+              {t(`${NS}.validation.multiErrorSummary`)}
+            </p>
+          )}
+
+          {bannerKey && (
+            <div className={`p-3 bg-red-50 border border-red-200 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-sm text-red-600" role="alert">
+                {t(bannerKey)}
+                {bannerDevDetail ? ` (${bannerDevDetail})` : ''}
+              </p>
+            </div>
           )}
           <button
             type="submit"
             disabled={loading}
             className="w-full p-2 bg-storelaunch-green text-white rounded-md font-medium disabled:opacity-70"
           >
-            {loading ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : t('auth.registerButton')}
+            {loading ? t('auth.creating') : t('auth.registerButton')}
           </button>
         </form>
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
