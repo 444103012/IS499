@@ -7,6 +7,9 @@ import { useStoreSetup, STORE_TYPES, storeSetupStep1DraftKey } from '../../conte
 import axiosInstance from '../../api/axios';
 import { previewStoreSlugFromName } from '../../utils/previewStoreSlugFromName';
 
+const STORE_NAME_MIN_LENGTH = 3;
+const STORE_NAME_MAX_LENGTH = 40;
+
 export default function StoreSetupDetails({ isRTL, t, onNext }) {
   const { storeId, storeDetails, updateStoreDetails, setStoreId } = useStoreSetup();
   const [loading, setLoading] = useState(false);
@@ -69,9 +72,10 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
     setError('');
   };
 
-  const hasStoreName = Boolean(storeDetails.storeName?.trim());
+  const trimmedStoreName = storeDetails.storeName?.trim() || '';
+  const hasValidStoreName = trimmedStoreName.length >= STORE_NAME_MIN_LENGTH && trimmedStoreName.length <= STORE_NAME_MAX_LENGTH;
   const hasStoreLogo = Boolean(storeDetails.storeLogo) || Boolean(storeDetails.storeLogoPreview);
-  const canNext = hasStoreName && hasStoreLogo;
+  const canNext = hasValidStoreName && hasStoreLogo;
   const baseDomain = 'storelaunch.site';
   const slugPreview = useMemo(
     () => previewStoreSlugFromName(storeDetails.storeName || ''),
@@ -79,8 +83,8 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
   );
 
   const handleSubmit = async () => {
-    if (!hasStoreName) {
-      setError(isRTL ? 'يرجى إدخال اسم المتجر للمتابعة.' : 'Please enter your store name to continue.');
+    if (!hasValidStoreName) {
+      setError(t('onboarding.storeDetails.storeNameLength'));
       return;
     }
     if (!hasStoreLogo) {
@@ -128,9 +132,14 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
             name="storeName"
             value={storeDetails.storeName}
             onChange={handleChange}
+            minLength={STORE_NAME_MIN_LENGTH}
+            maxLength={STORE_NAME_MAX_LENGTH}
             placeholder={t('onboarding.storeDetails.storeNamePlaceholder')}
             className={`w-full p-2 border border-gray-300 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
           />
+          <p className={`mt-1 text-xs ${trimmedStoreName && !hasValidStoreName ? 'text-red-600' : 'text-gray-500'}`}>
+            {t('onboarding.storeDetails.storeNameLength')}
+          </p>
           <p className="mt-2 text-xs text-gray-600">
             {t('onboarding.storeDetails.urlPreviewHint')}
           </p>

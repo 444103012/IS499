@@ -70,7 +70,7 @@ router.get('/', async (req, res) => {
     const nextBillingAmount = plan ? Number(plan.price || 0) : 0;
     const remainingDays = daysBetween(new Date(), nextPaymentDate);
 
-    res.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+    res.set('Cache-Control', 'no-store');
     res.json({
       subscriptionId: s.subscription_id,
       plan: planType,

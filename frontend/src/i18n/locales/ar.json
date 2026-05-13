@@ -259,6 +259,7 @@
       "title": "تفاصيل المتجر",
       "storeName": "اسم المتجر",
       "storeNamePlaceholder": "أدخل اسم المتجر",
+      "storeNameLength": "يجب أن يكون اسم المتجر بين 3 و40 حرفًا.",
       "storeLogo": "شعار المتجر",
       "storeType": "نوع المتجر",
       "chooseType": "اختر النوع",
@@ -403,6 +404,9 @@
       "edit": "تعديل",
       "delete": "حذف",
       "deleting": "جاري الحذف…",
+      "deleteConfirmTitle": "حذف المنتج",
+      "cancelDelete": "إلغاء",
+      "confirmDelete": "حذف المنتج",
       "deleteConfirm": "حذف المنتج \"{{name}}\"؟ لا يمكن التراجع عن هذا."
     },
       "subscriptionPage": {
@@ -653,6 +657,7 @@
           "logoUploadSuccess": "تم تحديث الشعار بنجاح.",
           "logoUploadError": "فشل تحديث الشعار.",
           "storeName": "اسم المتجر",
+          "storeNameLength": "يجب أن يكون اسم المتجر بين 3 و40 حرفًا.",
           "storeDescription": "وصف المتجر",
           "businessCategory": "نوع النشاط",
           "contactEmail": "البريد الإلكتروني للتواصل",

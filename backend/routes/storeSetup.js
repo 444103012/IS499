@@ -19,6 +19,14 @@ const SHIPPING_PROVIDER_MIN_PLAN = {
   aramex: 'advanced',
   spl: 'pro',
 };
+const STORE_NAME_MIN_LENGTH = 3;
+const STORE_NAME_MAX_LENGTH = 40;
+const STORE_NAME_LENGTH_ERROR = 'Store name must be 3-40 characters.';
+
+function isValidStoreNameLength(name) {
+  const length = String(name || '').trim().length;
+  return length >= STORE_NAME_MIN_LENGTH && length <= STORE_NAME_MAX_LENGTH;
+}
 
 function paymentProviderNameToFrontendId(name) {
   const n = String(name || '').trim().toLowerCase();
@@ -236,8 +244,8 @@ router.get('/check-name', async (req, res) => {
   try {
     const pool = req.app.locals.pool;
     const name = (req.query.name || '').trim();
-    if (!name || name.length < 2) {
-      return res.json({ available: false, message: 'Name too short' });
+    if (!isValidStoreNameLength(name)) {
+      return res.json({ available: false, message: STORE_NAME_LENGTH_ERROR });
     }
     const { store_owner_id } = req.user;
     
@@ -305,6 +313,7 @@ router.post('/store-details', uploadStoreLogo.single('logo'), async (req, res) =
     const { store_owner_id } = req.user;
     const name = (req.body && req.body.name ? String(req.body.name) : '').trim();
     if (!name) return res.status(400).json({ error: 'Store name is required' });
+    if (!isValidStoreNameLength(name)) return res.status(400).json({ error: STORE_NAME_LENGTH_ERROR });
 
     let setupStep = 0;
     try {

@@ -9,6 +9,15 @@ const subscriptionRouter = require('./subscription');
 
 const router = express.Router();
 const PLAN_PRICES = subscriptionRouter.PLAN_PRICES || { basic: 0, pro: 69, advanced: 199 };
+const STORE_NAME_MIN_LENGTH = 3;
+const STORE_NAME_MAX_LENGTH = 40;
+const STORE_NAME_LENGTH_ERROR = 'Store name must be 3-40 characters.';
+
+function isValidStoreNameLength(name) {
+  const length = String(name || '').trim().length;
+  return length >= STORE_NAME_MIN_LENGTH && length <= STORE_NAME_MAX_LENGTH;
+}
+
 function getS3KeyFromStoreLogoUrl(url) {
   const bucket = process.env.AWS_BUCKET;
   const region = process.env.AWS_REGION;
@@ -329,6 +338,7 @@ router.put('/', async (req, res) => {
 
     const name = (body.name || '').trim();
     if (!name) return res.status(400).json({ error: 'Store name is required' });
+    if (!isValidStoreNameLength(name)) return res.status(400).json({ error: STORE_NAME_LENGTH_ERROR });
     const description = (body.description || '').trim() || null;
     const store_type = (body.store_type || '').trim() || null;
     const status = body.status === 'Suspended' ? 'Suspended' : 'Active';

@@ -61,7 +61,7 @@ export default function SubscriptionPage() {
     setLoadError('');
     try {
       const [subRes, plansRes, pmRes] = await Promise.all([
-        axiosInstance.get('/api/subscription'),
+        axiosInstance.get('/api/subscription', { params: { _: Date.now() } }),
         axiosInstance.get('/api/subscription/plans'),
         axiosInstance.get('/api/subscription/payment-method').catch(() => ({ data: { paymentMethod: null } })),
       ]);

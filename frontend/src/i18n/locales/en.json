@@ -259,6 +259,7 @@
       "title": "Store Details",
       "storeName": "Store Name",
       "storeNamePlaceholder": "Enter your store name",
+      "storeNameLength": "Store name must be 3-40 characters.",
       "storeLogo": "Store Logo",
       "storeType": "Store Type",
       "chooseType": "Choose type",
@@ -403,6 +404,9 @@
       "edit": "Edit",
       "delete": "Delete",
       "deleting": "Deleting…",
+      "deleteConfirmTitle": "Delete product",
+      "cancelDelete": "Cancel",
+      "confirmDelete": "Delete product",
       "deleteConfirm": "Delete product \"{{name}}\"? This cannot be undone."
     },
       "subscriptionPage": {
@@ -653,6 +657,7 @@
           "logoUploadSuccess": "Logo updated successfully.",
           "logoUploadError": "Failed to update logo.",
           "storeName": "Store name",
+          "storeNameLength": "Store name must be 3-40 characters.",
           "storeDescription": "Store description",
           "businessCategory": "Business category",
           "contactEmail": "Contact email",
