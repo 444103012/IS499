@@ -243,15 +243,42 @@ router.delete('/:id', async (req, res) => {
   const { store_owner_id } = req.user;
   const product_id = parseInt(req.params.id, 10);
   if (Number.isNaN(product_id)) return res.status(400).json({ error: 'Invalid product id' });
+
+  const client = await pool.connect();
   try {
     const store_id = await getProductStoreId(pool, product_id, store_owner_id);
     if (!store_id) return res.status(404).json({ error: 'Product not found' });
 
-    await pool.query('DELETE FROM products WHERE product_id = $1', [product_id]);
+    await client.query('BEGIN');
+
+    // Nullify option_id on order_items so order history is preserved
+    await client.query(
+      `UPDATE order_items oi
+       SET option_id = NULL
+       FROM product_options po
+       WHERE oi.option_id = po.option_id AND po.product_id = $1`,
+      [product_id]
+    );
+
+    // Remove cart_items that reference this product's options (stale cart entries)
+    await client.query(
+      `DELETE FROM cart_items ci
+       USING product_options po
+       WHERE ci.option_id = po.option_id AND po.product_id = $1`,
+      [product_id]
+    );
+
+    // Now safe to delete — product_options will cascade automatically
+    await client.query('DELETE FROM products WHERE product_id = $1', [product_id]);
+
+    await client.query('COMMIT');
     res.json({ message: 'Product deleted' });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('products delete:', err);
     res.status(500).json({ error: 'Failed to delete product' });
+  } finally {
+    client.release();
   }
 });
 
@@ -338,6 +365,11 @@ router.delete('/options/:option_id', async (req, res) => {
       [option_id, store_owner_id]
     );
     if (check.rows.length === 0) return res.status(404).json({ error: 'Option not found' });
+
+    // Nullify order_items.option_id to preserve order history
+    await pool.query('UPDATE order_items SET option_id = NULL WHERE option_id = $1', [option_id]);
+    // Remove stale cart entries
+    await pool.query('DELETE FROM cart_items WHERE option_id = $1', [option_id]);
     await pool.query('DELETE FROM product_options WHERE option_id = $1', [option_id]);
     res.json({ message: 'Option deleted' });
   } catch (err) {
