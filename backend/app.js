@@ -28,7 +28,14 @@ const { ensureCartColumn } = require('./scripts/ensureCartColumn');
 const app = express();
 
 function parseCorsOrigins(value) {
-  const defaultOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001'];
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'https://storelaunch.site',
+    'https://www.storelaunch.site',
+    'https://api.storelaunch.site',
+  ];
   if (!value) {
     return defaultOrigins;
   }
