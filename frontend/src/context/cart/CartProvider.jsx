@@ -69,6 +69,14 @@ async function fetchAvailableStockForItem({ productId, variantId }) {
   }
 }
 
+function readIsLoggedIn() {
+  try {
+    return !!localStorage.getItem('customer_token');
+  } catch (_) {
+    return false;
+  }
+}
+
 export default function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [totals, setTotals] = useState(defaultTotals);
@@ -76,9 +84,22 @@ export default function CartProvider({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(readIsLoggedIn);
   const updateDebounceRefs = useRef({});
 
-  const isLoggedIn = typeof localStorage !== 'undefined' && !!localStorage.getItem('customer_token');
+  // Keep isLoggedIn in sync when the token changes in another tab or when the
+  // app fires a 'customer_auth_change' custom event after login / logout.
+  useEffect(() => {
+    function sync() {
+      setIsLoggedIn(readIsLoggedIn());
+    }
+    window.addEventListener('storage', sync);
+    window.addEventListener('customer_auth_change', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('customer_auth_change', sync);
+    };
+  }, []);
 
   const fetchCart = useCallback(async () => {
     if (!isLoggedIn) return;
@@ -90,10 +111,9 @@ export default function CartProvider({ children }) {
       setTotals(data.totals || defaultTotals);
       setWarnings(Array.isArray(data.warnings) ? data.warnings : []);
     } catch (err) {
+      // Keep whatever items are already in state so the cart doesn't appear
+      // empty on a transient network/server error.
       setError(err.response?.data?.error || 'Failed to load cart');
-      setItems([]);
-      setTotals(defaultTotals);
-      setWarnings([]);
     } finally {
       setLoading(false);
     }

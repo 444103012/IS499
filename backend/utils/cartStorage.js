@@ -1,5 +1,7 @@
 const { getFallbackCart, setFallbackCart } = require('./cartFallbackStore');
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 let hasCustomerCartColumnCache = null;
 
 async function hasCustomerCartColumn(pool) {
@@ -28,6 +30,29 @@ function parseCartPayload(cartValue) {
   return [];
 }
 
+/**
+ * Emit a loud warning when the cart column is missing so the problem is
+ * immediately visible in Vercel Function logs.  In production we re-throw
+ * the error instead of silently falling back to the in-memory store, which
+ * breaks on serverless because each invocation may run in a different
+ * container.
+ */
+function handleMissingColumn(err, context) {
+  if (err.code !== '42703') throw err;
+
+  console.error(
+    '[cartStorage] FATAL: customers.cart column does not exist. ' +
+    'Run backend/migrations/add_customers_cart_column.sql against the ' +
+    'production database. Context: ' + context
+  );
+
+  if (IS_PRODUCTION) {
+    throw new Error(
+      'cart column missing – run add_customers_cart_column.sql migration'
+    );
+  }
+}
+
 async function getCart(pool, customerId) {
   try {
     const r = await pool.query(
@@ -37,7 +62,11 @@ async function getCart(pool, customerId) {
     if (!r.rows[0]) return [];
     return parseCartPayload(r.rows[0].cart);
   } catch (err) {
-    if (err.code === '42703') return getFallbackCart(customerId);
+    if (err.code === '42703') {
+      handleMissingColumn(err, `getCart(${customerId})`);
+      // development-only fallback
+      return getFallbackCart(customerId);
+    }
     throw err;
   }
 }
@@ -51,6 +80,8 @@ async function setCart(pool, customerId, items) {
     );
   } catch (err) {
     if (err.code === '42703') {
+      handleMissingColumn(err, `setCart(${customerId})`);
+      // development-only fallback
       setFallbackCart(customerId, payload);
       return;
     }
@@ -64,4 +95,3 @@ module.exports = {
   hasCustomerCartColumn,
   parseCartPayload,
 };
-

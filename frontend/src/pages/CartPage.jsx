@@ -25,6 +25,7 @@ export default function CartPage() {
     error,
     clearCartError,
     revalidateCart,
+    isLoggedIn,
   } = useCart();
 
   const checkoutPath = buildStorefrontPath(normalizedStoreSlug, 'checkout');
@@ -33,9 +34,13 @@ export default function CartPage() {
   const taxAmount = 0;
   const grandTotal = Number(totals.grand || 0) + shippingEstimate + taxAmount;
 
+  // For guests the cart lives in localStorage and is already loaded by
+  // CartProvider.  Only trigger a server revalidation for logged-in customers.
   useEffect(() => {
-    revalidateCart();
-  }, [revalidateCart]);
+    if (isLoggedIn) {
+      revalidateCart();
+    }
+  }, [isLoggedIn, revalidateCart]);
 
   const warningMap = useMemo(() => {
     const map = new Map();
