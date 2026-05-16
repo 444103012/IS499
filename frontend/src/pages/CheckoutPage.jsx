@@ -11,10 +11,11 @@ import SummaryCard from '../components/checkout/SummaryCard';
 import { buildStorefrontPath } from '../utils/storefrontRoutes';
 import { Link } from '../router';
 import useStoreBranding from '../hooks/useStoreBranding';
+import useDocumentLanguage from '../hooks/useDocumentLanguage';
 
 const CheckoutPage = () => {
-  const { i18n } = useTranslation();
-  const isRTL = i18n.language === 'ar';
+  const { t } = useTranslation();
+  const { isRTL } = useDocumentLanguage();
   const { storeSlug } = useParams();
   const { storeInfo, branding } = useStoreBranding(storeSlug);
   const location = useLocation();
@@ -49,23 +50,13 @@ const CheckoutPage = () => {
   const hasItems = Array.isArray(checkoutItems) && checkoutItems.length > 0;
   const cartReady = !cartLoading;
 
-  const contactHint = isRTL
-    ? 'لتعديل البريد أو رقم الجوال، انتقل إلى إعدادات الحساب.'
-    : 'To update email or phone, manage them in account settings.';
-
-  const profilePhoneMissingHint = isRTL
-    ? 'رقم الجوال غير مكتمل في حسابك. حدّثه من الإعدادات للمتابعة.'
-    : 'Phone number is missing in your account. Update it in settings to continue.';
+  const contactHint = t('storefront.checkout.contactHint');
+  const profilePhoneMissingHint = t('storefront.checkout.profilePhoneMissingHint');
 
   const checkoutPath = `${location.pathname || storefrontHome}${location.search || ''}`;
   const loginHref = storeSlug
     ? `${buildStorefrontPath(storeSlug, 'login')}?redirectTo=${encodeURIComponent(checkoutPath)}`
     : `/customer/login?redirectTo=${encodeURIComponent(checkoutPath)}`;
-
-  useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language, isRTL]);
 
   useEffect(() => {
     if (!cartReady || !hasItems) return;
@@ -144,7 +135,7 @@ const CheckoutPage = () => {
         }));
       } catch (err) {
         if (!cancelled && err.response?.status !== 401) {
-          setError(err.response?.data?.error || (isRTL ? 'تعذر تحميل بيانات الحساب' : 'Failed to load account details'));
+          setError(err.response?.data?.error || t('storefront.checkout.loadAccountFailed'));
         }
       } finally {
         if (!cancelled) setProfileLoading(false);
@@ -153,7 +144,7 @@ const CheckoutPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, isRTL]);
+  }, [isLoggedIn, t]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -215,12 +206,12 @@ const CheckoutPage = () => {
           grandTotal: data.grandTotal,
         });
       } catch (err) {
-        setError(err.response?.data?.error || (isRTL ? 'فشل حساب الإجمالي' : 'Failed to calculate totals'));
+        setError(err.response?.data?.error || t('storefront.checkout.totalsFailed'));
       } finally {
         setLoading(false);
       }
     })();
-  }, [address, selectedShippingId, cartReady, hasItems, isRTL, checkoutItems, isLoggedIn]);
+  }, [address, selectedShippingId, cartReady, hasItems, checkoutItems, isLoggedIn, t]);
 
   useEffect(() => {
     setQuote((prev) => ({
@@ -234,13 +225,13 @@ const CheckoutPage = () => {
 
   const validateAddress = () => {
     const nextErrors = {};
-    if (!(address.full_name || '').trim()) nextErrors.full_name = isRTL ? 'الاسم الكامل مطلوب' : 'Full name is required';
-    if (!(address.email || '').trim()) nextErrors.email = isRTL ? 'البريد الإلكتروني مطلوب' : 'Email is required';
-    if (!(address.phone || '').trim()) nextErrors.phone = isRTL ? 'رقم الجوال مطلوب' : 'Phone is required';
-    if (!(address.address1 || '').trim()) nextErrors.address1 = isRTL ? 'العنوان مطلوب' : 'Address is required';
-    if (!(address.city || '').trim()) nextErrors.city = isRTL ? 'المدينة مطلوبة' : 'City is required';
-    if (!(address.region || '').trim()) nextErrors.region = isRTL ? 'المنطقة مطلوبة' : 'Region is required';
-    if (!(address.postal_code || '').trim()) nextErrors.postal_code = isRTL ? 'الرمز البريدي مطلوب' : 'Postal code is required';
+    if (!(address.full_name || '').trim()) nextErrors.full_name = t('storefront.checkout.validation.fullName');
+    if (!(address.email || '').trim()) nextErrors.email = t('storefront.checkout.validation.email');
+    if (!(address.phone || '').trim()) nextErrors.phone = t('storefront.checkout.validation.phone');
+    if (!(address.address1 || '').trim()) nextErrors.address1 = t('storefront.checkout.validation.address');
+    if (!(address.city || '').trim()) nextErrors.city = t('storefront.checkout.validation.city');
+    if (!(address.region || '').trim()) nextErrors.region = t('storefront.checkout.validation.region');
+    if (!(address.postal_code || '').trim()) nextErrors.postal_code = t('storefront.checkout.validation.postalCode');
     setFieldErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -312,7 +303,7 @@ const CheckoutPage = () => {
       });
       const redirectUrl = resolvePaymentRedirectUrl(payment);
       if (!redirectUrl) {
-        setError(isRTL ? 'تعذر العثور على رابط الدفع. يرجى المحاولة مرة أخرى.' : 'Payment redirect URL is missing. Please try again.');
+        setError(t('storefront.checkout.paymentUrlMissing'));
         return;
       }
       window.location.href = redirectUrl;
@@ -333,7 +324,7 @@ const CheckoutPage = () => {
             : 'One of the items is out of stock. Please review your cart.'
         );
       } else {
-        setError(err.response?.data?.error || (isRTL ? 'فشل إنشاء الطلب' : 'Failed to create order'));
+        setError(err.response?.data?.error || t('storefront.checkout.orderFailed'));
       }
     } finally {
       setSubmitting(false);
@@ -346,15 +337,15 @@ const CheckoutPage = () => {
       <div className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className={`mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           <div className={`inline-flex items-center gap-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span>{isRTL ? 'السلة' : 'Cart'}</span>
+            <span>{t('storefront.checkout.breadcrumbCart')}</span>
             <span>/</span>
-            <span className="font-semibold" style={{ color: branding.buttons }}>{isRTL ? 'الشحن' : 'Shipping'}</span>
+            <span className="font-semibold" style={{ color: branding.buttons }}>{t('storefront.checkout.breadcrumbShipping')}</span>
             <span>/</span>
-            <span>{isRTL ? 'الدفع' : 'Payment'}</span>
+            <span>{t('storefront.checkout.breadcrumbPayment')}</span>
           </div>
         </div>
         <h1 className={`text-2xl font-semibold mb-6 ${isRTL ? 'text-right' : 'text-left'}`} style={{ color: branding.text }}>
-          {isRTL ? 'إتمام الطلب' : 'Checkout'}
+          {t('storefront.checkout.title')}
         </h1>
 
         {error && (
@@ -406,23 +397,23 @@ const CheckoutPage = () => {
             {!isLoggedIn ? (
               <div className={`rounded-md border border-amber-200 bg-amber-50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <p className="text-sm text-amber-800 mb-2">
-                  {isRTL ? 'يلزم تسجيل الدخول للمتابعة إلى الدفع.' : 'Please sign in to continue to payment.'}
+                  {t('storefront.checkout.signInRequired')}
                 </p>
                 <Link to={loginHref} className="text-sm font-medium" style={{ color: branding.buttons }}>
-                  {isRTL ? 'تسجيل الدخول' : 'Sign in'}
+                  {t('storefront.checkout.signIn')}
                 </Link>
               </div>
             ) : null}
             {!cartReady ? (
               <p className={`text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {isRTL ? 'جاري تحميل السلة...' : 'Loading cart...'}
+                {t('storefront.checkout.loadingCart')}
               </p>
             ) : null}
             {cartReady && !hasItems ? (
               <div className={`rounded-md border border-gray-200 bg-white p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <p className="text-sm text-gray-600 mb-3">{isRTL ? 'السلة فارغة' : 'Your cart is empty.'}</p>
+                <p className="text-sm text-gray-600 mb-3">{t('storefront.checkout.emptyCart')}</p>
                 <Link to={storefrontHome} className="text-sm font-medium" style={{ color: branding.buttons }}>
-                  {isRTL ? 'العودة للتسوق' : 'Continue shopping'}
+                  {t('storefront.cart.continueShopping')}
                 </Link>
               </div>
             ) : null}
@@ -438,15 +429,15 @@ const CheckoutPage = () => {
               className="cart-btn-primary w-full py-3.5 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting
-                ? isRTL ? 'جاري التوجيه للدفع...' : 'Redirecting to payment...'
-                : isRTL ? 'المتابعة للدفع' : 'Proceed to Payment'}
+                ? t('storefront.checkout.redirecting')
+                : t('storefront.checkout.proceedToPayment')}
             </button>
           </div>
         </div>
 
         {loading && (
           <p className={`mt-4 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {isRTL ? 'جاري تحديث الإجمالي...' : 'Updating totals...'}
+            {t('storefront.checkout.updatingTotals')}
           </p>
         )}
       </div>

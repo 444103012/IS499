@@ -11,7 +11,7 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function darkenHex(hex, ratio = 0.18) {
+export function darkenHex(hex, ratio = 0.18) {
   const normalized = String(hex || '').replace('#', '');
   const full = normalized.length === 3
     ? normalized.split('').map((c) => `${c}${c}`).join('')

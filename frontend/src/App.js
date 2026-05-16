@@ -16,6 +16,8 @@ import CartProvider from './context/cart/CartProvider';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { buildStorefrontPath, normalizeStoreName } from './utils/storefrontRoutes';
+import PwaLaunchRedirect from './components/pwa/PwaLaunchRedirect';
+import PwaLaunchTracker from './components/pwa/PwaLaunchTracker';
 
 import DashboardRouteLoading from './components/dashboard/DashboardRouteLoading';
 
@@ -184,6 +186,8 @@ function App() {
     
     
     <BrowserRouter>
+      <PwaLaunchRedirect />
+      <PwaLaunchTracker />
       <CartProvider>
       <AdminAuthProvider>
       {}
