@@ -16,7 +16,6 @@ import axiosInstance from '../api/axios';
 import { useCart } from '../context/cart/CartContext';
 import { buildStorefrontPath, normalizeStoreName } from '../utils/storefrontRoutes';
 import useStoreBranding from '../hooks/useStoreBranding';
-import useDocumentLanguage from '../hooks/useDocumentLanguage';
 import CurrencyAmount from '../components/common/CurrencyAmount';
 import StarRating from '../components/reviews/StarRating';
 import ReviewCard from '../components/reviews/ReviewCard';

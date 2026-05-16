@@ -14,8 +14,8 @@ import useStoreBranding from '../hooks/useStoreBranding';
 import useDocumentLanguage from '../hooks/useDocumentLanguage';
 
 const CheckoutPage = () => {
-  const { t } = useTranslation();
-  const { isRTL } = useDocumentLanguage();
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const { storeSlug } = useParams();
   const { storeInfo, branding } = useStoreBranding(storeSlug);
   const location = useLocation();

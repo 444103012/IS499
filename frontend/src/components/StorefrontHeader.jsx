@@ -277,7 +277,7 @@ const StorefrontHeader = ({
   const [headerStore, setHeaderStore] = useState(storeInfo || null);
   const userMenuRef = useRef(null);
   const filterMenuRef = useRef(null);
-  const mobileDrawerRef = useRef(null);
+  const isRTL = i18n.language === 'ar';
   const { totals } = useCart();
   const cartCount = totals?.items ?? 0;
   const isDesktop = useMediaQuery('(min-width: 1024px)');

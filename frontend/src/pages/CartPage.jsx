@@ -11,7 +11,7 @@ import useDocumentLanguage from '../hooks/useDocumentLanguage';
 import { buildStorefrontPath, normalizeStoreName } from '../utils/storefrontRoutes';
 
 export default function CartPage() {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
   const { storeSlug } = useParams();
   const navigate = useNavigate();
   const normalizedStoreSlug = normalizeStoreName(storeSlug);
