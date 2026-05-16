@@ -319,6 +319,9 @@ export default function CustomerOrderDetailsPage() {
     setReviewSubmitting(true);
     try {
       await axiosInstance.post(`/api/customers/orders/${orderId}/review`, { storeReview, productReviews: productReviewsPayload });
+      // Invalidate the storefront product sessionStorage cache so the next visit
+      // to the catalogue shows updated review counts instead of stale data.
+      try { sessionStorage.removeItem(`sf_products_${effectiveStoreSlug}`); } catch (_) {}
       await fetchOrderDetails();
       setReviewExpanded(false);
       setState((prev) => ({ ...prev, actionMessage: text.reviewSaved, actionError: '' }));

@@ -127,6 +127,9 @@ const StorefrontPage = () => {
       setLoading(false);
       return;
     }
+    // Clear stale sessionStorage cache on fresh (non-back-nav) mounts so that
+    // updated data (e.g. new review counts) is always shown immediately.
+    try { sessionStorage.removeItem(productCacheKey); } catch (_) {}
     setCurrentPage(1);
     setProducts([]);
     fetchProducts(1, true);
