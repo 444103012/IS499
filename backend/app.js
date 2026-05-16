@@ -110,7 +110,11 @@ function isAllowedCorsOrigin(origin) {
   return false;
 }
 
-const appReady = Promise.all([
+// Run startup tasks in the background — do NOT block every incoming request.
+// ensureCartColumn only matters for /api/cart routes; we gate it there.
+// A 7-second timeout prevents a flaky DB cold start from hanging cart requests
+// indefinitely (Vercel functions time out at 10 s by default).
+const _startupTasks = Promise.all([
   ensureAdminsTableAndSeed(pool).catch((err) => {
     console.error('Failed to seed admin users:', err);
   }),
@@ -118,11 +122,10 @@ const appReady = Promise.all([
     console.error('Failed to ensure cart column:', err);
   }),
 ]);
-
-app.use(async (_req, _res, next) => {
-  await appReady;
-  next();
-});
+const cartReady = Promise.race([
+  _startupTasks,
+  new Promise((resolve) => setTimeout(resolve, 7000)),
+]);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -146,7 +149,7 @@ app.use('/api/admin/manage', adminManagementRouter);
 app.use('/api/admin', adminStoreRoutes);
 app.use('/api/admin/platform', adminPlatformRoutes);
 app.use('/api/products', browseProductsRouter);
-app.use('/api/cart', cartRouter);
+app.use('/api/cart', async (req, res, next) => { await cartReady; next(); }, cartRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/store/products', authMiddleware, productsRouter);
@@ -218,4 +221,4 @@ app.use((err, _req, res, next) => {
 });
 
 module.exports = app;
-module.exports.appReady = appReady;
+module.exports.appReady = cartReady;
