@@ -29,6 +29,7 @@ export default function RegisterFieldGroup({
   inputMode,
   autoComplete,
   alignClass,
+  dir,
 }) {
   const { t } = useTranslation();
   const hasError = Boolean(errorKey);
@@ -47,6 +48,7 @@ export default function RegisterFieldGroup({
       type={type}
       inputMode={inputMode}
       autoComplete={autoComplete}
+      dir={dir}
       value={value}
       onChange={onChange}
       placeholder={placeholder}

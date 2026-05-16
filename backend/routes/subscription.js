@@ -156,6 +156,116 @@ router.post('/upgrade', async (req, res) => {
 });
 
 
+// Plan rank and feature-gating rules (mirrors storeManagement.js constants).
+const PLAN_RANK_MAP = { basic: 0, pro: 1, advanced: 2 };
+const PAYMENT_MIN_PLAN_DOWNGRADE = {
+  bankTransfer: 'basic',
+  mada: 'pro',
+  stcPay: 'pro',
+  applePay: 'advanced',
+};
+const SHIPPING_MIN_PLAN_DOWNGRADE = {
+  noShippingNeeded: 'basic',
+  smsa: 'advanced',
+  aramex: 'advanced',
+  spl: 'pro',
+};
+const THEME_MIN_PLAN_DOWNGRADE = {
+  default: 'basic',
+  minimal: 'pro',
+  modern: 'pro',
+  classic: 'advanced',
+};
+const LAYOUT_MIN_PLAN_DOWNGRADE = {
+  'grid-classic': 'basic',
+  'compact-list': 'pro',
+};
+
+function planAllowed(newPlan, minPlan) {
+  return (PLAN_RANK_MAP[newPlan] ?? 0) >= (PLAN_RANK_MAP[minPlan] ?? 0);
+}
+
+/**
+ * After a plan downgrade, disable any providers/themes that exceed the new plan tier.
+ * Ensures at least one payment method and one shipping method remain active
+ * (falls back to bankTransfer / noShippingNeeded if needed).
+ * Returns a list of removed features for the UI toast.
+ */
+async function sanitizeSettingsAfterDowngrade(pool, store_id, newPlan) {
+  const settings = await getStoreSettings(pool, store_id);
+  const removedFeatures = [];
+
+  // --- Payments ---
+  const rawPayments = (settings.payments && typeof settings.payments === 'object') ? settings.payments : {};
+  const sanitizedPayments = {};
+  let hasEnabledPayment = false;
+  for (const [key, state] of Object.entries(rawPayments)) {
+    if (key === 'billingCard') { sanitizedPayments[key] = state; continue; }
+    const minPlan = PAYMENT_MIN_PLAN_DOWNGRADE[key];
+    const wasEnabled = !!state?.enabled;
+    if (wasEnabled && minPlan && !planAllowed(newPlan, minPlan)) {
+      sanitizedPayments[key] = { ...(state || {}), enabled: false };
+      removedFeatures.push({ type: 'payment', key, labelEn: key, requiredPlan: minPlan });
+    } else {
+      sanitizedPayments[key] = state;
+      if (wasEnabled) hasEnabledPayment = true;
+    }
+  }
+  // Guarantee at least one payment method is enabled (fall back to bankTransfer).
+  if (!hasEnabledPayment) {
+    sanitizedPayments.bankTransfer = { ...(sanitizedPayments.bankTransfer || {}), enabled: true };
+  }
+
+  // --- Shipping ---
+  const rawShipping = (settings.shipping && typeof settings.shipping === 'object') ? settings.shipping : {};
+  const sanitizedShipping = {};
+  let hasEnabledShipping = false;
+  for (const [key, state] of Object.entries(rawShipping)) {
+    const minPlan = SHIPPING_MIN_PLAN_DOWNGRADE[key];
+    const wasEnabled = !!state?.enabled;
+    if (wasEnabled && minPlan && !planAllowed(newPlan, minPlan)) {
+      sanitizedShipping[key] = { ...(state || {}), enabled: false };
+      removedFeatures.push({ type: 'shipping', key, labelEn: key, requiredPlan: minPlan });
+    } else {
+      sanitizedShipping[key] = state;
+      if (wasEnabled) hasEnabledShipping = true;
+    }
+  }
+  // Guarantee at least one shipping method is enabled (fall back to noShippingNeeded).
+  if (!hasEnabledShipping) {
+    sanitizedShipping.noShippingNeeded = { ...(sanitizedShipping.noShippingNeeded || {}), enabled: true, zones: [] };
+  }
+
+  // --- Theme (stored in stores.theme) ---
+  const storeRow = await pool.query('SELECT theme FROM stores WHERE store_id = $1', [store_id]);
+  const currentTheme = String(storeRow.rows[0]?.theme || 'default').trim().toLowerCase();
+  const themeMinPlan = THEME_MIN_PLAN_DOWNGRADE[currentTheme];
+  if (themeMinPlan && !planAllowed(newPlan, themeMinPlan)) {
+    await pool.query('UPDATE stores SET theme = $1 WHERE store_id = $2', ['default', store_id]);
+    removedFeatures.push({ type: 'theme', key: currentTheme, labelEn: `${currentTheme} theme`, requiredPlan: themeMinPlan, resetTo: 'default' });
+  }
+
+  // --- Product layout (in store_settings.branding) ---
+  const branding = (settings.branding && typeof settings.branding === 'object') ? settings.branding : {};
+  const currentLayout = String(branding.productLayout || 'grid-classic').trim().toLowerCase();
+  const layoutMinPlan = LAYOUT_MIN_PLAN_DOWNGRADE[currentLayout];
+  let sanitizedBranding = branding;
+  if (layoutMinPlan && !planAllowed(newPlan, layoutMinPlan)) {
+    sanitizedBranding = { ...branding, productLayout: 'grid-classic' };
+    removedFeatures.push({ type: 'layout', key: currentLayout, labelEn: `${currentLayout} layout`, requiredPlan: layoutMinPlan, resetTo: 'grid-classic' });
+  }
+
+  // Persist sanitized values.
+  await pool.query(
+    `UPDATE store_settings
+     SET payments = $1, shipping = $2, branding = $3
+     WHERE store_id = $4`,
+    [JSON.stringify(sanitizedPayments), JSON.stringify(sanitizedShipping), JSON.stringify(sanitizedBranding), store_id]
+  );
+
+  return removedFeatures;
+}
+
 router.post('/downgrade', async (req, res) => {
   try {
     const pool = req.app.locals.pool;
@@ -190,7 +300,15 @@ router.post('/downgrade', async (req, res) => {
       [targetSlug, subscription_id]
     );
 
-    res.json({ success: true, plan: targetSlug, effectiveDate: nextPayment.toISOString().slice(0, 10) });
+    // Sanitize store settings: disable features that exceed the new plan tier.
+    const removedFeatures = await sanitizeSettingsAfterDowngrade(pool, store_id, targetSlug);
+
+    res.json({
+      success: true,
+      plan: targetSlug,
+      effectiveDate: nextPayment.toISOString().slice(0, 10),
+      removedFeatures,
+    });
   } catch (err) {
     console.error('POST /api/subscription/downgrade:', err);
     res.status(500).json({ error: 'Failed to downgrade' });

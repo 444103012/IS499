@@ -153,7 +153,9 @@ const GoLivePage = () => {
     return errors;
   }, [form]);
 
-  const canSubmit = !!status?.canActivate && Object.keys(fieldErrors).length === 0 && !submitting;
+  const violations = Array.isArray(status?.violations) ? status.violations : [];
+  const hasViolations = violations.length > 0;
+  const canSubmit = !!status?.canActivate && !hasViolations && Object.keys(fieldErrors).length === 0 && !submitting;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -248,6 +250,41 @@ const GoLivePage = () => {
       )}
       {!!error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{error}</div>
+      )}
+
+      {hasViolations && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-5" dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <h4 className="font-semibold text-amber-800">
+              {isRTL
+                ? 'لا يمكن تفعيل المتجر — يجب حل المخالفات أدناه'
+                : 'Cannot go live — resolve the violations below'}
+            </h4>
+          </div>
+          <ul className="space-y-2">
+            {violations.map((v, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-amber-800">
+                <span className="mt-0.5">•</span>
+                <span>
+                  {isRTL ? v.messageAr : v.message}
+                  {' — '}
+                  {isRTL
+                    ? `يرجى ترقية الباقة إلى "${v.requiredPlan}" أو تعطيل هذه الميزة`
+                    : `upgrade to the ${v.requiredPlan} plan or disable this feature`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <a
+            href="/dashboard/subscription"
+            className="inline-block mt-4 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700"
+          >
+            {isRTL ? 'الذهاب إلى الاشتراك' : 'Go to Subscription'}
+          </a>
+        </div>
       )}
 
       {status?.storeStatus !== 'Active' && (

@@ -407,16 +407,37 @@ router.get('/orders/:id', async (req, res) => {
     const order = orderResult.rows[0];
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
-    const payRow = await pool.query(
-      'SELECT payment_status FROM payments WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [orderId]
-    );
+    const [payRow, itemRows] = await Promise.all([
+      pool.query(
+        'SELECT payment_status FROM payments WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [orderId]
+      ),
+      pool.query(
+        `SELECT
+           oi.quantity,
+           oi.price,
+           COALESCE(p.product_name, p.title, 'Product') AS product_name,
+           po.name AS option_name
+         FROM order_items oi
+         LEFT JOIN product_options po ON po.option_id = oi.option_id
+         LEFT JOIN products p ON p.product_id = po.product_id
+         WHERE oi.order_id = $1
+         ORDER BY oi.order_item_id ASC`,
+        [orderId]
+      ).catch(() => ({ rows: [] })),
+    ]);
 
     return res.json({
       order: {
         order_id: order.order_id,
         total_amount: order.total_amount,
         payment_status: payRow.rows[0]?.payment_status || 'Pending',
+        items: itemRows.rows.map((r) => ({
+          product_name: r.product_name,
+          option_name: r.option_name || null,
+          quantity: r.quantity,
+          price: r.price,
+        })),
       },
     });
   } catch (err) {

@@ -4,7 +4,7 @@
  */
 export const MAX_NAME_LENGTH = 100;
 
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.]+\.[a-zA-Z]{2,}$/;
 export const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 export const PHONE_REGEX = /^05\d{8}$/;
 

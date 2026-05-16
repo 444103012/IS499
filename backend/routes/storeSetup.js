@@ -5,6 +5,12 @@ const {
   getPlatformPlans,
   getPlatformPlanBySlug,
 } = require('../services/platformPlansService');
+const {
+  paymentProviderNameToFrontendId,
+  shippingCarrierNameToFrontendId,
+  syncPaymentProvidersToSettings,
+  syncShippingProvidersToSettings,
+} = require('../utils/providerSync');
 
 const router = express.Router();
 const PAYMENT_PROVIDER_MIN_PLAN = {
@@ -28,23 +34,8 @@ function isValidStoreNameLength(name) {
   return length >= STORE_NAME_MIN_LENGTH && length <= STORE_NAME_MAX_LENGTH;
 }
 
-function paymentProviderNameToFrontendId(name) {
-  const n = String(name || '').trim().toLowerCase();
-  if (n === 'bank transfer' || n === 'banktransfer') return 'bankTransfer';
-  if (n === 'mada') return 'mada';
-  if (n === 'stc pay' || n === 'stcpay') return 'stcPay';
-  if (n === 'apple pay') return 'applePay';
-  return null;
-}
-
-function shippingCarrierNameToFrontendId(name) {
-  const n = String(name || '').trim().toLowerCase();
-  if (n === 'digital products' || n === 'no shipping needed') return 'noShippingNeeded';
-  if (n === 'smsa') return 'smsa';
-  if (n === 'aramex') return 'aramex';
-  if (n === 'spl (saudi post)' || n === 'spl') return 'spl';
-  return null;
-}
+// paymentProviderNameToFrontendId and shippingCarrierNameToFrontendId
+// are imported from ../utils/providerSync (single source of truth).
 
 function normalizeThemeIdFromDb(theme) {
   const t = String(theme || '').trim().toLowerCase();
@@ -504,6 +495,9 @@ router.post('/payment', async (req, res) => {
         );
       }
     }
+    // Sync table rows → store_settings.payments so dashboard shows selections immediately.
+    await ensureStoreSettingsTable(pool);
+    await syncPaymentProvidersToSettings(pool, store_id);
     await updateSetupStep(pool, store_owner_id, 4);
     res.json({ success: true, next_step: 5 });
   } catch (err) {
@@ -554,6 +548,9 @@ router.post('/shipping', async (req, res) => {
         );
       }
     }
+    // Sync table rows → store_settings.shipping so dashboard shows selections immediately.
+    await ensureStoreSettingsTable(pool);
+    await syncShippingProvidersToSettings(pool, store_id);
     await updateSetupStep(pool, store_owner_id, 5);
     res.json({ success: true, next_step: 6 });
   } catch (err) {

@@ -12,7 +12,6 @@ import DashboardSidebar from '../components/DashboardSidebar';
 import DashboardRouteLoading from '../components/dashboard/DashboardRouteLoading';
 import { clearAccessCache } from '../utils/storeAccessCache';
 import { shouldShowGoLiveCta } from '../utils/shouldShowGoLiveCta';
-import { buildStorefrontPath, isValidStoreName, normalizeStoreName } from '../utils/storefrontRoutes';
 import { isDisplayStandalone } from '../utils/pwaLaunch';
 
 const PWA_INSTALL_HINT_KEY = 'storelaunch_pwa_install_hint_dismissed';
@@ -49,7 +48,6 @@ const StoreOwnerDashboardLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [goLiveStatus, setGoLiveStatus] = useState(null);
   const [storeId, setStoreId] = useState(null);
-  const [storefrontSlug, setStorefrontSlug] = useState(null);
   const [showPwaInstallHint, setShowPwaInstallHint] = useState(false);
 
   useEffect(() => {
@@ -96,7 +94,9 @@ const StoreOwnerDashboardLayout = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [setupGuardReady]);
+  // Re-fetch on navigation so header hides Go Live immediately after going live.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setupGuardReady, location.pathname]);
 
   useEffect(() => {
     if (!setupGuardReady) return undefined;
@@ -104,21 +104,6 @@ const StoreOwnerDashboardLayout = () => {
     return undefined;
   }, [setupGuardReady]);
 
-  useEffect(() => {
-    if (!setupGuardReady) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await axiosInstance.get('/api/store');
-        if (cancelled) return;
-        const slug = normalizeStoreName(data?.store?.domain_name || data?.store?.name || '');
-        setStorefrontSlug(isValidStoreName(slug) ? slug : null);
-      } catch {
-        if (!cancelled) setStorefrontSlug(null);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [setupGuardReady]);
 
   useEffect(() => {
     if (!setupGuardReady || isDisplayStandalone()) return;
@@ -164,7 +149,6 @@ const StoreOwnerDashboardLayout = () => {
     : null;
 
   const showGoLiveButton = shouldShowGoLiveCta(goLiveStatus);
-  const storefrontPath = storefrontSlug ? buildStorefrontPath(storefrontSlug) : null;
 
   const dismissPwaInstallHint = () => {
     setShowPwaInstallHint(false);
@@ -234,11 +218,11 @@ const StoreOwnerDashboardLayout = () => {
             {showGoLiveButton ? (
               <button
                 type="button"
-                title="Publish your store and start selling"
+                title={t('dashboard.goLive.tooltip', 'Publish your store and start selling')}
                 onClick={() => navigate('/dashboard/go-live')}
                 className="hidden lg:inline-flex px-4 py-1.5 text-sm font-semibold text-white bg-storelaunch-green rounded-lg hover:bg-storelaunch-deep-green transition-all duration-200"
               >
-                Go Live
+                {t('dashboard.goLive.label', 'Go Live')}
               </button>
             ) : null}
           </div>
@@ -246,8 +230,8 @@ const StoreOwnerDashboardLayout = () => {
             {showGoLiveButton ? (
               <button
                 type="button"
-                title="Publish your store and start selling"
-                aria-label="Go Live"
+                title={t('dashboard.goLive.tooltip', 'Publish your store and start selling')}
+                aria-label={t('dashboard.goLive.label', 'Go Live')}
                 onClick={() => navigate('/dashboard/go-live')}
                 className="inline-flex lg:hidden items-center justify-center min-h-11 min-w-11 px-2.5 border border-storelaunch-green/30 text-storelaunch-green rounded-lg hover:bg-storelaunch-green/10 transition-all duration-200"
               >
@@ -255,18 +239,6 @@ const StoreOwnerDashboardLayout = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9 4-9-4-9z" />
                 </svg>
               </button>
-            ) : null}
-            {storefrontPath ? (
-              <Link
-                to={storefrontPath}
-                title={t('pwa.viewStorefront')}
-                className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-storelaunch-dark border border-storelaunch-green/40 rounded-lg hover:bg-storelaunch-green/10 transition-all duration-200"
-              >
-                <svg className="w-4 h-4 text-storelaunch-green" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                {t('pwa.viewStorefront')}
-              </Link>
             ) : null}
             <button
               type="button"
@@ -284,18 +256,6 @@ const StoreOwnerDashboardLayout = () => {
               </svg>
               {t('pwa.viewPreview', 'Preview')}
             </button>
-            {storefrontPath ? (
-              <Link
-                to={storefrontPath}
-                title={t('pwa.viewStorefront')}
-                aria-label={t('pwa.viewStorefront')}
-                className="inline-flex lg:hidden items-center justify-center min-h-11 min-w-11 px-2.5 border border-storelaunch-green/40 text-storelaunch-green rounded-lg hover:bg-storelaunch-green/10 transition-all duration-200"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </Link>
-            ) : null}
             <button
               type="button"
               onClick={() => {

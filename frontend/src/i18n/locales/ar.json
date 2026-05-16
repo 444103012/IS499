@@ -312,6 +312,10 @@
   "dashboard": {
     "title": "لوحة تحكم التاجر",
     "logout": "تسجيل الخروج",
+    "goLive": {
+      "label": "انطلق الآن",
+      "tooltip": "انشر متجرك وابدأ البيع"
+    },
     "switchToArabic": "العربية",
     "switchToEnglish": "English",
     "menu": {
@@ -696,14 +700,18 @@
           "storeSlug": "معرف المتجر",
           "slugPlaceholder": "your-store",
           "slugRulesTitle": "قواعد المعرّف",
-          "slugRulesHelp": "استخدم أحرفاً إنجليزية صغيرة وأرقاماً وشرطات فقط (3-40 حرفاً).",
+          "slugRulesHelp": "استخدم أحرفاً (عربية أو إنجليزية) وأرقاماً وشرطات (3-40 حرفاً). لا تبدأ أو تنتهِ بشرطة.",
           "slugLengthError": "يجب أن يكون المعرّف بين 3 و40 حرفاً.",
-          "slugPatternError": "يمكن أن يحتوي المعرّف على أحرف صغيرة وأرقام وشرطات فقط.",
+          "slugPatternError": "يمكن أن يحتوي المعرّف على أحرف (عربية أو إنجليزية) وأرقام وشرطات فقط — بدون مسافات أو رموز خاصة.",
           "previewLabel": "المعاينة",
+          "currentSlugLabel": "النطاق الحالي",
           "status": "حالة التحقق من النطاق",
           "statusPending": "بانتظار التحقق",
           "statusVerified": "تم التحقق",
-          "statusError": "فشل التحقق"
+          "statusError": "فشل التحقق",
+          "lockedSuspended": "تعديل النطاق غير متاح أثناء تعليق متجرك. تواصل مع الدعم لاستعادة الوصول.",
+          "lockedPlan": "تعديل النطاق المخصص يتطلب باقة المتقدم.",
+          "upgradeCta": "الترقية إلى المتقدم"
         },
         "payments": {
           "sectionTitle": "مزودو الدفع",

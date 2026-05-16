@@ -144,7 +144,7 @@ export default function StoreSetupDetails({ isRTL, t, onNext }) {
             {t('onboarding.storeDetails.urlPreviewHint')}
           </p>
           {slugPreview.length >= 3 && (
-            <p className="mt-1 text-sm text-storelaunch-dark font-medium break-all">
+            <p className="mt-1 text-sm text-storelaunch-dark font-medium break-all" dir="ltr">
               {baseDomain}/{slugPreview}
             </p>
           )}

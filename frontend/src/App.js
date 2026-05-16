@@ -273,6 +273,11 @@ function App() {
             path="/:storeSlug/payment/result"
             element={<StoreRouteGate element={<PaymentResultPage />} />}
           />
+          {/* Fallback: Moyasar may redirect without a storeSlug if domain_name was empty */}
+          <Route
+            path="/payment/result"
+            element={<PaymentResultPage />}
+          />
           <Route
             path="/:storeSlug/login"
             element={<StoreRouteGate element={<CustomerLoginPage />} />}

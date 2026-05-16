@@ -5,7 +5,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
 const FRONTEND_BASE_URL = (process.env.FRONTEND_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-const CUSTOMER_FRONTEND_BASE_URL = 'http://localhost:3000';
+const CUSTOMER_FRONTEND_BASE_URL = (
+  process.env.CUSTOMER_FRONTEND_BASE_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3000'
+).replace(/\/$/, '');
 const MOYASAR_PUBLISHABLE_KEY = process.env.MOYASAR_PUBLISHABLE_KEY || '';
 const MOYASAR_SECRET_KEY = process.env.MOYASAR_SECRET_KEY || '';
 const MOYASAR_API_BASE = (process.env.MOYASAR_API_BASE || 'https://api.moyasar.com').replace(/\/$/, '');
@@ -182,7 +184,8 @@ async function createMoyasarInvoiceSessionForOrder({
 
   const order_id = orderRow.order_id;
   const amountHalalas = Math.round(Number(orderRow.total_amount || 0) * 100);
-  const storeSlug = normalizeStoreSlug(orderRow.store_name);
+  // Prefer domain_name (store_slug) over store display-name to preserve Arabic/Unicode slugs.
+  const storeSlug = normalizeStoreSlug(orderRow.store_slug || orderRow.store_name || '');
   const invoiceBody = {
     amount: amountHalalas,
     currency: 'SAR',
@@ -249,7 +252,7 @@ router.post('/init', customerAuth, async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.order_id, o.total_amount, o.store_id, s.name AS store_name
+      `SELECT o.order_id, o.total_amount, o.store_id, s.domain_name AS store_slug
        FROM orders o
        LEFT JOIN stores s ON s.store_id = o.store_id
        WHERE o.order_id = $1 AND o.customer_id = $2`,
@@ -260,7 +263,7 @@ router.post('/init', customerAuth, async (req, res) => {
 
     const requestOrigin = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackOrigin = BACKEND_BASE_URL || requestOrigin;
-    const storeSlug = normalizeStoreSlug(order.store_name);
+    const storeSlug = normalizeStoreSlug(order.store_slug || '');
     const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}`;
     const backUrl = `${CUSTOMER_FRONTEND_BASE_URL}${storeSlug ? `/${storeSlug}/checkout` : '/checkout'}`;
     const callbackUrl = `${callbackOrigin}/api/payments/callback`;
@@ -304,7 +307,7 @@ router.post('/init-for-order', authMiddleware, async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.order_id, o.total_amount, o.store_id, o.customer_id, s.name AS store_name
+      `SELECT o.order_id, o.total_amount, o.store_id, o.customer_id, s.domain_name AS store_slug
        FROM orders o
        JOIN stores s ON s.store_id = o.store_id
        WHERE o.order_id = $1 AND s.store_owner_id = $2`,
@@ -315,7 +318,7 @@ router.post('/init-for-order', authMiddleware, async (req, res) => {
 
     const requestOrigin = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackOrigin = BACKEND_BASE_URL || requestOrigin;
-    const storeSlug = normalizeStoreSlug(order.store_name);
+    const storeSlug = normalizeStoreSlug(order.store_slug || '');
     const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}`;
     const backUrl = `${FRONTEND_BASE_URL}/dashboard/orders`;
     const callbackUrl = `${callbackOrigin}/api/payments/callback`;
