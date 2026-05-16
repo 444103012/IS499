@@ -917,5 +917,11 @@
   },
   "admin": {
     "openStoreDetails": "فتح تفاصيل المتجر"
+  },
+  "pwa": {
+    "offlineMessage": "أنت غير متصل. تسجيل الدخول والدفع والبيانات المباشرة تحتاج اتصالاً. قد تعمل الصفحات المحفوظة محلياً.",
+    "updateAvailable": "يتوفر إصدار جديد من StoreLaunch.",
+    "updateRefresh": "تحديث",
+    "updateDismiss": "لاحقاً"
   }
 }

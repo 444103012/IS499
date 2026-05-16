@@ -917,5 +917,11 @@
   },
   "admin": {
     "openStoreDetails": "Open store details"
+  },
+  "pwa": {
+    "offlineMessage": "You're offline. Sign-in, checkout, and live data need a connection. Cached pages may still work.",
+    "updateAvailable": "A new version of StoreLaunch is available.",
+    "updateRefresh": "Refresh",
+    "updateDismiss": "Later"
   }
 }

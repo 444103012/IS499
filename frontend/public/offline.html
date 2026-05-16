@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1FAE77" />
+    <title>StoreLaunch — Offline</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #f8fafc;
+        color: #0a3c5a;
+        padding: 1.5rem;
+        text-align: center;
+      }
+      .card {
+        max-width: 22rem;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 24px rgba(10, 60, 90, 0.08);
+        border: 1px solid #e2e8f0;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+      p { margin: 0; font-size: 0.95rem; color: #475569; line-height: 1.5; }
+      button {
+        margin-top: 1.25rem;
+        padding: 0.5rem 1rem;
+        background: #1fae77;
+        color: #fff;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>You're offline</h1>
+      <p>StoreLaunch needs a connection for sign-in, checkout, and live store data. Cached pages may still open.</p>
+      <button type="button" onclick="window.location.reload()">Try again</button>
+    </div>
+  </body>
+</html>
