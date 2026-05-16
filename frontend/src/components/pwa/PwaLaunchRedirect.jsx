@@ -34,15 +34,26 @@ export default function PwaLaunchRedirect() {
       return undefined;
     }
 
-    const token = localStorage.getItem(TOKEN_KEY);
-    const saved = getPwaLaunchPath();
-    const target = resolvePwaLaunchRedirect(token, saved);
-
     const currentPath = `${location.pathname}${stripPwaQuery(location.search)}${location.hash}`;
 
-    if (target && currentPath !== target) {
-      navigate(target, { replace: true });
-      return undefined;
+    // Only apply the localStorage-based redirect when launching from the root URL.
+    // On iOS, "Add to Home Screen" bookmarks the exact install URL (e.g. /live2), so
+    // the launch URL is already correct — we must not override it with a stale
+    // localStorage value. On Android the dynamic manifest sets start_url to the
+    // install path, so the same rule applies: if we're already at a specific page,
+    // trust it and only strip the ?pwa= marker.
+    const launchingFromRoot =
+      location.pathname === '/' || location.pathname === '';
+
+    if (launchingFromRoot) {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const saved = getPwaLaunchPath();
+      const target = resolvePwaLaunchRedirect(token, saved);
+
+      if (target && currentPath !== target) {
+        navigate(target, { replace: true });
+        return undefined;
+      }
     }
 
     if (location.search.includes('pwa=')) {

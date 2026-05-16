@@ -199,9 +199,8 @@ app.get('/api/pwa-manifest', (req, res) => {
     background_color: '#FFFFFF',
     categories: ['business', 'shopping'],
     icons: [
-      { src: '/favicon.ico', sizes: '48x48', type: 'image/x-icon', purpose: 'any' },
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/Logo_only192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/Logo_only512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
       { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
