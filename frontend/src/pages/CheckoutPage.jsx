@@ -300,6 +300,7 @@ const CheckoutPage = () => {
       const { data: payment } = await api.post('/api/payments/init', {
         orderId,
         method: 'creditcard',
+        frontendOrigin: window.location.origin,
       });
       const redirectUrl = resolvePaymentRedirectUrl(payment);
       if (!redirectUrl) {

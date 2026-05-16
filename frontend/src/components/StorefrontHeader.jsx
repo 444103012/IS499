@@ -308,8 +308,11 @@ const StorefrontHeader = ({
         pricePreset: '',
       };
 
-  
-  const storefrontHome = storeSlug ? buildStorefrontPath(storeSlug) : '/';
+  // Prefer the explicit storeSlug prop; fall back to domain_name carried in storeInfo
+  // so that pages which resolve the slug async (e.g. PaymentResultPage) still render
+  // a correct home link while the prop catches up.
+  const effectiveSlugForHome = storeSlug || headerStore?.domain_name || '';
+  const storefrontHome = effectiveSlugForHome ? buildStorefrontPath(effectiveSlugForHome) : '/';
 
   
   const currentPath = location.pathname + location.search;
@@ -322,7 +325,7 @@ const StorefrontHeader = ({
   const settingsHref = storeSlug ? buildStorefrontPath(storeSlug, 'settings') : '/customer/settings';
   const ordersHref = storeSlug ? buildStorefrontPath(storeSlug, 'orders') : '/customer/orders';
   const cartHref = storeSlug ? buildStorefrontPath(storeSlug, 'cart') : '/';
-  const storeName = headerStore?.name || storeSlug || t('storefront.header.defaultStoreName');
+  const storeName = headerStore?.name || storeSlug || headerStore?.domain_name || t('storefront.header.defaultStoreName');
   const logoInitials = String(storeName || 'S')
     .split(' ')
     .filter(Boolean)

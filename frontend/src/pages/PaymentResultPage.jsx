@@ -4,18 +4,39 @@ import { useTranslation } from 'react-i18next';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useCart } from '../context/cart/CartContext';
 import api from '../api/axios';
-import { buildStorefrontPath } from '../utils/storefrontRoutes';
+import { buildStorefrontPath, isValidStoreName, normalizeStoreName } from '../utils/storefrontRoutes';
 import useStoreBranding from '../hooks/useStoreBranding';
+
+const SESSION_SLUG_KEY = 'customer_last_store_slug';
 
 const PaymentResultPage = () => {
   const { i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const location = useLocation();
   const navigate = useNavigate();
-  const { storeSlug } = useParams();
-  const { storeInfo, branding } = useStoreBranding(storeSlug);
+  const { storeSlug: urlStoreSlug } = useParams();
+
+  // Resolved slug — starts from URL param, updated once order API responds with store context.
+  const [resolvedStoreSlug, setResolvedStoreSlug] = useState(() => {
+    const normalized = normalizeStoreName(urlStoreSlug || '');
+    if (isValidStoreName(normalized)) return normalized;
+    try {
+      const saved = sessionStorage.getItem(SESSION_SLUG_KEY);
+      const savedNorm = normalizeStoreName(saved || '');
+      return isValidStoreName(savedNorm) ? savedNorm : '';
+    } catch (_) {
+      return '';
+    }
+  });
+
+  // Resolved store info — for passing to StorefrontHeader when branding hook has an empty slug.
+  const [resolvedStoreInfo, setResolvedStoreInfo] = useState(null);
+
+  const { storeInfo: brandingStoreInfo, branding } = useStoreBranding(resolvedStoreSlug);
+  const storeInfo = resolvedStoreInfo || brandingStoreInfo;
+
   const { clearCart } = useCart();
-  const storefrontHome = storeSlug ? buildStorefrontPath(storeSlug) : '/';
+  const storefrontHome = resolvedStoreSlug ? buildStorefrontPath(resolvedStoreSlug) : '/';
 
   const [status, setStatus] = useState('processing');
   const [orderId, setOrderId] = useState(null);
@@ -40,8 +61,8 @@ const PaymentResultPage = () => {
     try {
       const parsed = new URL(candidate, window.location.origin);
       const isSameOrigin = parsed.origin === window.location.origin;
-      if (isSameOrigin && parsed.pathname === '/payment/result' && storeSlug) {
-        const storeScoped = buildStorefrontPath(storeSlug, 'payment/result');
+      if (isSameOrigin && parsed.pathname === '/payment/result' && resolvedStoreSlug) {
+        const storeScoped = buildStorefrontPath(resolvedStoreSlug, 'payment/result');
         return `${window.location.origin}${storeScoped}${parsed.search}`;
       }
       return parsed.href;
@@ -112,6 +133,24 @@ const PaymentResultPage = () => {
         }
 
         const { data } = await api.get(`/api/checkout/orders/${orderId}`);
+
+        // Resolve and persist store slug from the order's store context.
+        const apiSlug = normalizeStoreName(data.store?.domain_name || '');
+        if (isValidStoreName(apiSlug) && apiSlug !== resolvedStoreSlug) {
+          setResolvedStoreSlug(apiSlug);
+          try { sessionStorage.setItem(SESSION_SLUG_KEY, apiSlug); } catch (_) {}
+        }
+        if (data.store?.name || data.store?.logo) {
+          setResolvedStoreInfo(data.store);
+        }
+
+        // If the URL doesn't include the slug (landed on /payment/result), replace history entry.
+        if (isValidStoreName(apiSlug) && !urlStoreSlug) {
+          const canonicalPath = `/${apiSlug}/payment/result${location.search}`;
+          navigate(canonicalPath, { replace: true });
+          return;
+        }
+
         const paymentStatus = data.order?.payment_status || 'Pending';
           const effectiveStatus = normalizeStatus(paymentStatus) === 'pending' && verifyStatus
             ? verifyStatus
@@ -182,7 +221,7 @@ const PaymentResultPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [orderId, invoiceId, isRTL, clearCart]);
+  }, [orderId, invoiceId, isRTL, clearCart, resolvedStoreSlug, urlStoreSlug, location.search, navigate]);
 
   const handleRetry = async () => {
     if (!orderId) {
@@ -190,7 +229,7 @@ const PaymentResultPage = () => {
       return;
     }
     try {
-      const { data } = await api.post('/api/payments/init', { orderId, method: 'creditcard' });
+      const { data } = await api.post('/api/payments/init', { orderId, method: 'creditcard', frontendOrigin: window.location.origin });
       const redirectUrl = resolvePaymentRedirectUrl(data);
       if (!redirectUrl) {
         setMessage(
@@ -220,7 +259,7 @@ const PaymentResultPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: branding.background }} dir={isRTL ? 'rtl' : 'ltr'}>
-      <StorefrontHeader storeSlug={storeSlug} storeInfo={storeInfo} branding={branding} />
+      <StorefrontHeader storeSlug={resolvedStoreSlug} storeInfo={storeInfo} branding={branding} />
       <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-4">
 
         {/* Status card */}
@@ -298,6 +337,20 @@ const PaymentResultPage = () => {
 
         {/* Action buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          {status === 'success' && (
+            <button
+              type="button"
+              onClick={() => {
+                const ordersPath = resolvedStoreSlug
+                  ? buildStorefrontPath(resolvedStoreSlug, `orders${orderId ? `/${orderId}` : ''}`)
+                  : `/customer/orders${orderId ? `/${orderId}` : ''}`;
+                navigate(ordersPath);
+              }}
+              className="cart-btn-primary px-4 py-2.5 text-sm font-medium"
+            >
+              {isRTL ? 'عرض طلبي' : 'View My Order'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => navigate(storefrontHome)}

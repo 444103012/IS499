@@ -401,7 +401,11 @@ router.get('/orders/:id', async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      'SELECT order_id, customer_id, total_amount FROM orders WHERE order_id = $1 AND customer_id = $2',
+      `SELECT o.order_id, o.customer_id, o.total_amount,
+              s.domain_name AS store_slug, s.name AS store_name, s.logo, s.theme
+       FROM orders o
+       LEFT JOIN stores s ON s.store_id = o.store_id
+       WHERE o.order_id = $1 AND o.customer_id = $2`,
       [orderId, req.customerId]
     );
     const order = orderResult.rows[0];
@@ -427,6 +431,15 @@ router.get('/orders/:id', async (req, res) => {
       ).catch(() => ({ rows: [] })),
     ]);
 
+    const storeCtx = order.store_slug
+      ? {
+          domain_name: order.store_slug,
+          name: order.store_name || order.store_slug,
+          logo: order.logo || null,
+          theme: order.theme || null,
+        }
+      : null;
+
     return res.json({
       order: {
         order_id: order.order_id,
@@ -439,6 +452,7 @@ router.get('/orders/:id', async (req, res) => {
           price: r.price,
         })),
       },
+      store: storeCtx,
     });
   } catch (err) {
     console.error('checkout get order error:', err);
