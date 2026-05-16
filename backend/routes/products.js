@@ -244,14 +244,30 @@ router.delete('/:id', async (req, res) => {
   const product_id = parseInt(req.params.id, 10);
   if (Number.isNaN(product_id)) return res.status(400).json({ error: 'Invalid product id' });
 
+  // #region agent log
+  fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:DELETE-entry',message:'delete route entered',data:{product_id,store_owner_id},hypothesisId:'ALL',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
+  let clientReleased = false;
   const client = await pool.connect();
   try {
     const store_id = await getProductStoreId(pool, product_id, store_owner_id);
-    if (!store_id) return res.status(404).json({ error: 'Product not found' });
+
+    // #region agent log
+    fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:after-getStoreId',message:'store_id resolved',data:{store_id,product_id},hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    if (!store_id) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
 
     await client.query('BEGIN');
 
-    // Nullify option_id on order_items so order history is preserved
+    // #region agent log
+    fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:after-BEGIN',message:'transaction started',data:{product_id},hypothesisId:'H-B',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    // Step 1 — Nullify order_items.option_id (no cascade in DB; preserves order history)
     await client.query(
       `UPDATE order_items oi
        SET option_id = NULL
@@ -260,7 +276,7 @@ router.delete('/:id', async (req, res) => {
       [product_id]
     );
 
-    // Remove cart_items that reference this product's options (stale cart entries)
+    // Step 2 — Remove stale cart entries referencing this product's options
     await client.query(
       `DELETE FROM cart_items ci
        USING product_options po
@@ -268,17 +284,41 @@ router.delete('/:id', async (req, res) => {
       [product_id]
     );
 
-    // Now safe to delete — product_options will cascade automatically
+    // Step 3 — Delete reviews for this product (no cascade in DB)
+    await client.query('DELETE FROM reviews WHERE product_id = $1', [product_id]);
+
+    // Step 4 — Delete variants (no cascade in DB)
+    await client.query('DELETE FROM product_options WHERE product_id = $1', [product_id]);
+
+    // Step 5 — Now safe to delete the product itself
     await client.query('DELETE FROM products WHERE product_id = $1', [product_id]);
 
     await client.query('COMMIT');
+
+    // #region agent log
+    fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:after-COMMIT',message:'all steps done, committing',data:{product_id},hypothesisId:'H-C',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     res.json({ message: 'Product deleted' });
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
+    // #region agent log
+    fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:catch',message:'error caught',data:{errMsg:err.message,errCode:err.code},hypothesisId:'H-B H-C H-D',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    await client.query('ROLLBACK').catch((rbErr) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:rollback-fail',message:'ROLLBACK itself failed',data:{rbErr:rbErr.message},hypothesisId:'H-B',timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    });
     console.error('products delete:', err);
     res.status(500).json({ error: 'Failed to delete product' });
   } finally {
-    client.release();
+    if (!clientReleased) {
+      clientReleased = true;
+      client.release();
+      // #region agent log
+      fetch('http://127.0.0.1:7555/ingest/cbc96d74-14a0-4770-b8b1-588c6e99db24',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ad8f9'},body:JSON.stringify({sessionId:'0ad8f9',location:'products.js:finally-release',message:'client released in finally',data:{product_id},hypothesisId:'H-A',timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
   }
 });
 
