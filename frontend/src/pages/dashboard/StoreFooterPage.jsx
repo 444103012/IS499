@@ -61,7 +61,7 @@ const StoreFooterPage = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [isRTL]);
 
   const showToast = (type, message) => {
     setToast({ type, message });

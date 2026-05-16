@@ -8,7 +8,7 @@ import { buildStorefrontPath } from '../utils/storefrontRoutes';
 import useStoreBranding from '../hooks/useStoreBranding';
 
 const PaymentResultPage = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const location = useLocation();
   const navigate = useNavigate();

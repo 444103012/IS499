@@ -3,15 +3,9 @@
 
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useStoreSetup, THEMES, THEME_TIERS } from '../../context/StoreSetupContext';
+import { useStoreSetup, THEMES } from '../../context/StoreSetupContext';
 import axiosInstance from '../../api/axios';
 import CurrencyAmount from '../../components/common/CurrencyAmount';
-
-function isThemeEnabled(themeTier, selectedPlanId) {
-  const order = ['basic', 'pro', 'advanced'];
-  const minPlan = THEME_TIERS[themeTier];
-  return order.indexOf(selectedPlanId) >= order.indexOf(minPlan);
-}
 
 export default function StoreSetupTheme({ isRTL, t, onNext, onBack }) {
   const { storeId, selectedPlan, selectedTheme, setSelectedTheme, themeBrandingSeed, clearThemeBrandingSeed } =
@@ -151,6 +145,7 @@ export default function StoreSetupTheme({ isRTL, t, onNext, onBack }) {
       badgeText: '#FFFFFF',
       productCard: productCardDefaults[selectedThemeConfig.id] || '#FFFFFF',
     }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync palette when theme preset changes
   }, [selectedTheme]);
 
   useEffect(() => {
@@ -159,6 +154,7 @@ export default function StoreSetupTheme({ isRTL, t, onNext, onBack }) {
       const fallback = layoutOptions.find((layout) => isPlanAllowed(layout.minPlan));
       if (fallback) setSelectedLayout(fallback.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset layout when plan no longer allows it
   }, [selectedPlanId, selectedLayout]);
 
   useEffect(() => {
@@ -167,6 +163,7 @@ export default function StoreSetupTheme({ isRTL, t, onNext, onBack }) {
     }
     const firstEnabledTheme = THEMES.find((theme) => isThemeOptionEnabled(theme.id));
     if (firstEnabledTheme) setSelectedTheme(firstEnabledTheme.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pick first theme allowed for plan
   }, [selectedPlanId, selectedTheme, setSelectedTheme]);
 
   const previewProducts = useMemo(

@@ -85,6 +85,8 @@ const StorefrontPage = () => {
     
     if (storeSlug && (storeStatus === 'loading' || storeStatus !== 'ok')) return;
     fetchCategories();
+    // Load categories when store becomes ready; storeSlug gates custom-domain stores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeStatus]);
 
   useEffect(() => {
@@ -134,29 +136,9 @@ const StorefrontPage = () => {
     setCurrentPage(1);
     setProducts([]);
     fetchProducts(1, true);
+    // Intentionally omits products.length / fetchProducts to preserve back-nav cache behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, storeStatus]);
-
-  
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
-      }
-    };
-  }, [hasMore, loading, loadingMore, currentPage]);
 
   const fetchCategories = async () => {
     try {
@@ -229,7 +211,31 @@ const StorefrontPage = () => {
     if (!loadingMore && hasMore) {
       fetchProducts(currentPage + 1, false);
     }
+    // fetchProducts is stable enough for pagination; full deps would refetch on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, loadingMore, hasMore]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const target = observerTarget.current;
+    if (target) {
+      observer.observe(target);
+    }
+
+    return () => {
+      if (target) {
+        observer.unobserve(target);
+      }
+    };
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   const applyFilters = (newFilters) => {
     const params = new URLSearchParams();
@@ -287,6 +293,8 @@ const StorefrontPage = () => {
   useEffect(() => {
     if (debouncedSearch === filters.search) return;
     applyFilters({ ...draftFilters, search: debouncedSearch });
+    // Sync debounced search into URL/filters without re-running on every draft keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
   const updateDraftFilter = (key, value) => {

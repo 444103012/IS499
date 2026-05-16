@@ -47,6 +47,28 @@ Open `http://localhost:3000` (HTTPS required for install on some hosts; `localho
 - `service-worker.js` and `manifest.json` use short / no-cache headers (`vercel.json`).
 - After deploy, users get update banner when a new SW is waiting.
 
+## Icons (iOS / home screen)
+
+Canonical icons live in `public/icons/` (generated from `Logo_only512.png`):
+
+```bash
+npm run generate:icons
+```
+
+- **Apple touch**: `apple-touch-icon.png` (180×180), plus 167 and 152 variants in `index.html`
+- **Manifest**: `icon-192.png`, `icon-512.png` (`purpose: any`); maskable variants on brand green `#1FAE77`
+- **Do not** use `Full_Logo.png` or CRA `logo192.png` / `logo512.png` for PWA icons
+
+### iOS testing (icon updates)
+
+Safari caches home-screen icons aggressively. To see a new icon:
+
+1. Delete the existing StoreLaunch shortcut from the home screen
+2. Settings → Safari → Advanced → Website Data → remove your site (or clear history for the origin)
+3. Open the site in Safari → Share → **Add to Home Screen** again
+
+Existing shortcuts keep the old icon until reinstalled.
+
 ## Limitations
 
 - **iOS**: No Web Push; install via Add to Home Screen only.

@@ -277,7 +277,6 @@ function PreviewProductPanel({
                     onClick={() => handleSelectVariant(variant.variantId)}
                     disabled={variant.stock <= 0}
                     aria-label={`${variant.option_name}: ${variant.option_value}`}
-                    aria-pressed={selectedVariantId === variant.variantId}
                     className={`h-16 w-16 min-h-[44px] min-w-[44px] rounded-lg overflow-hidden border-2 shrink-0 focus:outline-none focus:ring-2 focus:ring-storelaunch-green transition-opacity sm:h-16 sm:w-16 sm:min-h-0 sm:min-w-0 ${
                       selectedVariantId === variant.variantId ? 'border-storelaunch-green shadow-sm' : 'border-gray-200'
                     } ${variant.stock <= 0 ? 'opacity-40' : 'hover:border-storelaunch-green/70'}`}
@@ -474,9 +473,9 @@ const StorePreviewPage = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const products = preview?.products || [];
+  const products = useMemo(() => preview?.products ?? [], [preview]);
   const store = preview?.store || null;
-  const settings = preview?.settings || {};
+  const settings = useMemo(() => preview?.settings ?? {}, [preview]);
   const branding = getNormalizedStoreBranding(store?.theme, settings?.branding);
 
   const storeForFooter = useMemo(() => {
@@ -489,8 +488,6 @@ const StorePreviewPage = () => {
   }, [store, settings]);
 
   const previewSlug = normalizeStoreName(store?.domain_name || store?.name || String(store?.store_id || 'store'));
-
-  const dateLabel = useMemo(() => new Date().toLocaleString(), []);
 
   const fakeStoreReviews = useMemo(
     () => previewFakeStoreReviews(isRTL, store?.name),

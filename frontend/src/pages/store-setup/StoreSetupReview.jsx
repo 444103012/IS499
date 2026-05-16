@@ -22,7 +22,6 @@ export default function StoreSetupReview({ isRTL, t, onBack }) {
     selectedPlan,
     selectedTheme,
     selectedPaymentIds,
-    bankTransfer,
     selectedShippingIds,
   } = useStoreSetup();
   const [loading, setLoading] = useState(false);

@@ -69,6 +69,7 @@ export default function StoreSetupPayment({ isRTL, t, onNext, onBack }) {
         togglePayment(provider.id);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- drop providers disallowed on plan downgrade
   }, [selectedPlanId]);
 
   const handleNext = async () => {

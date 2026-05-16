@@ -120,7 +120,7 @@ export default function CartProvider({ children }) {
       setTotals(gt);
       setWarnings([]);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchCart]);
 
   const addItem = useCallback(async (payload) => {
     const { productId, variantId, quantity = 1, title, image, options, unitPrice } = payload;

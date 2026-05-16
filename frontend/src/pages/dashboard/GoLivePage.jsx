@@ -151,7 +151,7 @@ const GoLivePage = () => {
     }
 
     return errors;
-  }, [form, status?.canActivate]);
+  }, [form]);
 
   const canSubmit = !!status?.canActivate && Object.keys(fieldErrors).length === 0 && !submitting;
 
