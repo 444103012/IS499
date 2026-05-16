@@ -10,7 +10,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from '../router';
 import { useTranslation } from 'react-i18next';
 import { useCart } from '../context/cart/CartContext';
-import CartDrawer from './storefront/cart/CartDrawer';
 import { buildStorefrontPath } from '../utils/storefrontRoutes';
 import axiosInstance from '../api/axios';
 import useMediaQuery from '../hooks/useMediaQuery';
@@ -204,7 +203,7 @@ const StorefrontHeader = ({
   const userMenuRef = useRef(null);
   const filterMenuRef = useRef(null);
   const isRTL = i18n.language === 'ar';
-  const { totals, openDrawer } = useCart();
+  const { totals } = useCart();
   const cartCount = totals?.items ?? 0;
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const safeBranding = branding && typeof branding === 'object' ? branding : {};

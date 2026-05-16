@@ -16,8 +16,6 @@ import CartProvider from './context/cart/CartProvider';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { buildStorefrontPath, normalizeStoreName } from './utils/storefrontRoutes';
-import axiosInstance from './api/axios';
-
 
 import DashboardRouteLoading from './components/dashboard/DashboardRouteLoading';
 
@@ -172,6 +170,8 @@ const AdvancedPlanRoute = ({ element, redirectTo = '/dashboard/subscription' }) 
       });
     });
     return () => { cancelled = true; };
+    // Mount-only: fetch plan once while checking is true.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (status.checking) return <DashboardRouteLoading />;

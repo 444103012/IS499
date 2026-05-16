@@ -55,6 +55,7 @@ export default function StoreSetupShipping({ isRTL, t, onNext, onBack }) {
         toggleShipping(carrier.id);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- drop carriers disallowed on plan downgrade
   }, [selectedPlanId]);
 
   const handleNext = async () => {

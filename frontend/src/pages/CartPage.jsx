@@ -29,7 +29,7 @@ const CART_WARNING_LABELS = {
 };
 
 export default function CartPage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { storeSlug } = useParams();
   const navigate = useNavigate();
   const normalizedStoreSlug = normalizeStoreName(storeSlug);

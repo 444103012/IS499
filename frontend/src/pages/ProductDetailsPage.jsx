@@ -16,7 +16,6 @@ import axiosInstance from '../api/axios';
 import { useCart } from '../context/cart/CartContext';
 import { buildStorefrontPath, normalizeStoreName } from '../utils/storefrontRoutes';
 import useStoreBranding from '../hooks/useStoreBranding';
-import { formatLocalizedNumber } from '../utils/currency';
 import CurrencyAmount from '../components/common/CurrencyAmount';
 import StarRating from '../components/reviews/StarRating';
 import ReviewCard from '../components/reviews/ReviewCard';
@@ -53,7 +52,7 @@ const ProductDetailsPage = () => {
   const [error, setError] = useState('');
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [addError, setAddError] = useState('');
+  const [, setAddError] = useState('');
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewsPage, setReviewsPage] = useState(1);
@@ -145,7 +144,7 @@ const ProductDetailsPage = () => {
     });
 
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     if (!normalizedVariants.length) {
@@ -173,7 +172,7 @@ const ProductDetailsPage = () => {
     } else if (availableStock <= 0 && quantity !== 1) {
       setQuantity(1);
     }
-  }, [availableStock, selectedVariantId, product]);
+  }, [availableStock, selectedVariantId, product, quantity]);
 
   const handleSelectVariant = useCallback((variantId) => {
     const variant = variantById.get(variantId);
@@ -182,8 +181,6 @@ const ProductDetailsPage = () => {
     setAddError('');
     setQuantity(1);
   }, [variantById]);
-
-  const formatPrice = (price) => formatLocalizedNumber(price, isRTL ? 'ar-SA' : 'en-US');
 
   const hasVariants = Boolean(product?.options?.length);
   const ratingSummary = product?.rating_summary || { average_rating: 0, total_reviews: 0 };
@@ -348,7 +345,6 @@ const ProductDetailsPage = () => {
                       onClick={() => handleSelectVariant(variant.variantId)}
                       disabled={variant.stock <= 0}
                       aria-label={`${variant.option_name}: ${variant.option_value}`}
-                      aria-pressed={selectedVariantId === variant.variantId}
                       className={`h-16 w-16 min-h-[44px] min-w-[44px] sm:h-16 sm:w-16 sm:min-h-0 sm:min-w-0 rounded-lg overflow-hidden border-2 shrink-0 focus:outline-none focus:ring-2 focus:ring-storelaunch-green transition-opacity ${
                         selectedVariantId === variant.variantId ? 'border-storelaunch-green shadow-sm' : 'border-gray-200'
                       } ${variant.stock <= 0 ? 'opacity-40' : 'hover:border-storelaunch-green/70'}`}

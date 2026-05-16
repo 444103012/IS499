@@ -171,6 +171,7 @@ const ReportsPage = () => {
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only analytics load
   }, []);
 
   useEffect(() => {

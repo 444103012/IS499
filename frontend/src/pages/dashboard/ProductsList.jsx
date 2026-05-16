@@ -65,6 +65,8 @@ const ProductsList = () => {
 
   useEffect(() => {
     loadProducts();
+    // Search is applied on submit; other filters reload the list automatically.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, stockStatus, sortBy, minPrice, maxPrice, createdFrom, createdTo]);
 
   const handleSearchSubmit = (e) => {

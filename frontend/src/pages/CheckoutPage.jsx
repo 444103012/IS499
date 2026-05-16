@@ -13,7 +13,7 @@ import { Link } from '../router';
 import useStoreBranding from '../hooks/useStoreBranding';
 
 const CheckoutPage = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const { storeSlug } = useParams();
   const { storeInfo, branding } = useStoreBranding(storeSlug);

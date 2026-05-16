@@ -109,6 +109,7 @@ const OrderDetailPage = () => {
   useEffect(() => {
     loadOrder();
     loadReturnRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when route orderId changes
   }, [orderId]);
 
   const handleStatusChange = async () => {
