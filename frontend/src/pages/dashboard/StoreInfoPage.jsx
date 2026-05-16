@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../api/axios';
 
+const STORE_NAME_MIN_LENGTH = 3;
+const STORE_NAME_MAX_LENGTH = 40;
+
 const StoreInfoPage = () => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
@@ -108,6 +111,11 @@ const StoreInfoPage = () => {
 
   const handleSave = async () => {
     if (!store) return;
+    const trimmedStoreName = store.name?.trim() || '';
+    if (trimmedStoreName.length < STORE_NAME_MIN_LENGTH || trimmedStoreName.length > STORE_NAME_MAX_LENGTH) {
+      showToast('error', t('dashboard.storeManagement.storeInfo.storeNameLength'));
+      return;
+    }
     setSaving(true);
     try {
       const persistInfo = { ...info };
@@ -115,7 +123,7 @@ const StoreInfoPage = () => {
       delete persistInfo.contactPhone;
       delete persistInfo.address;
       await axiosInstance.put('/api/store', {
-        name: store.name,
+        name: trimmedStoreName,
         description: store.description,
         store_type: store.store_type,
         status: store.status,
@@ -144,6 +152,9 @@ const StoreInfoPage = () => {
       </div>
     );
   }
+
+  const trimmedStoreName = store.name?.trim() || '';
+  const hasValidStoreName = trimmedStoreName.length >= STORE_NAME_MIN_LENGTH && trimmedStoreName.length <= STORE_NAME_MAX_LENGTH;
 
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -251,10 +262,17 @@ const StoreInfoPage = () => {
             </label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              minLength={STORE_NAME_MIN_LENGTH}
+              maxLength={STORE_NAME_MAX_LENGTH}
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${
+                trimmedStoreName && !hasValidStoreName ? 'border-red-400 focus:ring-red-400' : 'border-gray-300'
+              }`}
               value={store.name || ''}
               onChange={(e) => setStore({ ...store, name: e.target.value })}
             />
+            <p className={`mt-1 text-xs ${trimmedStoreName && !hasValidStoreName ? 'text-red-600' : 'text-gray-500'}`}>
+              {t('dashboard.storeManagement.storeInfo.storeNameLength')}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -294,7 +312,7 @@ const StoreInfoPage = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasValidStoreName}
             className="px-4 py-2 bg-storelaunch-green text-white rounded-lg text-sm font-medium hover:bg-storelaunch-deep-green disabled:opacity-50"
           >
             {t('dashboard.storeManagement.actions.saveChanges')}

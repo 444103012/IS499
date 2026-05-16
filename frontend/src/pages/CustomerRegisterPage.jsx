@@ -1,31 +1,20 @@
-
-
-
-
-
-
-
-
-
-
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 import { buildStorefrontPath } from '../utils/storefrontRoutes';
+import { validateRegisterForm, mapRegisterApiError } from '../validation/register';
+import RegisterPasswordBlock from '../components/register/RegisterPasswordBlock';
+import RegisterFieldGroup from '../components/register/RegisterFieldGroup';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-const PHONE_REGEX = /^05\d{8}$/;
+const NS = 'customerAuth';
 
 const CustomerRegisterPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { storeSlug } = useParams(); 
+  const { storeSlug } = useParams();
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -34,17 +23,32 @@ const CustomerRegisterPage = () => {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [bannerKey, setBannerKey] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [multiErrorSummary, setMultiErrorSummary] = useState(false);
   const [loading, setLoading] = useState(false);
   const isRTL = i18n.language === 'ar';
+  const focusFieldRef = useRef(null);
 
-  
   const storeHome = storeSlug ? buildStorefrontPath(storeSlug) : '/';
 
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language;
   }, [i18n.language, isRTL]);
+
+  useLayoutEffect(() => {
+    const id = focusFieldRef.current;
+    if (!id) return;
+    focusFieldRef.current = null;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [fieldErrors]);
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
@@ -56,59 +60,44 @@ const CustomerRegisterPage = () => {
     return redirectFromQuery || redirectFromState || storeHome;
   };
 
+  const clearFieldError = (name) => {
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    setBannerKey('');
+    setMultiErrorSummary(false);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    setError('');
+    clearFieldError(name);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setBannerKey('');
+    setFieldErrors({});
+    setSubmitAttempted(false);
+    setMultiErrorSummary(false);
 
-    if (form.password !== form.confirmPassword) {
-      setError(t('customerAuth.passwordMismatch'));
-      return;
-    }
-
-    if (form.password.length < 8) {
-      setError(t('customerAuth.weakPassword'));
+    const { fieldErrors: nextFieldErrors, firstInvalidField } = validateRegisterForm(form, NS);
+    if (firstInvalidField) {
+      focusFieldRef.current = firstInvalidField;
+      setFieldErrors(nextFieldErrors);
+      setSubmitAttempted(true);
+      setMultiErrorSummary(Object.keys(nextFieldErrors).length > 1);
       return;
     }
 
     const { first_name, last_name, email, phone, password } = form;
-    const trimmedFirst = first_name?.trim();
-    const trimmedLast = last_name?.trim();
-    const trimmedEmail = email?.trim();
-    const trimmedPhone = phone?.trim();
-
-    if (!trimmedFirst || !trimmedLast || !trimmedEmail || !trimmedPhone || !password) {
-      setError(t('customerAuth.missingFields'));
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      alert(isRTL ? 'يرجى إدخال بريد إلكتروني صالح' : 'Please enter a valid email address');
-      return;
-    }
-
-    if (!PASSWORD_REGEX.test(password)) {
-      alert(
-        isRTL
-          ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف واحد ورقم واحد على الأقل'
-          : 'Password must be at least 8 characters and include at least one letter and one number'
-      );
-      return;
-    }
-
-    if (!PHONE_REGEX.test(trimmedPhone)) {
-      alert(
-        isRTL
-          ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
-          : 'Phone number must start with 05 and be exactly 10 digits'
-      );
-      return;
-    }
+    const trimmedFirst = first_name.trim();
+    const trimmedLast = last_name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
 
     setLoading(true);
     try {
@@ -124,55 +113,33 @@ const CustomerRegisterPage = () => {
       localStorage.setItem('customer_token', data.token);
       localStorage.setItem('customer_id', String(data.customer_id));
       localStorage.setItem('user_type', 'customer');
-      
+
       navigate(getRedirectPath(), { replace: true });
     } catch (err) {
       if (!err.response) {
-        
-        setError(
-          isRTL
-            ? 'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم (Backend) على المنفذ 5000'
-            : 'Cannot reach the server. Make sure the backend is running on port 5000.'
-        );
-      } else {
-        const errorMsg = err.response.data?.error || err.message;
-        if (errorMsg === 'Email already registered') {
-          setError(t('customerAuth.duplicateEmail'));
-        } else if (errorMsg === 'Phone already registered') {
-          setError(t('customerAuth.duplicatePhone'));
-        } else if (errorMsg === 'Weak password') {
-          setError(t('customerAuth.weakPassword'));
-        } else if (errorMsg === 'Missing required fields') {
-          setError(t('customerAuth.missingFields'));
-        } else if (errorMsg === 'Invalid phone format') {
-          alert(
-            isRTL
-              ? 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام'
-              : 'Phone number must start with 05 and be exactly 10 digits'
-          );
-        } else if (errorMsg === 'Registration failed') {
-          
-          
-          setError(
-            isRTL
-              ? 'حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة لاحقاً.'
-              : 'An unexpected error occurred during registration. Please try again later.'
-          );
-        } else {
-          setError(errorMsg);
-        }
+        setBannerKey(`${NS}.registerApi.NETWORK_ERROR`);
+        return;
       }
+      const errorMsg = err.response.data?.error || err.message;
+      setBannerKey(mapRegisterApiError(errorMsg, NS));
     } finally {
       setLoading(false);
     }
   };
 
+  const fieldError = (name) => fieldErrors[name];
+
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 border border-gray-100">
         <div className="flex items-center justify-between mb-4">
-          <Link to={storeHome} className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}>
-            {isRTL ? '← ' : ''}{t('customerAuth.backToHome')}{isRTL ? '' : ' →'}
+          <Link
+            to={storeHome}
+            className={`text-storelaunch-dark text-sm font-medium hover:text-storelaunch-green ${isRTL ? 'text-right' : 'text-left'}`}
+          >
+            {isRTL ? '← ' : ''}
+            {t('customerAuth.backToHome')}
+            {isRTL ? '' : ' →'}
           </Link>
           <button
             type="button"
@@ -182,131 +149,92 @@ const CustomerRegisterPage = () => {
             {i18n.language === 'ar' ? t('customerAuth.switchToEnglish') : t('customerAuth.switchToArabic')}
           </button>
         </div>
-        
+
         <h1 className={`text-storelaunch-dark text-xl font-bold mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.customerRegisterTitle')}
         </h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="first_name" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.firstName')}
-            </label>
-            <input
-              id="first_name"
-              name="first_name"
-              type="text"
-              value={form.first_name}
-              onChange={handleChange}
-              placeholder={t('customerAuth.firstName')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="last_name" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.lastName')}
-            </label>
-            <input
-              id="last_name"
-              name="last_name"
-              type="text"
-              value={form.last_name}
-              onChange={handleChange}
-              placeholder={t('customerAuth.lastName')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="email" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.email')}
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder={t('customerAuth.email')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="phone" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.phone')}
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              value={form.phone}
-              onChange={handleChange}
-              onInvalid={(e) => e.target.setCustomValidity('Phone number must contain exactly 10 digits')}
-              onInput={(e) => e.target.setCustomValidity('')}
-              placeholder={t('customerAuth.phone')}
-              required
-              pattern="05[0-9]{8}"
-              title="Phone number must contain exactly 10 digits"
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="password" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.password')}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder={t('customerAuth.password')}
-              required
-              minLength={8}
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-            <p className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {isRTL ? '8 أحرف على الأقل وتحتوي على حرف ورقم' : 'At least 8 characters and must include a letter and a number'}
+
+        <form noValidate onSubmit={handleSubmit} className="space-y-4">
+          <RegisterFieldGroup
+            fieldId="first_name"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            labelKey="customerAuth.firstName"
+            errorKey={fieldError('first_name')}
+            autoComplete="given-name"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="last_name"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+            labelKey="customerAuth.lastName"
+            errorKey={fieldError('last_name')}
+            autoComplete="family-name"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            labelKey="customerAuth.email"
+            errorKey={fieldError('email')}
+            type="text"
+            inputMode="email"
+            autoComplete="email"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+          <RegisterFieldGroup
+            fieldId="phone"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            labelKey="customerAuth.phone"
+            errorKey={fieldError('phone')}
+            type="tel"
+            autoComplete="tel"
+            alignClass={isRTL ? 'text-right' : 'text-left'}
+          />
+
+          <RegisterPasswordBlock
+            ns={NS}
+            password={form.password}
+            confirmPassword={form.confirmPassword}
+            onFieldChange={handleChange}
+            fieldErrors={fieldErrors}
+            submitAttempted={submitAttempted}
+            isRTL={isRTL}
+          />
+
+          {multiErrorSummary && (
+            <p
+              className={`text-sm text-amber-900 bg-amber-50 border border-amber-100 rounded-md px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}
+              role="status"
+            >
+              {t(`${NS}.validation.multiErrorSummary`)}
             </p>
-          </div>
-          
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <label htmlFor="confirmPassword" className="block text-storelaunch-dark text-sm font-medium mb-1">
-              {t('customerAuth.confirmPassword')}
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder={t('customerAuth.confirmPassword')}
-              required
-              className={`w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-storelaunch-green focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-            />
-          </div>
-          
-          {error && (
+          )}
+
+          {bannerKey && (
             <div className={`p-3 bg-red-50 border border-red-200 rounded-md ${isRTL ? 'text-right' : 'text-left'}`}>
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600" role="alert">
+                {t(bannerKey)}
+              </p>
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={loading}
             className="w-full p-3 bg-storelaunch-green text-white rounded-md font-medium hover:bg-storelaunch-deep-green disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? (isRTL ? 'جاري الإنشاء...' : 'Creating...') : t('customerAuth.registerButton')}
+            {loading ? t('customerAuth.creating') : t('customerAuth.registerButton')}
           </button>
         </form>
-        
+
         <p className={`text-sm text-gray-600 mt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('customerAuth.hasAccount')}{' '}
           <Link

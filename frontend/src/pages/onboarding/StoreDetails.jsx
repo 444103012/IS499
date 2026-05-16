@@ -7,6 +7,9 @@ import { useOnboarding, STORE_TYPES } from '../../context/OnboardingContext';
 import axiosInstance from '../../api/axios';
 import { previewStoreSlugFromName } from '../../utils/previewStoreSlugFromName';
 
+const STORE_NAME_MIN_LENGTH = 3;
+const STORE_NAME_MAX_LENGTH = 40;
+
 export default function StoreDetails({ isRTL, t, onNext }) {
   const { storeDetails, updateStoreDetails, setStoreId } = useOnboarding();
   const [loading, setLoading] = useState(false);
@@ -16,13 +19,14 @@ export default function StoreDetails({ isRTL, t, onNext }) {
   const nameCheckTimer = useRef(null);
 
   const checkNameAvailability = useCallback(async (name) => {
-    if (!name || name.trim().length < 2) {
+    const trimmedName = name?.trim() || '';
+    if (trimmedName.length < STORE_NAME_MIN_LENGTH || trimmedName.length > STORE_NAME_MAX_LENGTH) {
       setNameAvailable(null);
       return;
     }
     setNameChecking(true);
     try {
-      const { data } = await axiosInstance.get(`/api/onboarding/check-name?name=${encodeURIComponent(name.trim())}`);
+      const { data } = await axiosInstance.get(`/api/onboarding/check-name?name=${encodeURIComponent(trimmedName)}`);
       setNameAvailable(data.available);
     } catch {
       setNameAvailable(null);
@@ -51,7 +55,9 @@ export default function StoreDetails({ isRTL, t, onNext }) {
     setError('');
   };
 
-  const canNext = storeDetails.storeName?.trim() && nameAvailable !== false;
+  const trimmedStoreName = storeDetails.storeName?.trim() || '';
+  const hasValidStoreName = trimmedStoreName.length >= STORE_NAME_MIN_LENGTH && trimmedStoreName.length <= STORE_NAME_MAX_LENGTH;
+  const canNext = hasValidStoreName && nameAvailable !== false;
 
   const baseDomain = 'storelaunch.site';
   const slugPreview = useMemo(
@@ -60,6 +66,10 @@ export default function StoreDetails({ isRTL, t, onNext }) {
   );
 
   const handleSubmit = async () => {
+    if (!hasValidStoreName) {
+      setError(t('onboarding.storeDetails.storeNameLength'));
+      return;
+    }
     if (!canNext) return;
     setLoading(true);
     setError('');
@@ -95,8 +105,11 @@ export default function StoreDetails({ isRTL, t, onNext }) {
               name="storeName"
               value={storeDetails.storeName}
               onChange={handleChange}
+              minLength={STORE_NAME_MIN_LENGTH}
+              maxLength={STORE_NAME_MAX_LENGTH}
               placeholder={t('onboarding.storeDetails.storeNamePlaceholder')}
               className={`w-full p-2 border rounded-md ${
+                trimmedStoreName && !hasValidStoreName ? 'border-red-400 focus:ring-red-400' :
                 nameAvailable === false ? 'border-red-400 focus:ring-red-400' :
                 nameAvailable === true ? 'border-green-400 focus:ring-green-400' :
                 'border-gray-300'
@@ -122,6 +135,9 @@ export default function StoreDetails({ isRTL, t, onNext }) {
               </span>
             )}
           </div>
+          <p className={`mt-1 text-xs ${trimmedStoreName && !hasValidStoreName ? 'text-red-600' : 'text-gray-500'}`}>
+            {t('onboarding.storeDetails.storeNameLength')}
+          </p>
           {nameAvailable === false && (
             <p className="mt-1 text-xs text-red-600">
               {isRTL ? 'اسم المتجر مستخدم بالفعل. يرجى اختيار اسم آخر.' : 'This store name is already taken. Please choose a different name.'}

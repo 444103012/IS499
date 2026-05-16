@@ -2,7 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { generateToken } = require('../utils/token');
-const MIN_PASSWORD_LENGTH = 8;
+const {
+  isValidPersonName,
+  isValidEmail,
+  isValidSaPhone,
+  isValidPassword,
+} = require('../utils/registerValidation');
 
 function validateBody(body, requiredFields) {
   const missing = requiredFields.filter((field) => {
@@ -14,31 +19,36 @@ function validateBody(body, requiredFields) {
 
 router.post('/register', async (req, res) => {
   const pool = req.app.locals.pool;
-  if (!pool) return res.status(500).json({ error: 'Database not configured' });
+  if (!pool) return res.status(500).json({ error: 'DATABASE_NOT_CONFIGURED' });
 
   const { email, phone, password, first_name, last_name, preferred_lang } = req.body;
 
-  
-  
   const missing = validateBody(req.body, ['email', 'password', 'first_name', 'last_name', 'phone']);
   if (missing.length > 0) {
-    return res.status(400).json({ error: 'Missing required fields', fields: missing });
+    return res.status(400).json({ error: 'MISSING_REQUIRED_FIELDS', fields: missing });
   }
 
-  
-  
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return res.status(400).json({ error: 'Weak password', detail: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+  const trimmedFirst = String(first_name).trim();
+  const trimmedLast = String(last_name).trim();
+  if (!isValidPersonName(trimmedFirst)) {
+    return res.status(400).json({ error: 'INVALID_FIRST_NAME' });
+  }
+  if (!isValidPersonName(trimmedLast)) {
+    return res.status(400).json({ error: 'INVALID_LAST_NAME' });
   }
 
   const trimmedEmail = String(email).trim().toLowerCase();
-  const trimmedPhone = phone ? String(phone).trim() : null;
+  if (!isValidEmail(trimmedEmail)) {
+    return res.status(400).json({ error: 'INVALID_EMAIL' });
+  }
 
-  
-  
-  const phonePattern = /^(\+?\d{8,15})$/;
-  if (!trimmedPhone || !phonePattern.test(trimmedPhone)) {
-    return res.status(400).json({ error: 'Invalid phone format' });
+  const trimmedPhone = phone ? String(phone).trim() : '';
+  if (!isValidSaPhone(trimmedPhone)) {
+    return res.status(400).json({ error: 'INVALID_PHONE' });
+  }
+
+  if (!isValidPassword(password)) {
+    return res.status(400).json({ error: 'WEAK_PASSWORD' });
   }
 
   try {
@@ -49,19 +59,15 @@ router.post('/register', async (req, res) => {
       [trimmedEmail]
     );
     if (existingEmail.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return res.status(409).json({ error: 'EMAIL_ALREADY_REGISTERED' });
     }
 
-    
-    
-    if (trimmedPhone) {
-      const existingPhone = await pool.query(
-        'SELECT customer_id FROM customers WHERE phone = $1',
-        [trimmedPhone]
-      );
-      if (existingPhone.rows.length > 0) {
-        return res.status(409).json({ error: 'Phone already registered' });
-      }
+    const existingPhone = await pool.query(
+      'SELECT customer_id FROM customers WHERE phone = $1',
+      [trimmedPhone]
+    );
+    if (existingPhone.rows.length > 0) {
+      return res.status(409).json({ error: 'PHONE_ALREADY_REGISTERED' });
     }
 
     const password_hash = await hashPassword(password);
@@ -76,8 +82,8 @@ router.post('/register', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING customer_id, first_name, last_name, email, phone, status, preferred_lang, created_at`,
         [
-          first_name.trim(),
-          last_name.trim(),
+          trimmedFirst,
+          trimmedLast,
           trimmedEmail,
           trimmedPhone,
           password_hash,
@@ -94,8 +100,8 @@ router.post('/register', async (req, res) => {
            VALUES ($1, $2, $3, $4, $5)
            RETURNING customer_id, first_name, last_name, email, phone, status, created_at`,
           [
-            first_name.trim(),
-            last_name.trim(),
+            trimmedFirst,
+            trimmedLast,
             trimmedEmail,
             trimmedPhone,
             password_hash
@@ -132,7 +138,7 @@ router.post('/register', async (req, res) => {
     console.error('Customer register error:', err);
     const isDev = process.env.NODE_ENV !== 'production';
     return res.status(500).json({
-      error: 'Registration failed',
+      error: 'REGISTRATION_FAILED',
       ...(isDev && err.message && { detail: err.message }),
     });
   }

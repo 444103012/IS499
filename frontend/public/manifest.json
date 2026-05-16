@@ -1,6 +1,17 @@
 {
+  "id": "/",
+  "name": "StoreLaunch — Launch and manage your online store",
   "short_name": "StoreLaunch",
-  "name": "Launch and manage your online store.",
+  "description": "Launch and manage your online store",
+  "lang": "en",
+  "dir": "auto",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1FAE77",
+  "background_color": "#FFFFFF",
+  "categories": ["business", "shopping"],
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,18 +19,34 @@
       "type": "image/x-icon"
     },
     {
-      "src": "Logo_only192.png",
+      "src": "logo_only.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any"
+    },
+    {
+      "src": "Logo_only192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "Logo_only192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "Logo_only512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any"
+    },
+    {
+      "src": "Logo_only512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  ]
 }

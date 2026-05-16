@@ -39,6 +39,7 @@ const ProductsList = () => {
   const [sortBy, setSortBy] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
 
   const loadProducts = async () => {
     try {
@@ -71,12 +72,17 @@ const ProductsList = () => {
     loadProducts();
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(t('dashboard.productsPage.deleteConfirm', { name }))) return;
-    setDeletingId(id);
+  const openDeleteModal = (id, name) => {
+    setDeleteModal({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    setDeletingId(deleteModal.id);
     try {
-      await axiosInstance.delete(`/api/store/products/${id}`);
-      setProducts((prev) => prev.filter((p) => p.product_id !== id));
+      await axiosInstance.delete(`/api/store/products/${deleteModal.id}`);
+      setProducts((prev) => prev.filter((p) => p.product_id !== deleteModal.id));
+      setDeleteModal(null);
     } catch (err) {
       setError(err.response?.data?.error || t('dashboard.productsPage.deleteError'));
     } finally {
@@ -277,7 +283,7 @@ const ProductsList = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(p.product_id, p.product_name)}
+                      onClick={() => openDeleteModal(p.product_id, p.product_name)}
                       disabled={deletingId === p.product_id}
                       className="w-full min-h-11 px-3 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg disabled:opacity-50"
                     >
@@ -328,7 +334,7 @@ const ProductsList = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(p.product_id, p.product_name)}
+                          onClick={() => openDeleteModal(p.product_id, p.product_name)}
                           disabled={deletingId === p.product_id}
                           className="text-red-600 hover:underline text-sm disabled:opacity-50"
                         >
@@ -344,6 +350,45 @@ const ProductsList = () => {
           </>
         )}
       </div>
+      {deleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !deletingId && setDeleteModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-product-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-product-title" className="text-lg font-semibold text-storelaunch-dark">
+              {t('dashboard.productsPage.deleteConfirmTitle')}
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              {t('dashboard.productsPage.deleteConfirm', { name: deleteModal.name })}
+            </p>
+            <div className={`mt-6 flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <button
+                type="button"
+                onClick={() => setDeleteModal(null)}
+                disabled={Boolean(deletingId)}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t('dashboard.productsPage.cancelDelete')}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={Boolean(deletingId)}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingId ? t('dashboard.productsPage.deleting') : t('dashboard.productsPage.confirmDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
