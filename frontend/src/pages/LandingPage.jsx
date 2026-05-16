@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CurrencyAmount from '../components/common/CurrencyAmount';
@@ -11,6 +11,7 @@ const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState('monthly');
   const [plans, setPlans] = useState([]);
+  const mobileMenuRef = useRef(null);
   const isRTL = i18n.language === 'ar';
 
   
@@ -49,6 +50,47 @@ const LandingPage = () => {
     };
   }, [isMobileMenuOpen]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen || !mobileMenuRef.current) return undefined;
+
+    const panel = mobileMenuRef.current;
+    const focusable = panel.querySelectorAll(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
+
+    const handleTab = (event) => {
+      if (event.key !== 'Tab' || focusable.length === 0) return;
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        }
+      } else if (document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, [isMobileMenuOpen]);
+
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleNavHashClick = (hash) => (event) => {
+    event.preventDefault();
+    closeMobileMenu();
+    const target = document.querySelector(hash);
+    if (target) {
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  };
+
   
   const featuresList = [
     { titleKey: 'features.easyStore.title', descriptionKey: 'features.easyStore.description', icon: 'store' },
@@ -81,10 +123,10 @@ const LandingPage = () => {
       {}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className={`flex justify-between items-center h-14 md:h-16 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <img src="/Name_only.png" alt="StoreLaunch" className="h-8 md:h-10 w-auto object-contain" />
+          <div className="flex justify-between items-center h-14 md:h-16 gap-3">
+            <img src="/Name_only.png" alt="StoreLaunch" className="h-8 md:h-10 w-auto shrink-0 object-contain" />
 
-            <div className={`hidden md:flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="hidden md:flex items-center gap-4">
               <a href="#features" className="text-storelaunch-dark hover:text-storelaunch-green text-sm font-medium">
                 {t('nav.features')}
               </a>
@@ -126,54 +168,78 @@ const LandingPage = () => {
             </button>
           </div>
 
-          {}
-          {isMobileMenuOpen && (
-            <div className="md:hidden fixed inset-0 z-50">
-              <button
-                type="button"
-                className="absolute inset-0 bg-storelaunch-dark/40"
-                aria-label="Close menu backdrop"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <div
-                id="mobile-navigation"
-                role="dialog"
-                aria-modal="true"
-                className={`relative mt-14 max-h-[calc(100dvh-3.5rem)] overflow-y-auto rounded-b-2xl border-t border-gray-100 bg-white px-4 pb-6 pt-4 shadow-xl sm:mt-16 sm:max-h-[calc(100dvh-4rem)] sm:px-6 ${isRTL ? 'text-right' : 'text-left'}`}
-              >
-                <a
-                  href="#features"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex min-h-[44px] items-center rounded-lg px-2 text-storelaunch-dark transition-colors hover:bg-gray-50 hover:text-storelaunch-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2 font-medium"
-                >
-                  {t('nav.features')}
-                </a>
-                <a
-                  href="#pricing"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="mt-1 flex min-h-[44px] items-center rounded-lg px-2 text-storelaunch-dark transition-colors hover:bg-gray-50 hover:text-storelaunch-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2 font-medium"
-                >
-                  {t('nav.pricing')}
-                </a>
-                <button
-                  onClick={toggleLanguage}
-                  className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-storelaunch-green px-4 py-2 font-medium text-white transition-colors hover:bg-storelaunch-deep-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2"
-                  aria-label="Toggle language"
-                >
-                  {i18n.language === 'ar' ? t('nav.english') : t('nav.arabic')}
-                </button>
-                <Link
-                  to="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-storelaunch-dark px-4 py-2 text-center font-medium text-white transition-colors hover:bg-storelaunch-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2"
-                >
-                  {t('nav.login')}
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
       </nav>
+
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[60]" aria-hidden={!isMobileMenuOpen}>
+          <button
+            type="button"
+            className="absolute inset-0 bg-storelaunch-dark/40 transition-opacity"
+            aria-label="Close menu backdrop"
+            onClick={closeMobileMenu}
+          />
+          <aside
+            id="mobile-navigation"
+            ref={mobileMenuRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('nav.menu')}
+            className={`fixed inset-y-0 z-[70] flex w-[min(100%,20rem)] max-w-[85vw] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out motion-reduce:transition-none ${
+              isRTL ? 'left-0' : 'right-0'
+            } ${isRTL ? 'landing-drawer-in-start' : 'landing-drawer-in-end'}`}
+            style={{
+              paddingTop: 'max(1rem, env(safe-area-inset-top))',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          >
+            <div className={`flex items-center justify-between border-b border-gray-100 px-4 pb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <span className="text-sm font-semibold text-storelaunch-dark">{t('nav.menu')}</span>
+              <button
+                type="button"
+                onClick={closeMobileMenu}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-2 text-storelaunch-dark hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green"
+                aria-label="Close navigation menu"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <nav className={`flex flex-1 flex-col overflow-y-auto px-4 py-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <a
+                href="#features"
+                onClick={handleNavHashClick('#features')}
+                className="flex min-h-[44px] items-center rounded-lg px-3 text-storelaunch-dark transition-colors hover:bg-gray-50 hover:text-storelaunch-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green font-medium"
+              >
+                {t('nav.features')}
+              </a>
+              <a
+                href="#pricing"
+                onClick={handleNavHashClick('#pricing')}
+                className="mt-1 flex min-h-[44px] items-center rounded-lg px-3 text-storelaunch-dark transition-colors hover:bg-gray-50 hover:text-storelaunch-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green font-medium"
+              >
+                {t('nav.pricing')}
+              </a>
+              <button
+                type="button"
+                onClick={toggleLanguage}
+                className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-storelaunch-green px-4 py-2 font-medium text-white transition-colors hover:bg-storelaunch-deep-green focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2"
+                aria-label="Toggle language"
+              >
+                {i18n.language === 'ar' ? t('nav.english') : t('nav.arabic')}
+              </button>
+              <Link
+                to="/login"
+                onClick={closeMobileMenu}
+                className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-storelaunch-dark px-4 py-2 text-center font-medium text-white transition-colors hover:bg-storelaunch-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2"
+              >
+                {t('nav.login')}
+              </Link>
+            </nav>
+          </aside>
+        </div>
+      )}
 
       {}
       <section className="py-10 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-white overflow-x-hidden">
@@ -183,7 +249,7 @@ const LandingPage = () => {
               <h1 className={`text-[1.75rem] leading-[1.25] sm:text-4xl md:text-5xl font-bold text-storelaunch-dark mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {t('hero.headline')}
               </h1>
-              <p className={`text-gray-600 text-base sm:text-lg mb-6 max-w-[34ch] sm:max-w-xl leading-7 sm:leading-relaxed ${isRTL ? 'text-right ml-auto lg:ml-0' : 'text-left mr-auto lg:mr-0'}`}>
+              <p className={`text-gray-600 text-base sm:text-lg mb-6 max-w-[34ch] sm:max-w-xl leading-7 sm:leading-relaxed ${isRTL ? 'text-right ms-auto lg:ms-0' : 'text-left me-auto lg:me-0'}`}>
                 {t('hero.subheadline')}
               </p>
               <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? 'sm:flex-row-reverse justify-start' : ''}`}>
@@ -214,7 +280,7 @@ const LandingPage = () => {
                 key={index}
                 className={`bg-white p-5 sm:p-6 rounded-xl border border-gray-200 shadow-sm ${isRTL ? 'text-right' : 'text-left'}`}
               >
-                <div className={`w-12 h-12 rounded-lg bg-storelaunch-green/10 flex items-center justify-center mb-3 sm:mb-4 text-storelaunch-green ${isRTL ? 'ml-auto' : ''}`}>
+                <div className={`w-12 h-12 rounded-lg bg-storelaunch-green/10 flex items-center justify-center mb-3 sm:mb-4 text-storelaunch-green ${isRTL ? 'ms-auto' : ''}`}>
                   {feature.icon === 'store' && (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -249,27 +315,46 @@ const LandingPage = () => {
             {t('pricing.subtitle')}
           </p>
 
-          {}
-          <div className={`flex items-center justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className={`text-sm font-medium px-1 ${billingPeriod === 'monthly' ? 'text-storelaunch-dark' : 'text-gray-500'}`}>
-              {t('pricing.monthly')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-              className={`relative inline-flex h-9 w-16 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2 ${billingPeriod === 'monthly' ? 'bg-storelaunch-green' : 'bg-gray-300'}`}
-              aria-label="Toggle billing period"
-              aria-pressed={billingPeriod === 'yearly'}
-            >
+          <div className="mb-8 flex flex-col items-center gap-2 sm:mb-10 sm:gap-3">
+            <div className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 px-1">
               <span
-                className={`inline-block h-7 w-7 rounded-full bg-white shadow transition-transform ${billingPeriod === 'monthly' ? (isRTL ? 'translate-x-8' : 'translate-x-1') : (isRTL ? 'translate-x-1' : 'translate-x-8')}`}
-              />
-            </button>
-            <span className={`text-sm font-medium px-1 ${billingPeriod === 'yearly' ? 'text-storelaunch-dark' : 'text-gray-500'}`}>
-              {t('pricing.yearly')}
-            </span>
+                className={`shrink-0 whitespace-nowrap text-sm font-medium min-w-[4.75rem] text-center sm:min-w-0 ${
+                  billingPeriod === 'monthly' ? 'text-storelaunch-dark' : 'text-gray-500'
+                }`}
+              >
+                {t('pricing.monthly')}
+              </span>
+              <button
+                type="button"
+                onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+                className={`relative inline-flex h-9 w-[4.25rem] shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-storelaunch-green focus-visible:ring-offset-2 ${
+                  billingPeriod === 'monthly' ? 'bg-storelaunch-green' : 'bg-gray-300'
+                }`}
+                aria-label={t('pricing.toggleBilling')}
+                aria-pressed={billingPeriod === 'yearly'}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow transition-all duration-200 ease-in-out ${
+                    billingPeriod === 'yearly' ? 'end-1 start-auto' : 'start-1 end-auto'
+                  }`}
+                />
+              </button>
+              <span
+                className={`shrink-0 whitespace-nowrap text-sm font-medium min-w-[4.75rem] text-center sm:min-w-0 ${
+                  billingPeriod === 'yearly' ? 'text-storelaunch-dark' : 'text-gray-500'
+                }`}
+              >
+                {t('pricing.yearly')}
+              </span>
+              {billingPeriod === 'yearly' && (
+                <span className="hidden shrink-0 whitespace-nowrap rounded-full bg-storelaunch-green/10 px-2 py-1 text-xs font-semibold text-storelaunch-green sm:inline-flex">
+                  {t('pricing.save')}
+                </span>
+              )}
+            </div>
             {billingPeriod === 'yearly' && (
-              <span className="text-storelaunch-green text-xs font-semibold px-2 py-1 bg-storelaunch-green/10 rounded-full">
+              <span className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-storelaunch-green/10 px-3 py-1 text-xs font-semibold text-storelaunch-green sm:hidden">
                 {t('pricing.save')}
               </span>
             )}
@@ -293,7 +378,7 @@ const LandingPage = () => {
               return (
                 <div
                   key={index}
-                  className="relative bg-white rounded-xl border border-gray-200 p-5 sm:p-6 shadow-md"
+                  className="relative bg-white rounded-xl border border-gray-200 p-5 sm:p-6 shadow-md min-w-0"
                 >
                   <h3 className={`text-xl font-bold text-storelaunch-dark mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                     {plan.name || planData.name || planKey}
@@ -303,7 +388,7 @@ const LandingPage = () => {
                     <span className="text-3xl font-bold text-storelaunch-dark">
                       <CurrencyAmount value={price} isRTL={isRTL} size="xl" />
                     </span>
-                    <span className="text-gray-600 ml-1">{period}</span>
+                    <span className="text-gray-600 ms-1">{period}</span>
                   </div>
                   <ul className={`space-y-2.5 mb-6 min-h-[180px] ${isRTL ? 'text-right' : 'text-left'}`}>
                     {features.map((feature, idx) => (

@@ -5,6 +5,7 @@
     "contact": "Contact",
     "getStarted": "Get Started",
     "login": "Login",
+    "menu": "Menu",
     "arabic": "العربية",
     "english": "English"
   },
@@ -48,6 +49,7 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "save": "Save 20%",
+    "toggleBilling": "Toggle billing period",
     "plans": {
       "basic": {
         "name": "BASIC",
@@ -310,6 +312,10 @@
   "dashboard": {
     "title": "Store Owner Dashboard",
     "logout": "Log out",
+    "goLive": {
+      "label": "Go Live",
+      "tooltip": "Publish your store and start selling"
+    },
     "switchToArabic": "العربية",
     "switchToEnglish": "English",
     "menu": {
@@ -694,14 +700,18 @@
           "storeSlug": "Store slug",
           "slugPlaceholder": "your-store",
           "slugRulesTitle": "Slug rules",
-          "slugRulesHelp": "Use lowercase letters, numbers, and hyphens only (3-40 characters).",
+          "slugRulesHelp": "Use letters (English or Arabic), numbers, and hyphens (3–40 characters). No leading or trailing hyphens.",
           "slugLengthError": "Slug must be between 3 and 40 characters.",
-          "slugPatternError": "Slug can contain only lowercase letters, numbers, and hyphens.",
+          "slugPatternError": "Slug can only contain letters (English or Arabic), digits, and hyphens — no spaces or special characters.",
           "previewLabel": "Preview",
+          "currentSlugLabel": "Current domain",
           "status": "Domain verification status",
           "statusPending": "Pending verification",
           "statusVerified": "Verified",
-          "statusError": "Verification failed"
+          "statusError": "Verification failed",
+          "lockedSuspended": "Domain editing is unavailable while your store is suspended. Please contact support to restore access.",
+          "lockedPlan": "Custom domain editing requires the Advanced plan.",
+          "upgradeCta": "Upgrade to Advanced"
         },
         "payments": {
           "sectionTitle": "Payment Providers",
@@ -905,6 +915,127 @@
     "productNotFound": "Product not found",
     "productNotAvailable": "This product is not available",
     "store": "Store",
+    "storeSubtitle": "Storefront",
+    "view": "View",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "header": {
+      "menu": "Menu",
+      "closeMenu": "Close menu",
+      "openMenu": "Open menu",
+      "cart": "Cart",
+      "openSearch": "Open search",
+      "closeSearch": "Close search",
+      "openFilters": "Open filters",
+      "closeFilters": "Close",
+      "quickActions": "Quick Actions",
+      "search": "Search",
+      "language": "Language",
+      "account": "Account",
+      "userMenu": "User menu",
+      "switchToEnglishAria": "Switch to English",
+      "switchToArabicAria": "Switch to Arabic",
+      "defaultStoreName": "Store",
+      "settings": "Settings",
+      "orderHistory": "Order History",
+      "logout": "Logout"
+    },
+    "testimonials": {
+      "title": "What Our Customers Say",
+      "subtitle": "Real feedback from recent shoppers",
+      "previous": "Previous testimonials",
+      "next": "Next testimonials"
+    },
+    "errors": {
+      "loadStore": "Could Not Load Store",
+      "loadStoreDesc": "A temporary error occurred. Please try again.",
+      "storeNotFound": "Store Not Found",
+      "storeNotFoundDesc": "No store found for \"{{slug}}\".",
+      "storeUnavailable": "Store Unavailable",
+      "storeUnavailableDesc": "Sorry, this store is not available at the moment."
+    },
+    "cart": {
+      "title": "Shopping Cart",
+      "continueShopping": "Continue shopping",
+      "empty": "Your cart is currently empty.",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "shippingAtCheckout": "Calculated at checkout",
+      "tax": "Tax",
+      "taxAtCheckout": "Calculated at checkout",
+      "total": "Total",
+      "updating": "Updating...",
+      "proceedToCheckout": "Proceed to Checkout",
+      "warnings": {
+        "QTY_ADJUSTED": "Quantity was adjusted based on latest stock.",
+        "ITEM_UNAVAILABLE": "Item was removed because it is unavailable.",
+        "PRICE_CHANGED": "Item price changed and totals were updated.",
+        "MERGE_QTY_ADJUSTED": "Merged quantity was reduced due to stock limits."
+      }
+    },
+    "checkout": {
+      "title": "Checkout",
+      "breadcrumbCart": "Cart",
+      "breadcrumbShipping": "Shipping",
+      "breadcrumbPayment": "Payment",
+      "loadAccountFailed": "Failed to load account details",
+      "totalsFailed": "Failed to calculate totals",
+      "paymentUrlMissing": "Payment redirect URL is missing. Please try again.",
+      "orderFailed": "Failed to create order",
+      "signInRequired": "Please sign in to continue to payment.",
+      "signIn": "Sign in",
+      "loadingCart": "Loading cart...",
+      "emptyCart": "Your cart is empty.",
+      "redirecting": "Redirecting to payment...",
+      "proceedToPayment": "Proceed to Payment",
+      "updatingTotals": "Updating totals...",
+      "contactHint": "To update email or phone, manage them in account settings.",
+      "profilePhoneMissingHint": "Phone number is missing in your account. Update it in settings to continue.",
+      "validation": {
+        "fullName": "Full name is required",
+        "email": "Email is required",
+        "phone": "Phone is required",
+        "address": "Address is required",
+        "city": "City is required",
+        "region": "Region is required",
+        "postalCode": "Postal code is required"
+      }
+    },
+    "product": {
+      "quantity": "Quantity",
+      "addToCart": "Add to Cart",
+      "selectVariant": "Please select a variant",
+      "outOfStock": "Out of stock",
+      "outOfStockTitle": "Out of stock",
+      "outOfStockDesc": "This product cannot be added to the cart right now.",
+      "quantityExceeds": "Quantity exceeds available stock",
+      "quantityUnavailable": "Quantity not available. Available now: {{count}}",
+      "stockUnavailable": "Requested quantity not in stock",
+      "addFailed": "Failed to add to cart",
+      "reviews": "reviews",
+      "noReviewsYet": "No reviews yet",
+      "variantThumbnails": "Variant image thumbnails",
+      "imageGallery": "Image gallery, swipe to browse",
+      "imageAlt": "image",
+      "available": "available",
+      "customerReviewsTitle": "What Customers Say",
+      "customerReviewsSubtitle": "Verified feedback from customers who bought this product",
+      "noProductReviews": "No reviews for this product yet.",
+      "loadMoreReviews": "Load more",
+      "productRating": "Product rating"
+    },
+    "filtersPanel": {
+      "priceRange": "Price range",
+      "allPrices": "All prices",
+      "availability": "Availability",
+      "all": "All",
+      "inStock": "In stock",
+      "sort": "Sort",
+      "apply": "Apply",
+      "reset": "Reset",
+      "clearAll": "Clear all"
+    },
     "footer": {
       "about": "About",
       "contact": "Contact",
@@ -922,6 +1053,10 @@
     "offlineMessage": "You're offline. Sign-in, checkout, and live data need a connection. Cached pages may still work.",
     "updateAvailable": "A new version of StoreLaunch is available.",
     "updateRefresh": "Refresh",
-    "updateDismiss": "Later"
+    "updateDismiss": "Later",
+    "installHint": "To install the app on your phone, open this dashboard in Safari or Chrome, then use Add to Home Screen.",
+    "installHintDismiss": "Dismiss",
+    "viewStorefront": "View my storefront",
+    "viewPreview": "Preview store"
   }
 }

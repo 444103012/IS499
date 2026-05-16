@@ -12,6 +12,9 @@ import DashboardSidebar from '../components/DashboardSidebar';
 import DashboardRouteLoading from '../components/dashboard/DashboardRouteLoading';
 import { clearAccessCache } from '../utils/storeAccessCache';
 import { shouldShowGoLiveCta } from '../utils/shouldShowGoLiveCta';
+import { isDisplayStandalone } from '../utils/pwaLaunch';
+
+const PWA_INSTALL_HINT_KEY = 'storelaunch_pwa_install_hint_dismissed';
 
 const API_BASE = process.env.REACT_APP_API_URL || process.env.REACT_APP_BASE_URL || '';
 
@@ -45,6 +48,7 @@ const StoreOwnerDashboardLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [goLiveStatus, setGoLiveStatus] = useState(null);
   const [storeId, setStoreId] = useState(null);
+  const [showPwaInstallHint, setShowPwaInstallHint] = useState(false);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
@@ -90,12 +94,25 @@ const StoreOwnerDashboardLayout = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [setupGuardReady]);
+  // Re-fetch on navigation so header hides Go Live immediately after going live.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setupGuardReady, location.pathname]);
 
   useEffect(() => {
     if (!setupGuardReady) return undefined;
     prefetchDashboardChunks();
     return undefined;
+  }, [setupGuardReady]);
+
+
+  useEffect(() => {
+    if (!setupGuardReady || isDisplayStandalone()) return;
+    try {
+      if (localStorage.getItem(PWA_INSTALL_HINT_KEY)) return;
+    } catch {
+      return;
+    }
+    setShowPwaInstallHint(true);
   }, [setupGuardReady]);
 
   useEffect(() => {
@@ -132,6 +149,15 @@ const StoreOwnerDashboardLayout = () => {
     : null;
 
   const showGoLiveButton = shouldShowGoLiveCta(goLiveStatus);
+
+  const dismissPwaInstallHint = () => {
+    setShowPwaInstallHint(false);
+    try {
+      localStorage.setItem(PWA_INSTALL_HINT_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  };
 
   const mainContent = !setupGuardReady ? (
     <DashboardRouteLoading />
@@ -192,11 +218,11 @@ const StoreOwnerDashboardLayout = () => {
             {showGoLiveButton ? (
               <button
                 type="button"
-                title="Publish your store and start selling"
+                title={t('dashboard.goLive.tooltip', 'Publish your store and start selling')}
                 onClick={() => navigate('/dashboard/go-live')}
                 className="hidden lg:inline-flex px-4 py-1.5 text-sm font-semibold text-white bg-storelaunch-green rounded-lg hover:bg-storelaunch-deep-green transition-all duration-200"
               >
-                Go Live
+                {t('dashboard.goLive.label', 'Go Live')}
               </button>
             ) : null}
           </div>
@@ -204,8 +230,8 @@ const StoreOwnerDashboardLayout = () => {
             {showGoLiveButton ? (
               <button
                 type="button"
-                title="Publish your store and start selling"
-                aria-label="Go Live"
+                title={t('dashboard.goLive.tooltip', 'Publish your store and start selling')}
+                aria-label={t('dashboard.goLive.label', 'Go Live')}
                 onClick={() => navigate('/dashboard/go-live')}
                 className="inline-flex lg:hidden items-center justify-center min-h-11 min-w-11 px-2.5 border border-storelaunch-green/30 text-storelaunch-green rounded-lg hover:bg-storelaunch-green/10 transition-all duration-200"
               >
@@ -220,15 +246,15 @@ const StoreOwnerDashboardLayout = () => {
                 const targetStoreId = goLiveStatus?.storeId || storeId;
                 if (targetStoreId) navigate(`/store-preview/${targetStoreId}`);
               }}
-              title="View Store"
-              aria-label="View Store"
+              title={t('pwa.viewPreview', 'Preview store')}
+              aria-label={t('pwa.viewPreview', 'Preview store')}
               className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-storelaunch-dark border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              View Store
+              {t('pwa.viewPreview', 'Preview')}
             </button>
             <button
               type="button"
@@ -236,8 +262,8 @@ const StoreOwnerDashboardLayout = () => {
                 const targetStoreId = goLiveStatus?.storeId || storeId;
                 if (targetStoreId) navigate(`/store-preview/${targetStoreId}`);
               }}
-              title="View Store"
-              aria-label="View Store"
+              title={t('pwa.viewPreview', 'Preview store')}
+              aria-label={t('pwa.viewPreview', 'Preview store')}
               className="inline-flex lg:hidden items-center justify-center min-h-11 min-w-11 px-2.5 border border-gray-300 text-storelaunch-dark rounded-lg hover:bg-gray-50 transition-all duration-200"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -262,6 +288,21 @@ const StoreOwnerDashboardLayout = () => {
           </div>
         </header>
         <main className="p-3 sm:p-6 flex-1 overflow-auto overflow-x-hidden">
+          {showPwaInstallHint && (
+            <div
+              role="note"
+              className={`mb-4 flex flex-col gap-3 rounded-lg border border-storelaunch-green/25 bg-storelaunch-green/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              <p className="text-sm text-storelaunch-dark leading-relaxed">{t('pwa.installHint')}</p>
+              <button
+                type="button"
+                onClick={dismissPwaInstallHint}
+                className="shrink-0 self-start sm:self-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-storelaunch-dark hover:bg-gray-50"
+              >
+                {t('pwa.installHintDismiss')}
+              </button>
+            </div>
+          )}
           {mainContent}
         </main>
       </div>

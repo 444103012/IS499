@@ -141,9 +141,20 @@ export default function CustomerOrderHistoryPage() {
   const isRTL = i18n.language === 'ar';
   const text = labels(isRTL);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const { storeSlug } = useParams();
-  const normalizedStoreSlug = normalizeStoreName(storeSlug);
+  const { storeSlug: rawStoreSlug } = useParams();
   const navigate = useNavigate();
+
+  // Prefer URL param, fall back to last known store from sessionStorage.
+  const normalizedStoreSlug = useMemo(() => {
+    const fromUrl = normalizeStoreName(rawStoreSlug || '');
+    if (fromUrl) return fromUrl;
+    try {
+      return normalizeStoreName(sessionStorage.getItem('customer_last_store_slug') || '');
+    } catch (_) {
+      return '';
+    }
+  }, [rawStoreSlug]);
+
   const { storeInfo, branding } = useStoreBranding(normalizedStoreSlug);
   const [state, setState] = useState({ loading: true, error: '', orders: [], actionMessage: '', actionError: '' });
   const [cancelConfirmOrderId, setCancelConfirmOrderId] = useState(null);

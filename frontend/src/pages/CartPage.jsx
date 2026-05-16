@@ -7,34 +7,16 @@ import CartItemCard from '../components/storefront/cart/CartItemCard';
 import CurrencyAmount from '../components/common/CurrencyAmount';
 import { useCart } from '../context/cart/CartContext';
 import useStoreBranding from '../hooks/useStoreBranding';
+import useDocumentLanguage from '../hooks/useDocumentLanguage';
 import { buildStorefrontPath, normalizeStoreName } from '../utils/storefrontRoutes';
 
-const CART_WARNING_LABELS = {
-  QTY_ADJUSTED: {
-    en: 'Quantity was adjusted based on latest stock.',
-    ar: 'تم تعديل الكمية بناءً على المخزون الحالي.',
-  },
-  ITEM_UNAVAILABLE: {
-    en: 'Item was removed because it is unavailable.',
-    ar: 'تم حذف المنتج لأنه غير متاح حالياً.',
-  },
-  PRICE_CHANGED: {
-    en: 'Item price changed and totals were updated.',
-    ar: 'تم تغيير سعر المنتج وتحديث الإجمالي.',
-  },
-  MERGE_QTY_ADJUSTED: {
-    en: 'Merged quantity was reduced due to stock limits.',
-    ar: 'تم تقليل الكمية المدمجة بسبب حدود المخزون.',
-  },
-};
-
 export default function CartPage() {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation();
   const { storeSlug } = useParams();
   const navigate = useNavigate();
   const normalizedStoreSlug = normalizeStoreName(storeSlug);
   const { storeInfo, branding } = useStoreBranding(normalizedStoreSlug);
-  const isRTL = i18n.language === 'ar';
+  const { isRTL } = useDocumentLanguage();
   const {
     items,
     totals,
@@ -52,11 +34,6 @@ export default function CartPage() {
   const grandTotal = Number(totals.grand || 0) + shippingEstimate + taxAmount;
 
   useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language, isRTL]);
-
-  useEffect(() => {
     revalidateCart();
   }, [revalidateCart]);
 
@@ -65,11 +42,11 @@ export default function CartPage() {
     for (const warning of Array.isArray(warnings) ? warnings : []) {
       const existing = map.get(warning.key) || [];
       const fallback = warning?.message || '';
-      const translated = CART_WARNING_LABELS[warning.code]?.[isRTL ? 'ar' : 'en'] || fallback;
+      const translated = t(`storefront.cart.warnings.${warning.code}`, { defaultValue: fallback });
       map.set(warning.key, [...existing, translated]);
     }
     return map;
-  }, [warnings, isRTL]);
+  }, [warnings, t]);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: branding.background }} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -77,10 +54,10 @@ export default function CartPage() {
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <h1 className="text-2xl font-bold" style={{ color: branding.text }}>
-            {isRTL ? 'سلة التسوق' : 'Shopping Cart'}
+            {t('storefront.cart.title')}
           </h1>
           <Link to={storefrontPath} className="text-sm font-medium" style={{ color: branding.buttons }}>
-            {isRTL ? 'متابعة التسوق' : 'Continue shopping'}
+            {t('storefront.cart.continueShopping')}
           </Link>
         </div>
 
@@ -88,7 +65,7 @@ export default function CartPage() {
           <div className={`mb-4 rounded-md border border-red-200 bg-red-50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
             <p className="text-red-700 text-sm">{error}</p>
             <button type="button" onClick={clearCartError} className="mt-2 text-xs text-red-700 underline">
-              {isRTL ? 'إغلاق' : 'Dismiss'}
+              {t('storefront.dismiss')}
             </button>
           </div>
         )}
@@ -97,7 +74,7 @@ export default function CartPage() {
           <section className="lg:col-span-2 space-y-3">
             {items.length === 0 ? (
               <div className={`rounded-xl border border-gray-200 bg-white p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <p className="text-gray-600">{isRTL ? 'السلة فارغة حالياً.' : 'Your cart is currently empty.'}</p>
+                <p className="text-gray-600">{t('storefront.cart.empty')}</p>
               </div>
             ) : (
               items.map((item) => (
@@ -117,24 +94,24 @@ export default function CartPage() {
 
           <aside className="lg:sticky lg:top-24 h-fit rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <h2 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`} style={{ color: branding.text }}>
-              {isRTL ? 'ملخص الطلب' : 'Order Summary'}
+              {t('storefront.cart.orderSummary')}
             </h2>
             <div className="space-y-3 text-sm">
               <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-600">{isRTL ? 'الإجمالي الفرعي' : 'Subtotal'}</span>
+                <span className="text-gray-600">{t('storefront.cart.subtotal')}</span>
                 <CurrencyAmount value={totals.grand || 0} isRTL={isRTL} />
               </div>
               <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-600">{isRTL ? 'الشحن' : 'Shipping'}</span>
-                <span className="text-gray-500">{isRTL ? 'يُحسب عند الدفع' : 'Calculated at checkout'}</span>
+                <span className="text-gray-600">{t('storefront.cart.shipping')}</span>
+                <span className="text-gray-500">{t('storefront.cart.shippingAtCheckout')}</span>
               </div>
               <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-600">{isRTL ? 'الضريبة' : 'Tax'}</span>
-                <span className="text-gray-500">{isRTL ? 'يُحسب عند الدفع' : 'Calculated at checkout'}</span>
+                <span className="text-gray-600">{t('storefront.cart.tax')}</span>
+                <span className="text-gray-500">{t('storefront.cart.taxAtCheckout')}</span>
               </div>
               <div className="border-t border-gray-200 pt-3">
                 <div className={`flex items-center justify-between font-semibold ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span>{isRTL ? 'الإجمالي' : 'Total'}</span>
+                  <span>{t('storefront.cart.total')}</span>
                   <CurrencyAmount value={grandTotal} isRTL={isRTL} />
                 </div>
               </div>
@@ -146,8 +123,8 @@ export default function CartPage() {
               onClick={() => navigate(checkoutPath)}
             >
               {loading
-                ? isRTL ? 'جاري التحديث...' : 'Updating...'
-                : isRTL ? 'المتابعة إلى الدفع' : 'Proceed to Checkout'}
+                ? t('storefront.cart.updating')
+                : t('storefront.cart.proceedToCheckout')}
             </button>
           </aside>
         </div>

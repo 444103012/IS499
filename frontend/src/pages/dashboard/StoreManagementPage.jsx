@@ -97,7 +97,8 @@ const StoreManagementPage = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const isAdvancedPlan = plan === 'advanced';
+  const PLAN_RANK = { basic: 0, pro: 1, advanced: 2 };
+  const isDomainAllowed = PLAN_RANK[plan] >= PLAN_RANK['advanced'];
 
   return (
     <div className="space-y-5 sm:space-y-6 max-w-full" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -111,36 +112,44 @@ const StoreManagementPage = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {cards.map((card) => (
-          <button
-            key={card.key}
-            type="button"
-            onClick={() => {
-              if (card.key === 'domain' && !isAdvancedPlan) {
-                navigate('/dashboard/subscription');
-                return;
-              }
-              navigate(card.route);
-            }}
-            className="min-h-[150px] bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg hover:border-storelaunch-green/40 hover:scale-[1.02] transition-all duration-200 p-5 sm:p-6 flex flex-col items-center justify-between gap-4 text-center"
-          >
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-storelaunch-green/10 flex items-center justify-center text-storelaunch-green">
-                {card.icon('w-8 h-8')}
-              </div>
-              <p className="text-sm font-semibold text-storelaunch-dark">
-                {t(`dashboard.storeManagement.tabs.${card.key}`)}
-              </p>
-              {card.key === 'domain' && !isAdvancedPlan ? (
-                <p className="text-xs font-medium text-amber-700">
-                  {t('dashboard.storeManagement.locked.availableInPlan', {
-                    plan: t('dashboard.storeManagement.subscriptionPlans.advanced'),
-                  })}
+        {cards.map((card) => {
+          const isDomainCard = card.key === 'domain';
+          const locked = isDomainCard && !isDomainAllowed;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => navigate(card.route)}
+              className={`relative min-h-[150px] bg-white border rounded-xl shadow-md transition-all duration-200 p-5 sm:p-6 flex flex-col items-center justify-between gap-4 text-center ${
+                locked
+                  ? 'border-amber-200 hover:shadow-md cursor-pointer opacity-90'
+                  : 'border-gray-200 hover:shadow-lg hover:border-storelaunch-green/40 hover:scale-[1.02]'
+              }`}
+            >
+              {locked && (
+                <span className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700`}>
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  {t('dashboard.storeManagement.subscriptionPlans.advanced')}
+                </span>
+              )}
+              <div className="flex flex-col items-center gap-3">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${locked ? 'bg-amber-50 text-amber-500' : 'bg-storelaunch-green/10 text-storelaunch-green'}`}>
+                  {card.icon('w-8 h-8')}
+                </div>
+                <p className="text-sm font-semibold text-storelaunch-dark">
+                  {t(`dashboard.storeManagement.tabs.${card.key}`)}
                 </p>
-              ) : null}
-            </div>
-          </button>
-        ))}
+                {locked && (
+                  <p className="text-xs font-medium text-amber-700">
+                    {t('dashboard.storeManagement.domain.lockedPlan')}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

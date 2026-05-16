@@ -1,23 +1,36 @@
 const express = require('express');
 const customerAuth = require('../middleware/customerAuth');
 const authMiddleware = require('../middleware/authMiddleware');
+const { normalizeStoreSlug } = require('../utils/storeDomain');
 
 const router = express.Router();
 
 const FRONTEND_BASE_URL = (process.env.FRONTEND_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-const CUSTOMER_FRONTEND_BASE_URL = 'http://localhost:3000';
+const CUSTOMER_FRONTEND_BASE_URL = (
+  process.env.CUSTOMER_FRONTEND_BASE_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3000'
+).replace(/\/$/, '');
 const MOYASAR_PUBLISHABLE_KEY = process.env.MOYASAR_PUBLISHABLE_KEY || '';
 const MOYASAR_SECRET_KEY = process.env.MOYASAR_SECRET_KEY || '';
 const MOYASAR_API_BASE = (process.env.MOYASAR_API_BASE || 'https://api.moyasar.com').replace(/\/$/, '');
 const BACKEND_BASE_URL = (process.env.BACKEND_BASE_URL || '').replace(/\/$/, '');
 
-function normalizeStoreSlug(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+/**
+ * Validates and normalises a frontend origin supplied by the browser.
+ * Only allows http/https schemes and strips any path/query so the value
+ * is always a bare origin (e.g. "http://localhost:3000").
+ * Returns null when the value is missing or untrustworthy.
+ */
+function sanitizeFrontendOrigin(value) {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    const u = new URL(value.trim());
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return `${u.protocol}//${u.host}`;
+  } catch (_) {
+    return null;
+  }
 }
+
 
 function toGatewayStatus(value) {
   const normalized = String(value || '').toLowerCase();
@@ -182,7 +195,8 @@ async function createMoyasarInvoiceSessionForOrder({
 
   const order_id = orderRow.order_id;
   const amountHalalas = Math.round(Number(orderRow.total_amount || 0) * 100);
-  const storeSlug = normalizeStoreSlug(orderRow.store_name);
+  // Prefer domain_name (store_slug) over store display-name to preserve Arabic/Unicode slugs.
+  const storeSlug = normalizeStoreSlug(orderRow.store_slug || orderRow.store_name || '');
   const invoiceBody = {
     amount: amountHalalas,
     currency: 'SAR',
@@ -243,13 +257,13 @@ router.post('/init', customerAuth, async (req, res) => {
   const pool = req.app.locals.pool;
   if (!pool) return res.status(500).json({ error: 'Database not configured' });
 
-  const { orderId, method } = req.body || {};
+  const { orderId, method, frontendOrigin: rawFrontendOrigin } = req.body || {};
   const order_id = parseInt(orderId, 10);
   if (Number.isNaN(order_id)) return res.status(400).json({ error: 'Invalid order id' });
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.order_id, o.total_amount, o.store_id, s.name AS store_name
+      `SELECT o.order_id, o.total_amount, o.store_id, s.domain_name AS store_slug
        FROM orders o
        LEFT JOIN stores s ON s.store_id = o.store_id
        WHERE o.order_id = $1 AND o.customer_id = $2`,
@@ -260,9 +274,14 @@ router.post('/init', customerAuth, async (req, res) => {
 
     const requestOrigin = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackOrigin = BACKEND_BASE_URL || requestOrigin;
-    const storeSlug = normalizeStoreSlug(order.store_name);
-    const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}`;
-    const backUrl = `${CUSTOMER_FRONTEND_BASE_URL}${storeSlug ? `/${storeSlug}/checkout` : '/checkout'}`;
+    const rawSlug = order.store_slug || '';
+    const storeSlug = normalizeStoreSlug(rawSlug);
+    if (!storeSlug && rawSlug) {
+      console.warn(`payments /init: store slug "${rawSlug}" normalized to empty for order ${order_id}`);
+    }
+    const customerFrontend = sanitizeFrontendOrigin(rawFrontendOrigin) || CUSTOMER_FRONTEND_BASE_URL;
+    const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}&frontendOrigin=${encodeURIComponent(customerFrontend)}`;
+    const backUrl = `${customerFrontend}${storeSlug ? `/${encodeURIComponent(storeSlug)}/checkout` : '/checkout'}`;
     const callbackUrl = `${callbackOrigin}/api/payments/callback`;
 
     const session = await createMoyasarInvoiceSessionForOrder({
@@ -304,7 +323,7 @@ router.post('/init-for-order', authMiddleware, async (req, res) => {
 
   try {
     const orderResult = await pool.query(
-      `SELECT o.order_id, o.total_amount, o.store_id, o.customer_id, s.name AS store_name
+      `SELECT o.order_id, o.total_amount, o.store_id, o.customer_id, s.domain_name AS store_slug
        FROM orders o
        JOIN stores s ON s.store_id = o.store_id
        WHERE o.order_id = $1 AND s.store_owner_id = $2`,
@@ -315,7 +334,7 @@ router.post('/init-for-order', authMiddleware, async (req, res) => {
 
     const requestOrigin = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackOrigin = BACKEND_BASE_URL || requestOrigin;
-    const storeSlug = normalizeStoreSlug(order.store_name);
+    const storeSlug = normalizeStoreSlug(order.store_slug || '');
     const successUrl = `${callbackOrigin}/api/payments/return?orderId=${encodeURIComponent(order_id)}&storeSlug=${encodeURIComponent(storeSlug)}`;
     const backUrl = `${FRONTEND_BASE_URL}/dashboard/orders`;
     const callbackUrl = `${callbackOrigin}/api/payments/callback`;
@@ -393,10 +412,13 @@ router.get('/return', async (req, res) => {
   const orderId = parseInt(req.query.orderId, 10);
   const storeSlug = normalizeStoreSlug(req.query.storeSlug);
   const invoiceId = resolveInvoiceIdFromReturnQuery(req.query);
-  const resultPath = storeSlug ? `/${storeSlug}/payment/result` : '/payment/result';
+  const resultPath = storeSlug ? `/${encodeURIComponent(storeSlug)}/payment/result` : '/payment/result';
+
+  // Prefer the origin the customer's browser reported at checkout time.
+  const frontendBase = sanitizeFrontendOrigin(req.query.frontendOrigin) || CUSTOMER_FRONTEND_BASE_URL;
 
   if (Number.isNaN(orderId) || !invoiceId) {
-    const failedUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(req.query.orderId || '')}&status=failed`;
+    const failedUrl = `${frontendBase}${resultPath}?orderId=${encodeURIComponent(req.query.orderId || '')}&status=failed`;
     console.error('payments return invalid params', {
       orderId: req.query.orderId,
       invoiceId,
@@ -414,11 +436,11 @@ router.get('/return', async (req, res) => {
       source: 'return',
     });
     const providerRef = persisted?.providerRef || getMoyasarPaymentRef(verifiedInvoice) || '';
-    const redirectUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=${encodeURIComponent(status.toLowerCase())}${providerRef ? `&paymentId=${encodeURIComponent(providerRef)}` : ''}`;
+    const redirectUrl = `${frontendBase}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=${encodeURIComponent(status.toLowerCase())}${providerRef ? `&paymentId=${encodeURIComponent(providerRef)}` : ''}`;
     return res.redirect(302, redirectUrl);
   } catch (err) {
     console.error('payments return error:', err);
-    const failedUrl = `${CUSTOMER_FRONTEND_BASE_URL}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=failed`;
+    const failedUrl = `${frontendBase}${resultPath}?orderId=${encodeURIComponent(orderId)}&invoiceId=${encodeURIComponent(invoiceId)}&status=failed`;
     return res.redirect(302, failedUrl);
   }
 });

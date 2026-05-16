@@ -485,8 +485,13 @@ router.get('/orders/:id', customerAuthMiddleware, async (req, res) => {
         o.status AS fulfillment_status,
         o.store_id,
         o.customer_id,
-        COALESCE(pay.payment_status, 'Pending') AS payment_status
+        COALESCE(pay.payment_status, 'Pending') AS payment_status,
+        s.domain_name AS store_slug,
+        s.name AS store_name,
+        s.logo AS store_logo,
+        s.theme AS store_theme
       FROM orders o
+      LEFT JOIN stores s ON s.store_id = o.store_id
       LEFT JOIN LATERAL (
         SELECT p.payment_status
         FROM payments p
@@ -626,6 +631,14 @@ router.get('/orders/:id', customerAuthMiddleware, async (req, res) => {
           reviewed: productReviewsMap.has(target.product_id),
         })),
       },
+      store: order.store_slug
+        ? {
+            domain_name: order.store_slug,
+            name: order.store_name || order.store_slug,
+            logo: order.store_logo || null,
+            theme: order.store_theme || null,
+          }
+        : null,
     });
   } catch (err) {
     console.error('Customer order details error:', err);

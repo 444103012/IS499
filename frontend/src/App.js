@@ -16,6 +16,8 @@ import CartProvider from './context/cart/CartProvider';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { buildStorefrontPath, normalizeStoreName } from './utils/storefrontRoutes';
+import PwaLaunchRedirect from './components/pwa/PwaLaunchRedirect';
+import PwaLaunchTracker from './components/pwa/PwaLaunchTracker';
 
 import DashboardRouteLoading from './components/dashboard/DashboardRouteLoading';
 
@@ -184,6 +186,8 @@ function App() {
     
     
     <BrowserRouter>
+      <PwaLaunchRedirect />
+      <PwaLaunchTracker />
       <CartProvider>
       <AdminAuthProvider>
       {}
@@ -268,6 +272,11 @@ function App() {
           <Route
             path="/:storeSlug/payment/result"
             element={<StoreRouteGate element={<PaymentResultPage />} />}
+          />
+          {/* Fallback: Moyasar may redirect without a storeSlug if domain_name was empty */}
+          <Route
+            path="/payment/result"
+            element={<PaymentResultPage />}
           />
           <Route
             path="/:storeSlug/login"

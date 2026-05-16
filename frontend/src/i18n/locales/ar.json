@@ -5,6 +5,7 @@
     "contact": "اتصل بنا",
     "getStarted": "ابدأ الآن",
     "login": "تسجيل الدخول",
+    "menu": "القائمة",
     "arabic": "العربية",
     "english": "English"
   },
@@ -48,6 +49,7 @@
     "monthly": "شهرياً",
     "yearly": "سنوياً",
     "save": "وفر 20%",
+    "toggleBilling": "تبديل فترة الفوترة",
     "plans": {
       "basic": {
         "name": "الأساسي",
@@ -310,6 +312,10 @@
   "dashboard": {
     "title": "لوحة تحكم التاجر",
     "logout": "تسجيل الخروج",
+    "goLive": {
+      "label": "انطلق الآن",
+      "tooltip": "انشر متجرك وابدأ البيع"
+    },
     "switchToArabic": "العربية",
     "switchToEnglish": "English",
     "menu": {
@@ -694,14 +700,18 @@
           "storeSlug": "معرف المتجر",
           "slugPlaceholder": "your-store",
           "slugRulesTitle": "قواعد المعرّف",
-          "slugRulesHelp": "استخدم أحرفاً إنجليزية صغيرة وأرقاماً وشرطات فقط (3-40 حرفاً).",
+          "slugRulesHelp": "استخدم أحرفاً (عربية أو إنجليزية) وأرقاماً وشرطات (3-40 حرفاً). لا تبدأ أو تنتهِ بشرطة.",
           "slugLengthError": "يجب أن يكون المعرّف بين 3 و40 حرفاً.",
-          "slugPatternError": "يمكن أن يحتوي المعرّف على أحرف صغيرة وأرقام وشرطات فقط.",
+          "slugPatternError": "يمكن أن يحتوي المعرّف على أحرف (عربية أو إنجليزية) وأرقام وشرطات فقط — بدون مسافات أو رموز خاصة.",
           "previewLabel": "المعاينة",
+          "currentSlugLabel": "النطاق الحالي",
           "status": "حالة التحقق من النطاق",
           "statusPending": "بانتظار التحقق",
           "statusVerified": "تم التحقق",
-          "statusError": "فشل التحقق"
+          "statusError": "فشل التحقق",
+          "lockedSuspended": "تعديل النطاق غير متاح أثناء تعليق متجرك. تواصل مع الدعم لاستعادة الوصول.",
+          "lockedPlan": "تعديل النطاق المخصص يتطلب باقة المتقدم.",
+          "upgradeCta": "الترقية إلى المتقدم"
         },
         "payments": {
           "sectionTitle": "مزودو الدفع",
@@ -905,6 +915,127 @@
     "productNotFound": "المنتج غير موجود",
     "productNotAvailable": "هذا المنتج غير متاح",
     "store": "المتجر",
+    "storeSubtitle": "واجهة المتجر",
+    "view": "عرض",
+    "close": "إغلاق",
+    "dismiss": "إغلاق",
+    "header": {
+      "menu": "القائمة",
+      "closeMenu": "إغلاق القائمة",
+      "openMenu": "فتح القائمة",
+      "cart": "السلة",
+      "openSearch": "فتح البحث",
+      "closeSearch": "إغلاق البحث",
+      "openFilters": "فتح الفلاتر",
+      "closeFilters": "إغلاق",
+      "quickActions": "إجراءات سريعة",
+      "search": "بحث",
+      "language": "اللغة",
+      "account": "الحساب",
+      "userMenu": "قائمة المستخدم",
+      "switchToEnglishAria": "التبديل إلى الإنجليزية",
+      "switchToArabicAria": "التبديل إلى العربية",
+      "defaultStoreName": "المتجر",
+      "settings": "الإعدادات",
+      "orderHistory": "سجل الطلبات",
+      "logout": "تسجيل الخروج"
+    },
+    "testimonials": {
+      "title": "ماذا يقول عملاؤنا",
+      "subtitle": "آراء حقيقية من متسوقين في المتجر",
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "errors": {
+      "loadStore": "تعذر تحميل المتجر",
+      "loadStoreDesc": "حدث خطأ مؤقت. يرجى المحاولة مجدداً.",
+      "storeNotFound": "المتجر غير موجود",
+      "storeNotFoundDesc": "لم يتم العثور على متجر باسم \"{{slug}}\".",
+      "storeUnavailable": "المتجر غير متاح حالياً",
+      "storeUnavailableDesc": "عذرًا، هذا المتجر غير متاح حاليًا."
+    },
+    "cart": {
+      "title": "سلة التسوق",
+      "continueShopping": "متابعة التسوق",
+      "empty": "السلة فارغة حالياً.",
+      "orderSummary": "ملخص الطلب",
+      "subtotal": "الإجمالي الفرعي",
+      "shipping": "الشحن",
+      "shippingAtCheckout": "يُحسب عند الدفع",
+      "tax": "الضريبة",
+      "taxAtCheckout": "يُحسب عند الدفع",
+      "total": "الإجمالي",
+      "updating": "جاري التحديث...",
+      "proceedToCheckout": "المتابعة إلى الدفع",
+      "warnings": {
+        "QTY_ADJUSTED": "تم تعديل الكمية بناءً على المخزون الحالي.",
+        "ITEM_UNAVAILABLE": "تم حذف المنتج لأنه غير متاح حالياً.",
+        "PRICE_CHANGED": "تم تغيير سعر المنتج وتحديث الإجمالي.",
+        "MERGE_QTY_ADJUSTED": "تم تقليل الكمية المدمجة بسبب حدود المخزون."
+      }
+    },
+    "checkout": {
+      "title": "إتمام الطلب",
+      "breadcrumbCart": "السلة",
+      "breadcrumbShipping": "الشحن",
+      "breadcrumbPayment": "الدفع",
+      "loadAccountFailed": "تعذر تحميل بيانات الحساب",
+      "totalsFailed": "فشل حساب الإجمالي",
+      "paymentUrlMissing": "تعذر العثور على رابط الدفع. يرجى المحاولة مرة أخرى.",
+      "orderFailed": "فشل إنشاء الطلب",
+      "signInRequired": "يلزم تسجيل الدخول للمتابعة إلى الدفع.",
+      "signIn": "تسجيل الدخول",
+      "loadingCart": "جاري تحميل السلة...",
+      "emptyCart": "السلة فارغة",
+      "redirecting": "جاري التوجيه للدفع...",
+      "proceedToPayment": "المتابعة للدفع",
+      "updatingTotals": "جاري تحديث الإجمالي...",
+      "contactHint": "لتعديل البريد أو رقم الجوال، انتقل إلى إعدادات الحساب.",
+      "profilePhoneMissingHint": "رقم الجوال غير مكتمل في حسابك. حدّثه من الإعدادات للمتابعة.",
+      "validation": {
+        "fullName": "الاسم الكامل مطلوب",
+        "email": "البريد الإلكتروني مطلوب",
+        "phone": "رقم الجوال مطلوب",
+        "address": "العنوان مطلوب",
+        "city": "المدينة مطلوبة",
+        "region": "المنطقة مطلوبة",
+        "postalCode": "الرمز البريدي مطلوب"
+      }
+    },
+    "product": {
+      "quantity": "الكمية",
+      "addToCart": "أضف إلى السلة",
+      "selectVariant": "اختر صنفاً",
+      "outOfStock": "غير متوفر",
+      "outOfStockTitle": "نفد المخزون",
+      "outOfStockDesc": "لا يمكن إضافة هذا المنتج إلى السلة حالياً.",
+      "quantityExceeds": "الكمية تتجاوز المتوفر",
+      "quantityUnavailable": "الكمية غير متوفرة. المتاح الآن: {{count}}",
+      "stockUnavailable": "الكمية المطلوبة غير متوفرة",
+      "addFailed": "فشل الإضافة للسلة",
+      "reviews": "تقييم",
+      "noReviewsYet": "لا توجد تقييمات بعد",
+      "variantThumbnails": "صور الخيارات",
+      "imageGallery": "معرض الصور، مرّر للتنقل",
+      "imageAlt": "صورة",
+      "available": "متوفر",
+      "customerReviewsTitle": "ماذا يقول العملاء عن هذا المنتج",
+      "customerReviewsSubtitle": "تقييمات موثقة من عملاء اشتروا المنتج",
+      "noProductReviews": "لا توجد مراجعات لهذا المنتج حتى الآن.",
+      "loadMoreReviews": "عرض المزيد",
+      "productRating": "تقييم المنتج"
+    },
+    "filtersPanel": {
+      "priceRange": "نطاق السعر",
+      "allPrices": "كل الأسعار",
+      "availability": "التوفر",
+      "all": "الكل",
+      "inStock": "متوفر",
+      "sort": "الترتيب",
+      "apply": "تطبيق",
+      "reset": "إعادة تعيين",
+      "clearAll": "مسح الكل"
+    },
     "footer": {
       "about": "نبذة",
       "contact": "التواصل",
@@ -922,6 +1053,10 @@
     "offlineMessage": "أنت غير متصل. تسجيل الدخول والدفع والبيانات المباشرة تحتاج اتصالاً. قد تعمل الصفحات المحفوظة محلياً.",
     "updateAvailable": "يتوفر إصدار جديد من StoreLaunch.",
     "updateRefresh": "تحديث",
-    "updateDismiss": "لاحقاً"
+    "updateDismiss": "لاحقاً",
+    "installHint": "لتثبيت التطبيق على هاتفك، افتح لوحة التحكم في Safari أو Chrome ثم اختر «إضافة إلى الشاشة الرئيسية».",
+    "installHintDismiss": "إغلاق",
+    "viewStorefront": "عرض متجري",
+    "viewPreview": "معاينة المتجر"
   }
 }

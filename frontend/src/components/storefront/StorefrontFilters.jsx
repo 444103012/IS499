@@ -1,4 +1,5 @@
 import React from 'react';
+import { darkenHex } from '../../hooks/useStoreBranding';
 
 const DEFAULT_FILTERS = {
   search: '',
@@ -51,7 +52,7 @@ const FilterFields = ({ categories, draftFilters, onDraftChange, isRTL, t, compa
   <>
     <SelectField
       id="filter-category"
-      label={isRTL ? 'الفئة' : 'Category'}
+      label={t('storefront.category')}
       value={draftFilters.category}
       onChange={(e) => onDraftChange('category', e.target.value)}
       isRTL={isRTL}
@@ -67,13 +68,13 @@ const FilterFields = ({ categories, draftFilters, onDraftChange, isRTL, t, compa
 
     <SelectField
       id="filter-price"
-      label={isRTL ? 'السعر' : 'Price range'}
+      label={t('storefront.filtersPanel.priceRange')}
       value={draftFilters.pricePreset}
       onChange={(e) => onDraftChange('pricePreset', e.target.value)}
       isRTL={isRTL}
       compact={compact}
     >
-      <Option value="">{isRTL ? 'كل الأسعار' : 'All prices'}</Option>
+      <Option value="">{t('storefront.filtersPanel.allPrices')}</Option>
       <Option value="0-100">0 - 100</Option>
       <Option value="100-500">100 - 500</Option>
       <Option value="500-1000">500 - 1000</Option>
@@ -82,20 +83,20 @@ const FilterFields = ({ categories, draftFilters, onDraftChange, isRTL, t, compa
 
     <SelectField
       id="filter-availability"
-      label={isRTL ? 'التوفر' : 'Availability'}
+      label={t('storefront.filtersPanel.availability')}
       value={draftFilters.availability}
       onChange={(e) => onDraftChange('availability', e.target.value)}
       isRTL={isRTL}
       compact={compact}
     >
-      <Option value="">{isRTL ? 'الكل' : 'All'}</Option>
-      <Option value="in-stock">{isRTL ? 'متوفر' : 'In stock'}</Option>
-      <Option value="out-of-stock">{isRTL ? 'غير متوفر' : 'Out of stock'}</Option>
+      <Option value="">{t('storefront.filtersPanel.all')}</Option>
+      <Option value="in-stock">{t('storefront.filtersPanel.inStock')}</Option>
+      <Option value="out-of-stock">{t('storefront.outOfStock')}</Option>
     </SelectField>
 
     <SelectField
       id="filter-sort"
-      label={isRTL ? 'الترتيب' : 'Sort'}
+      label={t('storefront.filtersPanel.sort')}
       value={draftFilters.sort}
       onChange={(e) => onDraftChange('sort', e.target.value)}
       isRTL={isRTL}
@@ -120,7 +121,10 @@ const StorefrontFilters = ({
   isRTL = false,
   t = (key) => key,
   compact = false,
-}) => (
+  accentColor = 'var(--store-primary, #1FAE77)',
+}) => {
+  const applyHoverColor = darkenHex(accentColor.startsWith('var') ? '#1FAE77' : accentColor);
+  return (
   <div className={compact ? 'space-y-2' : 'space-y-3'}>
     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
       <FilterFields categories={categories} draftFilters={draftFilters} onDraftChange={onDraftChange} isRTL={isRTL} t={t} compact={compact} />
@@ -133,9 +137,12 @@ const StorefrontFilters = ({
           e.stopPropagation();
           onApply(e);
         }}
-        className="min-h-[44px] h-11 sm:h-8 sm:min-h-0 px-4 sm:px-3 rounded-md text-sm sm:text-xs font-semibold text-white bg-storelaunch-green hover:bg-storelaunch-deep-green focus:outline-none focus:ring-2 focus:ring-storelaunch-green focus:ring-offset-1"
+        className="min-h-[44px] h-11 sm:h-8 sm:min-h-0 px-4 sm:px-3 rounded-md text-sm sm:text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-1"
+        style={{ backgroundColor: accentColor }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = applyHoverColor; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = accentColor; }}
       >
-        {isRTL ? 'تطبيق' : 'Apply'}
+        {t('storefront.filtersPanel.apply')}
       </button>
       <button
         type="button"
@@ -146,7 +153,7 @@ const StorefrontFilters = ({
         }}
         className="min-h-[44px] h-11 sm:h-8 sm:min-h-0 px-4 sm:px-3 rounded-md border border-gray-300 text-sm sm:text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300"
       >
-        {isRTL ? 'إعادة تعيين' : 'Reset'}
+        {t('storefront.filtersPanel.reset')}
       </button>
       {hasActiveFilters && (
         <button
@@ -156,13 +163,15 @@ const StorefrontFilters = ({
             e.stopPropagation();
             onReset(e);
           }}
-          className="min-h-[44px] px-2 text-sm sm:text-xs font-semibold text-storelaunch-green hover:text-storelaunch-deep-green sm:h-8 sm:min-h-0"
+          className="min-h-[44px] px-2 text-sm sm:text-xs font-semibold sm:h-8 sm:min-h-0"
+          style={{ color: accentColor }}
         >
-          {isRTL ? 'مسح الكل' : 'Clear all'}
+          {t('storefront.filtersPanel.clearAll')}
         </button>
       )}
     </div>
   </div>
-);
+  );
+};
 
 export default React.memo(StorefrontFilters);

@@ -6,6 +6,10 @@ const { normalizeStoreSlug, isValidStoreSlug } = require('../utils/storeDomain')
 const { getStoreId } = require('../utils/getStoreId');
 const { canOwnerAccessStore } = require('../utils/storeAccess');
 const subscriptionRouter = require('./subscription');
+const {
+  syncPaymentProvidersToSettings,
+  syncShippingProvidersToSettings,
+} = require('../utils/providerSync');
 
 const router = express.Router();
 const PLAN_PRICES = subscriptionRouter.PLAN_PRICES || { basic: 0, pro: 69, advanced: 199 };
@@ -106,6 +110,18 @@ const SHIPPING_MIN_PLAN = {
   aramex: 'advanced',
   spl: 'pro',
 };
+// Theme plan requirements (must match BrandingAppearancePage.jsx themeRequiredPlans).
+const THEME_MIN_PLAN = {
+  default: 'basic',
+  minimal: 'pro',
+  modern: 'pro',
+  classic: 'advanced',
+};
+// Product-layout plan requirements (must match BrandingAppearancePage.jsx layoutOptions).
+const LAYOUT_MIN_PLAN = {
+  'grid-classic': 'basic',
+  'compact-list': 'pro',
+};
 
 function mapCarrierNameToShippingKey(carrierName) {
   const n = String(carrierName || '').trim().toLowerCase();
@@ -171,6 +187,85 @@ async function getSubscriptionPlan(pool, store_id) {
 
 function isAllowedByPlan(plan, minPlan) {
   return PLAN_RANK[plan] >= PLAN_RANK[minPlan];
+}
+
+/**
+ * Returns an array of plan-compliance violations for a store.
+ * Used by go-live status and go-live execution to block non-compliant stores.
+ */
+async function buildPlanViolations(pool, store_id) {
+  const plan = await getSubscriptionPlan(pool, store_id);
+  const settings = await getOrCreateStoreSettings(pool, store_id);
+  const violations = [];
+
+  // Payment providers
+  const payments = (settings.payments && typeof settings.payments === 'object') ? settings.payments : {};
+  for (const [key, state] of Object.entries(payments)) {
+    if (key === 'billingCard') continue;
+    const minPlan = PAYMENT_MIN_PLAN[key];
+    if (minPlan && state?.enabled && !isAllowedByPlan(plan, minPlan)) {
+      violations.push({
+        code: 'PAYMENT_PLAN_VIOLATION',
+        section: 'payments',
+        providerKey: key,
+        requiredPlan: minPlan,
+        currentPlan: plan,
+        message: `${key} requires the ${minPlan} plan`,
+        messageAr: `${key} يتطلب باقة ${minPlan}`,
+      });
+    }
+  }
+
+  // Shipping providers
+  const shipping = (settings.shipping && typeof settings.shipping === 'object') ? settings.shipping : {};
+  for (const [key, state] of Object.entries(shipping)) {
+    const minPlan = SHIPPING_MIN_PLAN[key];
+    if (minPlan && state?.enabled && !isAllowedByPlan(plan, minPlan)) {
+      violations.push({
+        code: 'SHIPPING_PLAN_VIOLATION',
+        section: 'shipping',
+        providerKey: key,
+        requiredPlan: minPlan,
+        currentPlan: plan,
+        message: `${key} requires the ${minPlan} plan`,
+        messageAr: `${key} يتطلب باقة ${minPlan}`,
+      });
+    }
+  }
+
+  // Theme (stored in stores.theme)
+  const storeRow = await pool.query('SELECT theme FROM stores WHERE store_id = $1', [store_id]);
+  const theme = String(storeRow.rows[0]?.theme || 'default').trim().toLowerCase();
+  const themeMinPlan = THEME_MIN_PLAN[theme];
+  if (themeMinPlan && !isAllowedByPlan(plan, themeMinPlan)) {
+    violations.push({
+      code: 'THEME_PLAN_VIOLATION',
+      section: 'theme',
+      providerKey: theme,
+      requiredPlan: themeMinPlan,
+      currentPlan: plan,
+      message: `Theme "${theme}" requires the ${themeMinPlan} plan`,
+      messageAr: `القالب "${theme}" يتطلب باقة ${themeMinPlan}`,
+    });
+  }
+
+  // Product layout (in store_settings.branding.productLayout)
+  const branding = (settings.branding && typeof settings.branding === 'object') ? settings.branding : {};
+  const layout = String(branding.productLayout || 'grid-classic').trim().toLowerCase();
+  const layoutMinPlan = LAYOUT_MIN_PLAN[layout];
+  if (layoutMinPlan && !isAllowedByPlan(plan, layoutMinPlan)) {
+    violations.push({
+      code: 'LAYOUT_PLAN_VIOLATION',
+      section: 'branding',
+      providerKey: layout,
+      requiredPlan: layoutMinPlan,
+      currentPlan: plan,
+      message: `Product layout "${layout}" requires the ${layoutMinPlan} plan`,
+      messageAr: `تخطيط المنتجات "${layout}" يتطلب باقة ${layoutMinPlan}`,
+    });
+  }
+
+  return { violations, plan };
 }
 
 function enforceProviderPlanRules(payload, minPlans, plan, sectionName) {
@@ -445,18 +540,32 @@ router.put('/domain', async (req, res) => {
     const store_id = await getStoreId(pool, store_owner_id);
     if (!store_id) return res.status(404).json({ error: 'No store found' });
 
+    // Domain editing is only permitted when the store is Pending (pre-launch) or Active.
+    const storeStatusRow = await pool.query(
+      'SELECT status FROM stores WHERE store_id = $1',
+      [store_id]
+    );
+    const storeStatus = storeStatusRow.rows[0]?.status || 'Pending';
+    if (!['Pending', 'Active'].includes(storeStatus)) {
+      return res.status(403).json({
+        error: 'DOMAIN_EDIT_NOT_ALLOWED',
+        storeStatus,
+        message: 'Domain editing is not available while the store is suspended or inactive.',
+      });
+    }
+
     const requestedSlug = slug ?? customDomain;
     const normalizedSlug = normalizeStoreSlug(requestedSlug);
     if (!isValidStoreSlug(normalizedSlug)) {
       return res.status(400).json({
-        error: 'Invalid slug. Use 3-40 lowercase letters, numbers, and hyphens only.',
+        error: 'Invalid slug. Use 3–40 letters (Arabic or English), digits, and hyphens only.',
       });
     }
 
     const existing = await pool.query(
       `SELECT store_id
        FROM stores
-       WHERE LOWER(domain_name) = LOWER($1)
+       WHERE domain_name = $1
          AND store_id != $2
        LIMIT 1`,
       [normalizedSlug, store_id]
@@ -550,7 +659,19 @@ router.get('/payment-providers', async (req, res) => {
     const store_id = await getStoreId(pool, store_owner_id);
     if (!store_id) return res.status(404).json({ error: 'No store found' });
     const settings = await getOrCreateStoreSettings(pool, store_id);
-    res.json({ payments: settings.payments || {} });
+    let payments = settings.payments || {};
+    if (typeof payments !== 'object') payments = {};
+    // Migration fallback: if JSON is empty but the setup table has rows, sync them now.
+    if (Object.keys(payments).length === 0) {
+      const tableCheck = await pool.query(
+        'SELECT 1 FROM payment_providers WHERE store_id = $1 LIMIT 1',
+        [store_id]
+      );
+      if (tableCheck.rows.length > 0) {
+        payments = await syncPaymentProvidersToSettings(pool, store_id);
+      }
+    }
+    res.json({ payments });
   } catch (err) {
     console.error('store GET /api/store/payment-providers:', err);
     res.status(500).json({ error: 'Failed to load payment providers' });
@@ -606,17 +727,15 @@ router.get('/shipping-providers', async (req, res) => {
     const settings = await getOrCreateStoreSettings(pool, store_id);
     let shipping = settings.shipping || {};
     if (typeof shipping !== 'object') shipping = {};
+    // Migration fallback: if JSON is empty but the setup table has rows, sync and persist.
     if (Object.keys(shipping).length === 0) {
-      const prov = await pool.query(
-        'SELECT carrier_name FROM shipping_providers WHERE store_id = $1',
+      const tableCheck = await pool.query(
+        'SELECT 1 FROM shipping_providers WHERE store_id = $1 LIMIT 1',
         [store_id]
       );
-      const inferred = {};
-      for (const r of prov.rows) {
-        const k = mapCarrierNameToShippingKey(r.carrier_name);
-        if (k) inferred[k] = { enabled: true, zones: [] };
+      if (tableCheck.rows.length > 0) {
+        shipping = await syncShippingProvidersToSettings(pool, store_id);
       }
-      shipping = inferred;
     }
     res.json({ shipping });
   } catch (err) {
@@ -807,10 +926,18 @@ router.get('/go-live-status', async (req, res) => {
     const planType = String(data.plan_type || 'basic').toLowerCase();
     const planPrice = PLAN_PRICES[planType] ?? 0;
     const paymentStatus = data.payment_status || (data.paid_date ? 'paid' : 'unpaid');
-    const canActivate = data.store_status === 'Pending' && paymentStatus !== 'paid';
+    const storeAlreadyActive = data.store_status === 'Active';
+    const alreadyPaid = paymentStatus === 'paid';
+
+    // Check plan compliance before allowing go-live.
+    const { violations } = await buildPlanViolations(pool, store_id);
+    const hasViolations = violations.length > 0;
+
+    const canActivate = !storeAlreadyActive && !alreadyPaid && !hasViolations;
     let reason = null;
-    if (data.store_status === 'Active') reason = 'Store already active';
-    else if (paymentStatus === 'paid') reason = 'Store already paid';
+    if (storeAlreadyActive) reason = 'Store already active';
+    else if (alreadyPaid) reason = 'Store already paid';
+    else if (hasViolations) reason = 'Plan compliance violations must be resolved before going live';
     else if (planPrice > 0) reason = 'Payment required';
 
     const attempt = latestAttempt.rows[0];
@@ -823,6 +950,7 @@ router.get('/go-live-status', async (req, res) => {
       currency: 'SAR',
       canActivate,
       reason,
+      violations,
       lastAttempt: attempt
         ? {
             attemptedAt: attempt.attempted_at,
@@ -883,6 +1011,15 @@ router.post('/go-live', async (req, res) => {
     );
     if ((failedAttempts.rows[0]?.count || 0) >= 3) {
       return res.status(429).json({ error: 'Too many failed attempts. Try again later.' });
+    }
+
+    // Enforce plan compliance — cannot go live with features above current plan.
+    const { violations } = await buildPlanViolations(pool, parsedStoreId);
+    if (violations.length > 0) {
+      return res.status(403).json({
+        error: 'Plan compliance violations must be resolved before going live',
+        violations,
+      });
     }
 
     const subResult = await pool.query(

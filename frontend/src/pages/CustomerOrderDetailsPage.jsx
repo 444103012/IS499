@@ -121,10 +121,25 @@ export default function CustomerOrderDetailsPage() {
   const { i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const { storeSlug, orderId } = useParams();
-  const normalizedStoreSlug = normalizeStoreName(storeSlug);
+  const { storeSlug: rawStoreSlug, orderId } = useParams();
   const navigate = useNavigate();
-  const { storeInfo, branding } = useStoreBranding(normalizedStoreSlug);
+
+  // Prefer URL param, fall back to last known store from sessionStorage.
+  const [effectiveStoreSlug, setEffectiveStoreSlug] = useState(() => {
+    const fromUrl = normalizeStoreName(rawStoreSlug || '');
+    if (fromUrl) return fromUrl;
+    try {
+      return normalizeStoreName(sessionStorage.getItem('customer_last_store_slug') || '');
+    } catch (_) {
+      return '';
+    }
+  });
+  const normalizedStoreSlug = effectiveStoreSlug;
+
+  const { storeInfo: brandingStoreInfo, branding } = useStoreBranding(normalizedStoreSlug);
+  const [resolvedStoreInfo, setResolvedStoreInfo] = useState(null);
+  const storeInfo = resolvedStoreInfo || brandingStoreInfo;
+
   const [state, setState] = useState({ loading: true, error: '', order: null, actionMessage: '', actionError: '' });
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [returnFormOpen, setReturnFormOpen] = useState(false);
@@ -140,10 +155,23 @@ export default function CustomerOrderDetailsPage() {
   );
   const ordersPath = normalizedStoreSlug ? buildStorefrontPath(normalizedStoreSlug, 'orders') : '/customer/orders';
 
+  const applyStoreContext = (storeData) => {
+    if (!storeData) return;
+    const slug = normalizeStoreName(storeData.domain_name || '');
+    if (slug && slug !== effectiveStoreSlug) {
+      setEffectiveStoreSlug(slug);
+      try { sessionStorage.setItem('customer_last_store_slug', slug); } catch (_) {}
+    }
+    if (storeData.name || storeData.logo) {
+      setResolvedStoreInfo(storeData);
+    }
+  };
+
   const fetchOrderDetails = async () => {
     setState((prev) => ({ ...prev, loading: true, error: '', actionError: '', actionMessage: '' }));
     try {
       const { data } = await axiosInstance.get(`/api/customers/orders/${orderId}`);
+      applyStoreContext(data?.store);
       setState((prev) => ({ ...prev, loading: false, order: data?.order || null }));
     } catch (err) {
       setState((prev) => ({
@@ -164,7 +192,10 @@ export default function CustomerOrderDetailsPage() {
     (async () => {
       try {
         const { data } = await axiosInstance.get(`/api/customers/orders/${orderId}`);
-        if (!cancelled) setState((prev) => ({ ...prev, loading: false, order: data?.order || null }));
+        if (!cancelled) {
+          applyStoreContext(data?.store);
+          setState((prev) => ({ ...prev, loading: false, order: data?.order || null }));
+        }
       } catch (err) {
         if (!cancelled) {
           setState((prev) => ({
@@ -177,6 +208,7 @@ export default function CustomerOrderDetailsPage() {
       }
     })();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, loginPath, navigate, isRTL]);
 
   const trackingValue = state.order?.shipping?.tracking_number || null;
@@ -287,6 +319,9 @@ export default function CustomerOrderDetailsPage() {
     setReviewSubmitting(true);
     try {
       await axiosInstance.post(`/api/customers/orders/${orderId}/review`, { storeReview, productReviews: productReviewsPayload });
+      // Invalidate the storefront product sessionStorage cache so the next visit
+      // to the catalogue shows updated review counts instead of stale data.
+      try { sessionStorage.removeItem(`sf_products_${effectiveStoreSlug}`); } catch (_) {}
       await fetchOrderDetails();
       setReviewExpanded(false);
       setState((prev) => ({ ...prev, actionMessage: text.reviewSaved, actionError: '' }));
@@ -311,7 +346,7 @@ export default function CustomerOrderDetailsPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: branding.background }} dir={isRTL ? 'rtl' : 'ltr'}>
-      <StorefrontHeader storeSlug={normalizedStoreSlug} storeInfo={storeInfo} branding={branding} />
+      <StorefrontHeader storeSlug={effectiveStoreSlug} storeInfo={storeInfo} branding={branding} />
       <div className={`max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 ${isRTL ? 'rtl-page-fix' : ''}`}>
         <div className={`mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
           <Link to={ordersPath} className="text-sm font-medium" style={{ color: branding.buttons }}>

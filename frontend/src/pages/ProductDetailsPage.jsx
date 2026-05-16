@@ -16,6 +16,7 @@ import axiosInstance from '../api/axios';
 import { useCart } from '../context/cart/CartContext';
 import { buildStorefrontPath, normalizeStoreName } from '../utils/storefrontRoutes';
 import useStoreBranding from '../hooks/useStoreBranding';
+import useDocumentLanguage from '../hooks/useDocumentLanguage';
 import CurrencyAmount from '../components/common/CurrencyAmount';
 import StarRating from '../components/reviews/StarRating';
 import ReviewCard from '../components/reviews/ReviewCard';
@@ -37,12 +38,12 @@ const getVariantImage = (variant) => (
 );
 
 const ProductDetailsPage = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { id, storeSlug } = useParams();
   const location = useLocation();
   const normalizedStoreSlug = normalizeStoreName(storeSlug);
   const { storeInfo, branding } = useStoreBranding(normalizedStoreSlug);
-  const isRTL = i18n.language === 'ar';
+  const { isRTL } = useDocumentLanguage();
   const { addItem } = useCart();
 
   const catalogLink = storeSlug ? buildStorefrontPath(normalizedStoreSlug) : '/';
@@ -108,11 +109,6 @@ const ProductDetailsPage = () => {
   const canIncrease = isInStock && quantity < availableStock;
   const maxSelectableQuantity = Math.max(1, availableStock);
   const canAdd = availableStock > 0 && !(product?.options?.length && !selectedVariantId) && quantity <= availableStock;
-
-  useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language, isRTL]);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,7 +279,7 @@ const ProductDetailsPage = () => {
               {showMobileImageCarousel ? (
                 <>
                   <div className="md:hidden">
-                    <p className="sr-only">{isRTL ? 'معرض الصور، مرّر للتنقل' : 'Image gallery, swipe to browse'}</p>
+                    <p className="sr-only">{t('storefront.product.imageGallery')}</p>
                     <div
                       className="-mx-0.5 flex h-72 snap-x snap-mandatory overflow-x-auto scroll-smooth motion-reduce:scroll-auto rounded-xl border border-gray-100"
                       style={{ WebkitOverflowScrolling: 'touch' }}
@@ -295,7 +291,7 @@ const ProductDetailsPage = () => {
                         >
                           <img
                             src={url}
-                            alt={`${product.product_name} — ${isRTL ? 'صورة' : 'image'} ${idx + 1}`}
+                            alt={`${product.product_name} — ${t('storefront.product.imageAlt')} ${idx + 1}`}
                             className="h-full w-full object-cover"
                           />
                         </div>
@@ -337,7 +333,7 @@ const ProductDetailsPage = () => {
                 </div>
               )}
               {variantThumbnails.length > 0 && (
-                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scroll-smooth motion-reduce:scroll-auto" role="listbox" aria-label={isRTL ? 'صور الخيارات' : 'Variant image thumbnails'}>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scroll-smooth motion-reduce:scroll-auto" role="listbox" aria-label={t('storefront.product.variantThumbnails')}>
                   {variantThumbnails.map((variant) => (
                     <button
                       key={variant.variantId}
@@ -387,8 +383,8 @@ const ProductDetailsPage = () => {
 
               {!isInStock && (
                 <div className={`mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <p className="font-semibold">{isRTL ? 'نفد المخزون' : 'Out of stock'}</p>
-                  <p className="text-sm">{isRTL ? 'لا يمكن إضافة هذا المنتج إلى السلة حالياً.' : 'This product cannot be added to the cart right now.'}</p>
+                  <p className="font-semibold">{t('storefront.product.outOfStockTitle')}</p>
+                  <p className="text-sm">{t('storefront.product.outOfStockDesc')}</p>
                 </div>
               )}
 
@@ -404,14 +400,14 @@ const ProductDetailsPage = () => {
                     value={ratingSummary.average_rating || 0}
                     accentColor={reviewAccent}
                     sizeClass="w-4 h-4"
-                    ariaLabel={isRTL ? 'تقييم المنتج' : 'Product rating'}
+                    ariaLabel={t('storefront.product.productRating')}
                   />
                   {(ratingSummary.total_reviews || 0) > 0 ? (
                     <span className="text-sm text-gray-600">
-                      {Number(ratingSummary.average_rating || 0).toFixed(1)} ({ratingSummary.total_reviews} {isRTL ? 'تقييم' : 'reviews'})
+                      {Number(ratingSummary.average_rating || 0).toFixed(1)} ({ratingSummary.total_reviews} {t('storefront.product.reviews')})
                     </span>
                   ) : (
-                    <span className="text-sm text-gray-400">{isRTL ? 'لا توجد تقييمات بعد' : 'No reviews yet'}</span>
+                    <span className="text-sm text-gray-400">{t('storefront.product.noReviewsYet')}</span>
                   )}
                 </div>
               </div>
@@ -476,7 +472,7 @@ const ProductDetailsPage = () => {
 
               {}
               <div className="mb-6 hidden lg:block">
-                <label className="block text-sm font-medium text-gray-600 mb-2">{isRTL ? 'الكمية' : 'Quantity'}</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">{t('storefront.product.quantity')}</label>
                 <div className={`flex items-center gap-4 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                     <button
@@ -514,13 +510,13 @@ const ProductDetailsPage = () => {
                     onClick={async () => {
                       setAddError('');
                       if (hasVariants && !selectedVariantId) {
-                        setAddError(isRTL ? 'اختر صنفاً' : 'Please select a variant');
+                        setAddError(t('storefront.product.selectVariant'));
                         return;
                       }
                       if (!canAdd) {
                         setAddError(!isInStock
-                          ? (isRTL ? 'هذا المنتج غير متوفر حالياً' : 'This product is out of stock')
-                          : (isRTL ? 'الكمية تتجاوز المتوفر' : 'Quantity exceeds available stock'));
+                          ? t('storefront.product.outOfStockDesc')
+                          : t('storefront.product.quantityExceeds'));
                         return;
                       }
                       const mainImg = selectedVariant?.image || fallbackImages[0] || product.image_url;
@@ -538,18 +534,18 @@ const ProductDetailsPage = () => {
                         const data = err.response?.data;
                         if (err.response?.status === 409 && typeof data?.available === 'number') {
                           setQuantity(data.available);
-                          setAddError(isRTL ? `الكمية غير متوفرة. المتاح الآن: ${data.available}` : `Quantity not available. Available now: ${data.available}`);
+                          setAddError(t('storefront.product.quantityUnavailable', { count: data.available }));
                         } else if (err.message === 'OUT_OF_STOCK') {
-                          setAddError(isRTL ? 'الكمية المطلوبة غير متوفرة' : 'Requested quantity not in stock');
+                          setAddError(t('storefront.product.stockUnavailable'));
                         } else {
-                          setAddError(data?.error || (isRTL ? 'فشل الإضافة للسلة' : 'Failed to add to cart'));
+                          setAddError(data?.error || t('storefront.product.addFailed'));
                         }
                       }
                     }}
                     disabled={!canAdd}
                     className="cart-btn-primary w-full min-h-[52px] px-6 py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed sm:min-h-0 sm:w-auto"
                   >
-                    {availableStock === 0 ? (isRTL ? 'غير متوفر' : 'Out of stock') : (isRTL ? 'أضف إلى السلة' : 'Add to Cart')}
+                    {availableStock === 0 ? t('storefront.product.outOfStock') : t('storefront.product.addToCart')}
                   </button>
                 </div>
               </div>
@@ -592,7 +588,7 @@ const ProductDetailsPage = () => {
                           className={`text-sm ${option.stock_qty > 0 ? '' : 'text-red-600'}`}
                           style={option.stock_qty > 0 ? { color: branding.priceLabels || branding.buttons } : undefined}
                         >
-                          {option.stock_qty > 0 ? `${option.stock_qty} ${isRTL ? 'متوفر' : 'available'}` : (isRTL ? 'غير متوفر' : 'Out of stock')}
+                          {option.stock_qty > 0 ? `${option.stock_qty} ${t('storefront.product.available')}` : t('storefront.product.outOfStock')}
                         </span>
                       </div>
                     ))}
@@ -621,10 +617,10 @@ const ProductDetailsPage = () => {
         >
           <div className={`mb-4 sm:mb-5 ${isRTL ? 'text-right' : 'text-left'}`}>
             <h2 className="text-2xl sm:text-3xl font-bold leading-tight" style={{ color: branding.text }}>
-              {isRTL ? 'ماذا يقول العملاء عن هذا المنتج' : 'What Customers Say'}
+              {t('storefront.product.customerReviewsTitle')}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              {isRTL ? 'تقييمات موثقة من عملاء اشتروا المنتج' : 'Verified feedback from customers who bought this product'}
+              {t('storefront.product.customerReviewsSubtitle')}
             </p>
           </div>
 
@@ -634,7 +630,7 @@ const ProductDetailsPage = () => {
             </div>
           ) : reviews.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 p-8 text-center text-sm text-gray-500">
-              {isRTL ? 'لا توجد مراجعات لهذا المنتج حتى الآن.' : 'No reviews for this product yet.'}
+              {t('storefront.product.noProductReviews')}
             </div>
           ) : (
             <>
@@ -669,7 +665,7 @@ const ProductDetailsPage = () => {
                       }
                     }}
                   >
-                    {isRTL ? 'عرض المزيد' : 'Load more'}
+                    {t('storefront.product.loadMoreReviews')}
                   </button>
                 </div>
               ) : null}
@@ -714,13 +710,13 @@ const ProductDetailsPage = () => {
             onClick={async () => {
               setAddError('');
               if (hasVariants && !selectedVariantId) {
-                setAddError(isRTL ? 'اختر صنفاً' : 'Please select a variant');
+                setAddError(t('storefront.product.selectVariant'));
                 return;
               }
               if (!canAdd) {
                 setAddError(!isInStock
-                  ? (isRTL ? 'هذا المنتج غير متوفر حالياً' : 'This product is out of stock')
-                  : (isRTL ? 'الكمية تتجاوز المتوفر' : 'Quantity exceeds available stock'));
+                  ? t('storefront.product.outOfStockDesc')
+                  : t('storefront.product.quantityExceeds'));
                 return;
               }
               const mainImg = selectedVariant?.image || fallbackImages[0] || product.image_url;
@@ -738,18 +734,18 @@ const ProductDetailsPage = () => {
                 const data = err.response?.data;
                 if (err.response?.status === 409 && typeof data?.available === 'number') {
                   setQuantity(data.available);
-                  setAddError(isRTL ? `الكمية غير متوفرة. المتاح الآن: ${data.available}` : `Quantity not available. Available now: ${data.available}`);
+                  setAddError(t('storefront.product.quantityUnavailable', { count: data.available }));
                 } else if (err.message === 'OUT_OF_STOCK') {
-                  setAddError(isRTL ? 'الكمية المطلوبة غير متوفرة' : 'Requested quantity not in stock');
+                  setAddError(t('storefront.product.stockUnavailable'));
                 } else {
-                  setAddError(data?.error || (isRTL ? 'فشل الإضافة للسلة' : 'Failed to add to cart'));
+                  setAddError(data?.error || t('storefront.product.addFailed'));
                 }
               }
             }}
             disabled={!canAdd}
             className="cart-btn-primary flex-1 min-h-[52px] px-6 py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {availableStock === 0 ? (isRTL ? 'غير متوفر' : 'Out of stock') : (isRTL ? 'أضف إلى السلة' : 'Add to Cart')}
+            {availableStock === 0 ? t('storefront.product.outOfStock') : t('storefront.product.addToCart')}
           </button>
         </div>
       </div>

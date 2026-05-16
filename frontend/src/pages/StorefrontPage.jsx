@@ -17,18 +17,19 @@ import axiosInstance from '../api/axios';
 import { buildStorefrontPath, isValidStoreName, normalizeStoreName } from '../utils/storefrontRoutes';
 import useDebouncedValue from '../hooks/useDebouncedValue';
 import useStoreBranding from '../hooks/useStoreBranding';
+import useDocumentLanguage from '../hooks/useDocumentLanguage';
 import CurrencyAmount from '../components/common/CurrencyAmount';
 import StarRating from '../components/reviews/StarRating';
 import ReviewCard from '../components/reviews/ReviewCard';
 
 const StorefrontPage = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { storeSlug } = useParams();
   const normalizedStoreSlug = normalizeStoreName(storeSlug);
   const hasInvalidStoreSlug = Boolean(storeSlug) && !isValidStoreName(storeSlug);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const isRTL = i18n.language === 'ar';
+  const { isRTL } = useDocumentLanguage();
 
   
   const {
@@ -74,13 +75,6 @@ const StorefrontPage = () => {
   const reviewsScrollerRef = useRef(null);
   const scrollPositionKey = 'storefront_scroll_position';
 
-  useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language, isRTL]);
-
-  
-  
   useEffect(() => {
     
     if (storeSlug && (storeStatus === 'loading' || storeStatus !== 'ok')) return;
@@ -133,6 +127,9 @@ const StorefrontPage = () => {
       setLoading(false);
       return;
     }
+    // Clear stale sessionStorage cache on fresh (non-back-nav) mounts so that
+    // updated data (e.g. new review counts) is always shown immediately.
+    try { sessionStorage.removeItem(productCacheKey); } catch (_) {}
     setCurrentPage(1);
     setProducts([]);
     fetchProducts(1, true);
@@ -340,16 +337,16 @@ const StorefrontPage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            {isRTL ? 'تعذر تحميل المتجر' : 'Could Not Load Store'}
+            {t('storefront.errors.loadStore')}
           </h2>
           <p className="text-gray-500 text-sm mb-4">
-            {isRTL ? 'حدث خطأ مؤقت. يرجى المحاولة مجدداً.' : 'A temporary error occurred. Please try again.'}
+            {t('storefront.errors.loadStoreDesc')}
           </p>
           <button
             onClick={retryStoreLookup}
             className="px-6 py-2 bg-storelaunch-green text-white rounded-lg font-medium hover:bg-storelaunch-deep-green transition-colors text-sm"
           >
-            {isRTL ? 'إعادة المحاولة' : 'Retry'}
+            {t('storefront.retry')}
           </button>
         </div>
       </div>
@@ -365,10 +362,10 @@ const StorefrontPage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            {isRTL ? 'المتجر غير موجود' : 'Store Not Found'}
+            {t('storefront.errors.storeNotFound')}
           </h2>
           <p className="text-gray-500 text-sm">
-            {isRTL ? `لم يتم العثور على متجر باسم "${storeSlug}".` : `No store found for "${storeSlug}".`}
+            {t('storefront.errors.storeNotFoundDesc', { slug: storeSlug })}
           </p>
         </div>
       </div>
@@ -384,10 +381,10 @@ const StorefrontPage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            {isRTL ? 'المتجر غير متاح حالياً' : 'Store Unavailable'}
+            {t('storefront.errors.storeUnavailable')}
           </h2>
           <p className="text-gray-500 text-sm">
-            {isRTL ? 'عذرًا، هذا المتجر غير متاح حاليًا.' : 'Sorry, this store is not available at the moment.'}
+            {t('storefront.errors.storeUnavailableDesc')}
           </p>
         </div>
       </div>
@@ -503,7 +500,7 @@ const StorefrontPage = () => {
                       <div className="relative w-24 min-h-[5.5rem] sm:min-h-0 sm:w-36 shrink-0 self-stretch sm:self-auto bg-gray-100 flex items-center justify-center">
                         {outOfStock && (
                           <span className="absolute top-2 left-2 z-10 rounded-full bg-red-600 px-2 py-1 text-[11px] font-semibold text-white shadow">
-                            {isRTL ? 'غير متوفر' : 'Out of stock'}
+                            {t('storefront.outOfStock')}
                           </span>
                         )}
                         {product.image_url ? (
@@ -529,7 +526,7 @@ const StorefrontPage = () => {
                             className="text-xs px-2 py-1 rounded-full font-semibold shrink-0"
                             style={outOfStock ? { backgroundColor: '#fee2e2', color: '#991b1b' } : { color: badgeColor, backgroundColor: badgeBg }}
                           >
-                            {outOfStock ? (isRTL ? 'نفد المخزون' : 'Out of stock') : (isRTL ? 'عرض' : 'View')}
+                            {outOfStock ? t('storefront.product.outOfStock') : t('storefront.view')}
                           </span>
                         </div>
                         <div className={`mt-2 flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -543,7 +540,7 @@ const StorefrontPage = () => {
                               {Number(product.rating_summary.average_rating || 0).toFixed(1)} ({product.rating_summary.total_reviews})
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">{isRTL ? 'لا توجد تقييمات بعد' : 'No reviews yet'}</span>
+                            <span className="text-xs text-gray-400">{t('storefront.product.noReviewsYet')}</span>
                           )}
                         </div>
                       </div>
@@ -563,7 +560,7 @@ const StorefrontPage = () => {
                     <div className="relative aspect-[4/3] sm:aspect-square bg-gray-100 flex items-center justify-center">
                       {outOfStock && (
                         <span className="absolute top-2 left-2 z-10 rounded-full bg-red-600 px-2 py-1 text-[11px] font-semibold text-white shadow">
-                          {isRTL ? 'غير متوفر' : 'Out of stock'}
+                          {t('storefront.outOfStock')}
                         </span>
                       )}
                       {product.image_url ? (
@@ -595,7 +592,7 @@ const StorefrontPage = () => {
                           className="text-xs px-2 py-1 rounded-full font-semibold shrink-0"
                           style={outOfStock ? { color: '#991b1b', backgroundColor: '#fee2e2' } : { color: badgeColor, backgroundColor: badgeBg }}
                         >
-                          {outOfStock ? (isRTL ? 'نفد المخزون' : 'Out of stock') : (isRTL ? 'عرض' : 'View')}
+                          {outOfStock ? t('storefront.product.outOfStock') : t('storefront.view')}
                         </span>
                       </div>
                       <div className={`mt-2 flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -609,7 +606,7 @@ const StorefrontPage = () => {
                             {Number(product.rating_summary.average_rating || 0).toFixed(1)} ({product.rating_summary.total_reviews})
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400">{isRTL ? 'لا توجد تقييمات بعد' : 'No reviews yet'}</span>
+                          <span className="text-xs text-gray-400">{t('storefront.product.noReviewsYet')}</span>
                         )}
                       </div>
                     </div>
@@ -647,16 +644,16 @@ const StorefrontPage = () => {
             <div className={`flex items-center justify-between mb-6 gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`${isRTL ? 'text-right md:ml-auto' : 'text-left'}`}>
                 <h2 className="text-3xl font-bold" style={{ color: storeBranding.text }}>
-                  {isRTL ? 'ماذا يقول عملاؤنا' : 'What Our Customers Say'}
+                  {t('storefront.testimonials.title')}
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  {isRTL ? 'آراء حقيقية من متسوقين في المتجر' : 'Real feedback from recent shoppers'}
+                  {t('storefront.testimonials.subtitle')}
                 </p>
               </div>
               <div className={`hidden md:flex items-center gap-2 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <button
                   type="button"
-                  aria-label={isRTL ? 'السابق' : 'Previous testimonials'}
+                  aria-label={t('storefront.testimonials.previous')}
                   onClick={() => reviewsScrollerRef.current?.scrollBy({ left: isRTL ? 320 : -320, behavior: 'smooth' })}
                   className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-700"
                 >
@@ -664,7 +661,7 @@ const StorefrontPage = () => {
                 </button>
                 <button
                   type="button"
-                  aria-label={isRTL ? 'التالي' : 'Next testimonials'}
+                  aria-label={t('storefront.testimonials.next')}
                   onClick={() => reviewsScrollerRef.current?.scrollBy({ left: isRTL ? -320 : 320, behavior: 'smooth' })}
                   className="w-10 h-10 rounded-full text-white"
                   style={{ backgroundColor: reviewAccent }}

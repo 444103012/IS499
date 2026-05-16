@@ -100,8 +100,21 @@ export default function SubscriptionPage() {
     setConfirmModal(null);
     setActionLoading(true);
     try {
-      await axiosInstance.post('/api/subscription/downgrade', { planId });
-      showToast(t('dashboard.subscriptionPage.downgradeSuccess'));
+      const { data } = await axiosInstance.post('/api/subscription/downgrade', { planId });
+      const removed = Array.isArray(data?.removedFeatures) ? data.removedFeatures : [];
+      if (removed.length > 0) {
+        const labels = removed.map((f) => f.labelEn || f.key).join(', ');
+        showToast(
+          `${t('dashboard.subscriptionPage.downgradeSuccess')} ${
+            isRTL
+              ? `تم تعطيل: ${labels}`
+              : `Disabled: ${labels}`
+          }`,
+          'success'
+        );
+      } else {
+        showToast(t('dashboard.subscriptionPage.downgradeSuccess'));
+      }
       await fetchAll();
     } catch (err) {
       showToast(err.response?.data?.error || t('dashboard.subscriptionPage.error'), 'error');

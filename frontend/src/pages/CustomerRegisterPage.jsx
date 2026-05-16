@@ -183,8 +183,9 @@ const CustomerRegisterPage = () => {
             labelKey="customerAuth.email"
             errorKey={fieldError('email')}
             type="text"
-            inputMode="email"
+            inputMode="text"
             autoComplete="email"
+            dir="ltr"
             alignClass={isRTL ? 'text-right' : 'text-left'}
           />
           <RegisterFieldGroup
