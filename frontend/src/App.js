@@ -18,6 +18,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { buildStorefrontPath, normalizeStoreName } from './utils/storefrontRoutes';
 import PwaLaunchRedirect from './components/pwa/PwaLaunchRedirect';
 import PwaLaunchTracker from './components/pwa/PwaLaunchTracker';
+import PwaDynamicManifest from './components/pwa/PwaDynamicManifest';
 
 import DashboardRouteLoading from './components/dashboard/DashboardRouteLoading';
 
@@ -186,6 +187,7 @@ function App() {
     
     
     <BrowserRouter>
+      <PwaDynamicManifest />
       <PwaLaunchRedirect />
       <PwaLaunchTracker />
       <CartProvider>

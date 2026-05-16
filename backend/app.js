@@ -171,6 +171,47 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/api/pwa-manifest', (req, res) => {
+  const rawPath = typeof req.query.path === 'string' ? req.query.path : '/';
+
+  let startPath = '/';
+  if (rawPath && rawPath.startsWith('/') && !rawPath.startsWith('//') && !rawPath.includes('..')) {
+    try {
+      const parsed = new URL(rawPath, 'https://placeholder.internal');
+      startPath = parsed.pathname || '/';
+    } catch {
+      startPath = '/';
+    }
+  }
+
+  const manifest = {
+    id: '/',
+    name: 'StoreLaunch — Launch and manage your online store',
+    short_name: 'StoreLaunch',
+    description: 'Launch and manage your online store',
+    lang: 'en',
+    dir: 'auto',
+    start_url: `${startPath}?pwa=1`,
+    scope: '/',
+    display: 'standalone',
+    orientation: 'portrait-primary',
+    theme_color: '#1FAE77',
+    background_color: '#FFFFFF',
+    categories: ['business', 'shopping'],
+    icons: [
+      { src: '/favicon.ico', sizes: '48x48', type: 'image/x-icon', purpose: 'any' },
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+  };
+
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  return res.json(manifest);
+});
+
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', service: 'backend', health: '/api/health' });
 });
