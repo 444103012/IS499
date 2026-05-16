@@ -23,6 +23,7 @@ const { router: adminManagementRouter, getDashboardStats } = require('./routes/a
 const adminStoreRoutes = require('./routes/adminStoreRoutes');
 const adminPlatformRoutes = require('./routes/adminPlatformRoutes');
 const { ensureAdminsTableAndSeed } = require('./scripts/ensureAdmins');
+const { ensureCartColumn } = require('./scripts/ensureCartColumn');
 
 const app = express();
 
@@ -102,9 +103,14 @@ function isAllowedCorsOrigin(origin) {
   return false;
 }
 
-const appReady = ensureAdminsTableAndSeed(pool).catch((err) => {
-  console.error('Failed to seed admin users:', err);
-});
+const appReady = Promise.all([
+  ensureAdminsTableAndSeed(pool).catch((err) => {
+    console.error('Failed to seed admin users:', err);
+  }),
+  ensureCartColumn(pool).catch((err) => {
+    console.error('Failed to ensure cart column:', err);
+  }),
+]);
 
 app.use(async (_req, _res, next) => {
   await appReady;
