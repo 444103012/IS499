@@ -5,7 +5,7 @@
 
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../api/axios';
 import DashboardSidebar from '../components/DashboardSidebar';
