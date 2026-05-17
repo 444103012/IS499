@@ -156,6 +156,7 @@ router.get('/', async (req, res) => {
     const fulfillment_status = (req.query.fulfillment_status || '').trim();
     const date_from = (req.query.date_from || '').trim();
     const date_to = (req.query.date_to || '').trim();
+    const sortParam = (req.query.sort || '').trim();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const offset = (page - 1) * limit;
@@ -217,7 +218,12 @@ router.get('/', async (req, res) => {
         SELECT p.payment_status, p.method FROM payments p WHERE p.order_id = o.order_id ORDER BY p.created_at DESC LIMIT 1
       ) pay ON true
       WHERE ${where}
-      ORDER BY o.order_date DESC
+      ORDER BY ${
+        sortParam === 'date_asc'   ? 'o.order_date ASC'    :
+        sortParam === 'total_desc' ? 'o.total_amount DESC'  :
+        sortParam === 'total_asc'  ? 'o.total_amount ASC'   :
+        'o.order_date DESC'
+      }
       LIMIT $${n} OFFSET $${n + 1}
     `;
     const listResult = await pool.query(listSql, params);

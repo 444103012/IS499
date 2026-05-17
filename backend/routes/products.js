@@ -96,34 +96,84 @@ router.get('/categories', async (req, res) => {
 });
 
 
+async function ensureProductsCreatedAt(pool) {
+  try {
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`);
+  } catch (_) {}
+}
+
 router.get('/', async (req, res) => {
   const pool = req.app.locals.pool;
   const { store_owner_id } = req.user;
   try {
+    await ensureProductsCreatedAt(pool);
     const store_id = await getStoreId(pool, store_owner_id);
     if (!store_id) return res.json({ products: [] });
 
     const search = (req.query.search || '').trim();
     const statusFilter = (req.query.status || '').trim();
+    const stockStatus = (req.query.stock_status || '').trim();
+    const minPrice = req.query.min_price !== undefined && req.query.min_price !== '' ? parseFloat(req.query.min_price) : null;
+    const maxPrice = req.query.max_price !== undefined && req.query.max_price !== '' ? parseFloat(req.query.max_price) : null;
+    const createdFrom = (req.query.created_from || '').trim();
+    const createdTo = (req.query.created_to || '').trim();
+    const sortBy = (req.query.sort || '').trim();
+
+    const stockSubquery = `(SELECT COALESCE(SUM(po.stock_qty), 0)::INTEGER FROM product_options po WHERE po.product_id = p.product_id)`;
 
     let sql = `
       SELECT p.product_id, p.store_id, p.product_name, p.title, p.price, p.status, p.images,
-             (SELECT COALESCE(SUM(po.stock_qty), 0)::INTEGER FROM product_options po WHERE po.product_id = p.product_id) AS total_stock
+             ${stockSubquery} AS total_stock
       FROM products p
       WHERE p.store_id = $1`;
     const params = [store_id];
     let n = 2;
+
     if (search) {
       sql += ` AND (p.product_name ILIKE $${n} OR (p.title IS NOT NULL AND p.title ILIKE $${n}))`;
       params.push(`%${search}%`);
       n++;
     }
-    if (statusFilter && (statusFilter === 'Active' || statusFilter === 'Inactive')) {
+    if (statusFilter === 'Active' || statusFilter === 'Inactive') {
       sql += ` AND p.status = $${n}`;
       params.push(statusFilter);
       n++;
     }
-    sql += ` ORDER BY p.product_id DESC`;
+    if (minPrice !== null && !Number.isNaN(minPrice)) {
+      sql += ` AND p.price >= $${n}`;
+      params.push(minPrice);
+      n++;
+    }
+    if (maxPrice !== null && !Number.isNaN(maxPrice)) {
+      sql += ` AND p.price <= $${n}`;
+      params.push(maxPrice);
+      n++;
+    }
+    if (stockStatus === 'in_stock') {
+      sql += ` AND ${stockSubquery} > 0`;
+    } else if (stockStatus === 'low_stock') {
+      sql += ` AND ${stockSubquery} > 0 AND ${stockSubquery} <= 5`;
+    } else if (stockStatus === 'out_of_stock') {
+      sql += ` AND ${stockSubquery} = 0`;
+    }
+    if (createdFrom) {
+      sql += ` AND p.created_at >= $${n}::date`;
+      params.push(createdFrom);
+      n++;
+    }
+    if (createdTo) {
+      sql += ` AND p.created_at < ($${n}::date + interval '1 day')`;
+      params.push(createdTo);
+      n++;
+    }
+
+    switch (sortBy) {
+      case 'name_asc':   sql += ` ORDER BY p.product_name ASC`;  break;
+      case 'name_desc':  sql += ` ORDER BY p.product_name DESC`; break;
+      case 'price_asc':  sql += ` ORDER BY p.price ASC`;         break;
+      case 'price_desc': sql += ` ORDER BY p.price DESC`;        break;
+      default:           sql += ` ORDER BY p.product_id DESC`;   break;
+    }
 
     const r = await pool.query(sql, params);
     const products = r.rows.map((row) => {

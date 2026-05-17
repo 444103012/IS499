@@ -4,7 +4,6 @@ import { getNormalizedStoreBranding } from '../utils/storeBranding';
 import { normalizeStoreName } from '../utils/storefrontRoutes';
 
 const DEFAULT_BRANDING = getNormalizedStoreBranding('default', {});
-const BLOCKED_STORE_STATUSES = new Set(['Suspended', 'Blocked', 'Inactive']);
 const storeCache = new Map();
 
 function clamp(value, min, max) {
@@ -78,7 +77,7 @@ export default function useStoreBranding(storeSlug, options = {}) {
           setStatus('not_found');
           return;
         }
-        if (BLOCKED_STORE_STATUSES.has(store.status)) {
+        if (store.status !== 'Active') {
           const blocked = { storeInfo: store, branding: getNormalizedStoreBranding(store.theme, store.branding), status: 'inactive' };
           storeCache.set(cacheKey, blocked);
           setStoreInfo(blocked.storeInfo);
