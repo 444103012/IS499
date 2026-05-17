@@ -79,8 +79,8 @@ router.get('/', async (req, res) => {
         return res.status(404).json({ error: 'Store not found' });
       }
       const requestedStoreStatus = String(storeStatusResult.rows[0].status || '');
-      if (requestedStoreStatus === 'Suspended') {
-        return res.status(403).json({ error: 'Store unavailable', reason: 'SUSPENDED' });
+      if (requestedStoreStatus !== 'Active') {
+        return res.status(403).json({ error: 'Store unavailable', reason: 'INACTIVE' });
       }
 
       queryParams.push(requestedStoreId);
